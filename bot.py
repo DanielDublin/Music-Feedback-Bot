@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord_slash import SlashCommand
 from config import TOKEN
 from database import init_database  # Import the database initialization function
+import exception_handler
 
 # Initialize the bot
 bot = commands.Bot(command_prefix='!')

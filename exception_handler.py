@@ -1,5 +1,4 @@
 import discord
-import exception_handler
 
 # Define a function to handle exceptions
 async def handle_exception(ctx, error):
