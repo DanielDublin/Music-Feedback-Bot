@@ -7,7 +7,8 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @bot.command()
+
+@commands.command()
 async def notes(ctx):
     menu = NotesMenu()
     await menu.start(ctx)
