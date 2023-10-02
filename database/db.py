@@ -1,5 +1,8 @@
 import aiomysql
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Initialize the database connection (async)
 async def init_database():

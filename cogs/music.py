@@ -77,5 +77,5 @@ class Music(commands.Cog):
         menu = NotesMenu()
         await menu.start(ctx)
 
-def setup(bot):
-    bot.add_cog(Music(bot))
+async def setup(bot):
+    await bot.add_cog(Music(bot))
