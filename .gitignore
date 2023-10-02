@@ -366,3 +366,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+*.pyproj
+/music.py
+/MF_BOT.py
+/hello.py
+/general.py
+/db.py
+/admin.py
