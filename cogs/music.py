@@ -8,7 +8,7 @@ degree = "\u00b0"
 
 options ={}
 # Load data from JSON file
-with open('options.json', 'r') as json_file:
+with open('cogs/options.json', 'r') as json_file:
     options = json.load(json_file)
 
 
@@ -68,6 +68,9 @@ class NotesMenu(menus.Menu):
     def reaction_check(self, payload):
         return payload.user_id == self.message.author.id
 
+
+
+#The Cog
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

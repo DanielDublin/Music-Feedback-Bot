@@ -7,11 +7,11 @@ load_dotenv()
 # Initialize the database connection (async)
 async def init_database():
     pool = await aiomysql.create_pool(
-        host= os.getenv("DB_HOST"),
-        port= os.getenv("PORT"),
-        user= os.getenv("DB_USER"),
-        password= os.getenv("DB_PASSWORD"),
-        db= os.getenv("DB_NAME"),
+        host= os.environ.get("DB_HOST"),
+        port= int(os.environ.get("PORT")),
+        user= os.environ.get("DB_USER"),
+        password= os.environ.get("DB_PASSWORD"),
+        db= os.environ.get("DB_NAME"),
         autocommit=True,
         charset='utf8mb4',
         cursorclass=aiomysql.DictCursor,
