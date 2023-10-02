@@ -31,5 +31,5 @@ class Admin(commands.Cog):
                 await ctx.send(f"{user.mention} has been unbanned.")
                 return
 
-def setup(bot):
-    bot.add_cog(Admin(bot))
+async def setup(bot):
+    await bot.add_cog(Admin(bot))

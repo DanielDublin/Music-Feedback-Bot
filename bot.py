@@ -1,11 +1,13 @@
 import discord
 import os
-import database.db
+import asyncio
 from discord.ext import commands
 from discord import app_commands
-import database.db
+from database.db import *
 import exception_handler
 from dotenv import load_dotenv
+
+
 
 load_dotenv()
 
@@ -15,16 +17,16 @@ token = os.environ.get('DISCORD_TOKEN')
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix='!', intents= intents)
+intents.typing = True
+intents.presences = True
+bot = commands.Bot(command_prefix='<MFR', intents= intents)
 
 # Define the on_ready event
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     await init_database()  # Initialize the database when the bot starts
-    guild_id = 763835373414776903  # Replace with your guild ID
-    tree = bot.app_commands
-    await tree.sync(guild=discord.Object(id=guild_id))
+    await bot.tree.sync(guild=discord.Object(id=763835373414776903))
 
 # Load extensions (cogs)
 initial_extensions = [
@@ -39,6 +41,7 @@ slash_extensions = [
 ]
 
 
+
 # Define an exception handler
 @bot.event
 async def on_command_error(ctx, error):
@@ -50,13 +53,22 @@ async def load_extensions():
         await bot.load_extension(extension)
 
     for extension in slash_extensions:
-        bot.load_extension(extension)
+        await bot.load_extension(extension)
+
+
 
 # Run the bot using asyncio.run() to set up the event loop
 if __name__ == '__main__':
-    import asyncio
+      # Create an event loop
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(load_extensions())
+
+    # Use the event loop's run_until_complete to execute the coroutine
+    try:
+        loop.run_until_complete(load_extensions())
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+
+    bot.run(token)
 
 
 

@@ -1,16 +1,17 @@
+import discord
 from discord.ext import commands
-from discord_slash import cog_ext
+from discord import app_commands
+
+
 
 class Hello(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @cog_ext.cog_slash(
-        name="hello",
-        description="Say hello to the bot",
-    )
-    async def hello_command(self, ctx):
-        await ctx.send("Hello!")
+    @app_commands.command(name = "hello", description = "Greeting the user") #remove to get all guilds
+    async def hello_command(self, interaction):
+        await interaction.response.send_message("Hello!")
 
-def setup(bot):
-    bot.add_cog(Hello(bot))
+async def setup(bot):
+    await bot.add_cog(Hello(bot))
+
