@@ -1,5 +1,6 @@
 import discord
 import os
+import database.db
 from discord.ext import commands
 from discord_slash import SlashCommand
 from database import init_database  # Import the database initialization function
@@ -19,8 +20,7 @@ async def on_ready():
 
 # Load extensions (cogs)
 initial_extensions = [
-    'cogs.admin',
-    'cogs.general',
+    'cogs.music',
     # Add more cogs as needed
 ]
 
@@ -44,4 +44,4 @@ async def on_command_error(ctx, error):
 
 
 # Run the bot with your token
-bot.run(TOKEN)
+bot.run(token)
