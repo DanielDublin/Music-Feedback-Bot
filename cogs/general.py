@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from database.db import init_database
 
+
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

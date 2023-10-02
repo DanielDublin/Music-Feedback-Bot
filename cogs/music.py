@@ -20,7 +20,7 @@ class NotesMenu(menus.Menu):
         self.subcategory = subcategory
 
     async def send_initial_message(self, ctx, channel):
-        if not self.category:
+        if self.category is None:
             # Show category selection if no category selected
             embed = discord.Embed(title="Select a category:", color=0x7e016f)
             for i, category in enumerate(categories, start=1):
