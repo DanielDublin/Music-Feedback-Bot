@@ -1,2 +1,4 @@
 discord.py==2.3.2
+discord-py-interactions
+python-dotenv
 aiomysql
