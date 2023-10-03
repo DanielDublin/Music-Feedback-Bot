@@ -19,7 +19,9 @@ intents = discord.Intents.default()
 intents.members = True
 intents.typing = True
 intents.presences = True
-bot = commands.Bot(command_prefix='<MFR', intents= intents)
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='!', intents= intents)
 
 # Define the on_ready event
 @bot.event
@@ -45,7 +47,7 @@ slash_extensions = [
 # Define an exception handler
 @bot.event
 async def on_command_error(ctx, error):
-    exception_handler.handle_exception(ctx, error)  # Call the exception handling function
+    await exception_handler.handle_exception(ctx, error)  # Call the exception handling function
 
 
 async def load_extensions():
