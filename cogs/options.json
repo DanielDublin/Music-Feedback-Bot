@@ -1,6 +1,5 @@
 {
     "Info": {
-        "Categories": {
             "Majors": {
                 "C major": "`C D E F G A B`\n\nThe relative minor is A minor. \nThe parallel minor is C minor.",
                 "D major": "`D E F# G A B C#`\n\nThe relative minor is B minor. \nThe parallel minor is D minor.",
@@ -47,10 +46,8 @@
                 "B# minor": "Theoretical key.",
                 "Cb minor": "Theoretical key."
             }
-        }
-    },
+        },
     "Chords": {
-        "Categories": {
             "Majors": {
                 "C major": {
                     "Degree": "`I\nii\niii\nIV\nV\nvi\nvii{degree}`",
@@ -87,8 +84,7 @@
                     "Chords": "`B major\nC# minor\nD# minor\nE major\nF# major\nG# minor\nA# dim`",
                     "Notes": "`B D# F# (A#)\nC# E G# (B)\nD# F# A# (C#)\nE G# B (D#)\nF# A# C# (E)\nG# B D# (F#)\nA# C# E (G#)`"
                 }
-            }
-        },
+            },
         "Sharp/Flat Majors": {
             "C# major": {
                 "Degree": "`I\nii\niii\nIV\nV\nvi\nvii{degree}`",
