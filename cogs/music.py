@@ -2,24 +2,30 @@
 from discord.ext import commands, menus
 import json
 
+
 class NotesMenu(menus.Menu):
     def __init__(self, ctx, bot, json_data):
-        super().__init__(timeout=60.0, delete_message_after=True)
+        super().__init__(timeout=60.0, delete_message_after=True, clear_reactions_after = True)
         self.json_data = json_data
         self.current_level = 0
         self.selections = []
         self.bot = bot
         self.menu_message = None
-        self.author = ctx.author
+        self.user_id = ctx.author.id
         self.page_index = 0
         self.options_per_page = 7  # Number of options per page
 
         self.bot.add_listener(self.on_raw_reaction_add)
 
+    async def on_timeout(self):
+        await self.menu_message.clear_reactions()
+        await self.stop()
+
     async def on_raw_reaction_add(self, payload):
         if payload.user_id == self.bot.user.id:
             return
-        if payload.user_id != self.author.id:
+        if payload.user_id != self.user_id:
+            await self.menu_message.channel.send(f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
             return
 
         message_id = payload.message_id
@@ -178,6 +184,7 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.command()
     async def notes(self, ctx):
         with open("cogs/options.json", "r") as file:
@@ -185,6 +192,7 @@ class Music(commands.Cog):
 
         menu = NotesMenu(ctx, self.bot, json_data)
         await menu.start(ctx)
+     
 
 async def setup(bot):
     await bot.add_cog(Music(bot))
