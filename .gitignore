@@ -373,3 +373,4 @@ FodyWeavers.xsd
 /general.py
 /db.py
 /admin.py
+/main.py
