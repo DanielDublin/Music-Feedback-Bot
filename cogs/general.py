@@ -1,35 +1,30 @@
 import discord
 from discord.ext import commands
-from database.db import init_database
+import database.db as db
 
-
+MF_GUILD_ID = 732355624259813531
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
 
 
-    #MF balance              
-    async def balance(users, member: discord.Member, message):  
-        if message.content.startswith("<MF points") or message.content.startswith("<mf points") or message.content.startswith("<MF Points"):
-            guild = client.get_guild(732355624259813531)
-            values = {k: v for k, v in sorted(users.items(), key = lambda item: item[1]['points'], reverse = True)}
-            names = ''
+    #MF balance 
+    @commands.command()             
+    async def points(self, ctx :discord.Message):  
+        guild = ctx.guild
+        points = db.fetch_points(ctx.author.id)
+        rank = db.fetch_position(ctx.author.id)
+        pfp = ctx.author.avatar_url            
+        
+        embed = discord.Embed(color = 0x7e016f)
+        embed.set_author(name = f"Music Feedback: {ctx.author}", icon_url = guild.icon_url) 
+        embed.set_thumbnail(url = pfp)
+        embed.add_field(name = "__MF Points__", value = f"You have **{points}** MF point(s).", inline = False)
+        embed.add_field(name = "__MF Rank__", value = f"Your MF Rank is **#{rank}** out of **{guild.member_count}**.", inline = False)
+        await ctx.channel.send(embed = embed)
+            
 
-            for position, user in enumerate(values, start = 1):
-                if str(member.id) in user: 
-                    if user in values:
-                        names += f"{position}"               
-
-            points = users[f"{member.id}"]["points"] 
-            author = message.author
-            pfp = author.avatar_url            
-            myEmbed = discord.Embed(color = 0x7e016f)
-            myEmbed.set_author(name = f"Music Feedback: {member}", icon_url = guild.icon_url) 
-            myEmbed.set_thumbnail(url = pfp)
-            myEmbed.add_field(name = "__MF Points__", value = f"You have **{points}** MF point(s).", inline = False)
-            myEmbed.add_field(name = "__MF Rank__", value = f"Your MF Rank is **#{names}** out of **{guild.member_count}**.", inline = False)
-            await message.channel.send(embed = myEmbed) 
 
     #MF leaderboard 
     async def leaderboard(users, member: discord.Member, message):
