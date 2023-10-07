@@ -2,19 +2,25 @@ import discord
 from discord.ext import commands
 import database.db as db
 
-MF_GUILD_ID = 732355624259813531
+
+FEEDBACK_CHANNEL_ID = 749443325530079314
+SERVER_OWNER_ID = 412733389196623879
+
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
 
     #note: need to add functions in db of fetch_points, fetch_rank
 
-    #MF balance 
+    #MF points - Shows how many points the current user has 
     @commands.command()             
-    async def points(self, ctx :discord.Message):  
+    async def points(self, ctx :discord.Message): 
+        
+        # Gathering data
         guild = ctx.guild
-        points = db.fetch_points(ctx.author.id)
-        rank = db.fetch_position(ctx.author.id)
+        points = await db.fetch_points(ctx.author.id)
+        rank = await db.fetch_position(ctx.author.id)
         pfp = ctx.author.avatar_url            
         
         embed = discord.Embed(color = 0x7e016f)
@@ -59,15 +65,18 @@ class General(commands.Cog):
         #Add points 
     @commands.command(name = "R")       
     async def MFR_command(self, ctx : discord.Message):
-        users[f"{user.id}"]["points"] += 1
-        points = users[f"{user.id}"]["points"]
-        mention = message.author.mention
-        await message.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).", delete_after = 4) 
-        channel = client.get_channel(749443325530079314)
-        my_ID = "412733389196623879"
-        myEmbed = discord.Embed(color = 0x7e016f)
-        myEmbed.add_field(name = "Feedback Notice", value = f"{mention} has **given feedback** and now has **{points}** MF point(s).", inline = False)
-        await channel.send(embed = myEmbed)        
+        global FEEDBACK_CHANNEL_ID
+        
+        await db.increase_points(ctx.author.id, 1)
+        mention = ctx.author.mention
+        points = await db.fetch_points(ctx.author.id)
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
+        
+        embed = discord.Embed(color = 0x7e016f)
+        embed.add_field(name = "Feedback Notice", value = f"{mention} has **given feedback** and now has **{points}** MF point(s).", inline = False)
+        
+        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).", delete_after = 4) 
+        await channel.send(embed = embed)  # Logs channel
 
 
     #Use points        
@@ -97,7 +106,7 @@ class General(commands.Cog):
             await channel.send(embed = myEmbed)        
 
 
- 
+
 
 async def setup(bot):
     await bot.add_cog(General(bot))
