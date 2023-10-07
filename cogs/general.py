@@ -11,7 +11,7 @@ class General(commands.Cog):
         self.bot = bot
         
 
-    #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points
+    #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
     #MF points - Shows how many points the current user has 
     @commands.command()             
@@ -32,37 +32,29 @@ class General(commands.Cog):
             
 
 
-    #MF leaderboard 
-    async def leaderboard(users, member: discord.Member, message):
-        if message.content.startswith("<MF top") or message.content.startswith("<mf top"):
-            send = message.channel.send
-                   
-            top_users = {k: v for k, v in sorted(users.items(), key = lambda item: item[1]['points'], reverse = True)}
-                
-            names = ''
-            top_names = ''
-        
-            for position, user in enumerate(top_users, 0):
-                if user in users:            
-                    if position < 5:
-                        names += f"{position+1} - <@!{user}> | **{top_users[user]['points']}** MF point(s)\n"
- 
-                    if position == 0: 
-                        top_names += f"{user}"
-                        guild = client.get_guild(732355624259813531) 
-                        user_id = top_names
-                        user = discord.utils.get(guild.members, id = int(user_id))
-                        avatar = user.avatar_url                 
+    #MF leaderboard
+    @commands.command(aliases = ["leaderboard"] )  
+    async def top(self, ctx : discord.Member):
+     
+        top_users = await db.fetch_top_users()   
+        guild = ctx.guild
+        names = ''
+      
+        for user_id, points, rank in top_users:
+            names += f"{rank} - <@{user_id}> | **{points}** MF point(s)\n"
 
-            guild = client.get_guild(732355624259813531)
-            embed = discord.Embed(color = 0x7e016f)
-            embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon_url)         
-            embed.add_field(name = "Members", value = names, inline = False)
-            embed.set_thumbnail(url = avatar)
-            await send(embed = embed)            
+            if rank == 1:    
+                user = discord.utils.get(guild.members, id = int(user_id))
+                avatar = user.avatar_url                 
+
+        embed = discord.Embed(color = 0x7e016f)
+        embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon_url)         
+        embed.add_field(name = "Members", value = names, inline = False)
+        embed.set_thumbnail(url = avatar)
+        await ctx.channe.send(embed = embed)            
 
 
-        #Add points 
+    #Add points 
     @commands.command(name = "R")       
     async def MFR_command(self, ctx : discord.Message):
         global FEEDBACK_CHANNEL_ID
