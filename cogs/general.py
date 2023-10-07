@@ -11,7 +11,7 @@ class General(commands.Cog):
         self.bot = bot
         
 
-    #note: need to add functions in db of fetch_points, fetch_rank
+    #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points
 
     #MF points - Shows how many points the current user has 
     @commands.command()             
@@ -67,7 +67,7 @@ class General(commands.Cog):
     async def MFR_command(self, ctx : discord.Message):
         global FEEDBACK_CHANNEL_ID
         
-        await db.increase_points(ctx.author.id, 1)
+        await db.add_points(ctx.author.id, 1)
         mention = ctx.author.mention
         points = await db.fetch_points(ctx.author.id)
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
@@ -81,32 +81,33 @@ class General(commands.Cog):
 
     #Use points        
     @commands.command(name = "S")       
-    async def MFs_command(self, ctx : discord.Message):     
-        users[f"{user.id}"]["points"] -= 1
-        points = users[f"{user.id}"]["points"]
-        mention = message.author.mention
-        if users[f"{user.id}"]["points"] <= -1:
-            await message.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.", delete_after = 5)  
-            await message.delete()
-            channel = client.get_channel(749443325530079314)
-            my_ID = "412733389196623879"
-            await channel.send(f"<@{my_ID}>:") 
-            myEmbed = discord.Embed(color = 0x7e016f)
-            myEmbed.add_field(name = "**ALERT**", value = f"{mention} tried sending a track for feedback with **0** MF points.", inline = False) 
-            await channel.send(embed = myEmbed)
-            if users[f"{user.id}"]["points"] <= -1:
-                users[f"{user.id}"]["points"] += 1
+    async def MFs_command(self, ctx : discord.Message):
+        global FEEDBACK_CHANNEL_ID, SERVER_OWNER_ID
+        
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
+        points = await db.fetch_points(ctx.author.id)
+        mention = ctx.author.mention
+        
+        if points: # user have points, reduce them and send message + log
+            points -= 1
+            await db.reduce_points(ctx.author.id, 1)
+            await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).", delete_after = 4)
+            
+            embed = discord.Embed(color = 0x7e016f)
+            embed.add_field(name = "Feedback Notice", value = f"{mention} has **submitted** a work for feedback and now has **{points}** MF point(s).", inline = False)
+            await channel.send(embed = embed)   
+
+
+        else: # User doesn't have points
+            await ctx.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.", delete_after = 5)  
+            await ctx.delete()
+            await channel.send(f"<@{SERVER_OWNER_ID}>:") 
+            
+            embed = discord.Embed(color = 0x7e016f)
+            embed.add_field(name = "**ALERT**", value = f"{mention} tried sending a track for feedback with **0** MF points.", inline = False) 
+            await channel.send(embed = embed)
+        
                 
-        elif users[f"{user.id}"]["points"] >= 0:
-            await message.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).", delete_after = 4)
-            channel = client.get_channel(749443325530079314)
-            my_ID = "412733389196623879"
-            myEmbed = discord.Embed(color = 0x7e016f)
-            myEmbed.add_field(name = "Feedback Notice", value = f"{mention} has **submitted** a work for feedback and now has **{points}** MF point(s).", inline = False)
-            await channel.send(embed = myEmbed)        
-
-
-
-
+   
 async def setup(bot):
     await bot.add_cog(General(bot))
