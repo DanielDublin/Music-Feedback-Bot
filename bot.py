@@ -32,7 +32,12 @@ async def on_ready():
 
 # Load extensions (cogs)
 initial_extensions = [
-    'cogs.music'
+    
+    'cogs.general'
+    'cogs.user_listener',
+    'cogs.guild_events',
+    'cogs.music',
+    'cogs.admin'
     # Add more cogs as needed
 ]
 
