@@ -8,7 +8,7 @@ class Admin(commands.Cog):
      #add to db.py reset_points            
                                     
     #Mod give points     
-    @commands.command()
+    @commands.command(name = "add", aliases = [" add"])
     @commands.has_permissions(administrator = True)
     async def add(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         
@@ -21,7 +21,7 @@ class Admin(commands.Cog):
       
 
     #Mod remove points 
-    @commands.command()
+    @commands.command(name = "remove", aliases = [" remove"])
     @commands.has_permissions(administrator = True)
     async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         current_points = await db.fetch_points(user.id)
@@ -40,7 +40,7 @@ class Admin(commands.Cog):
         
 
     #Mod clear points        
-    @commands.command()
+    @commands.command(name = "clear", aliases = [" clear"])
     @commands.has_permissions(administrator = True)
     async def clear(self, ctx :discord.Message, user: discord.Member):
     
