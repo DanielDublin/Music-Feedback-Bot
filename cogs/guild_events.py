@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import database.db as db
 
 
 SUBMISSIONS_CHANNEL_ID = 736318707260719155
