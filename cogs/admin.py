@@ -49,17 +49,6 @@ class Admin(commands.Cog):
         myEmbed.add_field(name = "Music Feedback", value = f"{user.mention} has lost all their MF points. They now have **0** MF points.", inline = False)
         await ctx.channel.send(embed = myEmbed)             
 
-        
-     
-    #Mod balance        WHY U NO PERMS?!
-    @commands.command(name = "balance", aliases = [" balance"])
-    @commands.has_permissions()
-    async def balance(self, ctx :discord.Message, user: discord.Member):
-    
-        points = await db.fetch_points(user.id)
-        embed = discord.Embed(color = 0x7e016f)
-        embed.add_field(name = "Music Feedback", value = f"{user.mention} has **{points}** MF point(s).", inline = False)
-        await ctx.channel.send(embed = embed)             
        
         
 

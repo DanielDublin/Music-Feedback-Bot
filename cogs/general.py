@@ -14,17 +14,20 @@ class General(commands.Cog):
     #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
     #MF points - Shows how many points the current user has 
-    @commands.command()             
-    async def points(self, ctx :discord.Message): 
+    @commands.command(aliases = [" balance", "balance", "points"])             
+    async def points(self, ctx :discord.Message, user :discord.Member = None): 
         
         # Gathering data
+        if user is None:
+            user = ctx.author
+            
         guild = ctx.guild
-        points = await db.fetch_points(ctx.author.id)
-        rank = await db.fetch_position(ctx.author.id)
-        pfp = ctx.author.avatar_url            
+        points = await db.fetch_points(user.id)
+        rank = await db.fetch_position(user.id)
+        pfp = user.avatar_url            
         
         embed = discord.Embed(color = 0x7e016f)
-        embed.set_author(name = f"Music Feedback: {ctx.author}", icon_url = guild.icon_url) 
+        embed.set_author(name = f"Music Feedback: {user}", icon_url = guild.icon_url) 
         embed.set_thumbnail(url = pfp)
         embed.add_field(name = "__MF Points__", value = f"You have **{points}** MF point(s).", inline = False)
         embed.add_field(name = "__MF Rank__", value = f"Your MF Rank is **#{rank}** out of **{guild.member_count}**.", inline = False)
