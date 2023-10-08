@@ -19,4 +19,30 @@ async def init_database():
     print("Database connection established.")
     return pool
 
-# Define your models and database interactions here
+
+
+#fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users, add_user, remove_user
+
+async def fetch_points(user_id : int):
+    
+
+async def fetch_rank(user_id : int):
+    
+
+async def fetch_top_users():
+
+    
+async def reduce_points(user_id:int, points : int):
+    
+async def add_points(user_id:int, points : int):
+    
+async def add_user(user_id):
+    
+async def remove_user(user_id):
+    
+async def reset_points(user_id):
+    
+
+    
+
+    
