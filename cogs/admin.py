@@ -10,7 +10,7 @@ class Admin(commands.Cog):
     #Mod give points     
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def MFadd(self, ctx :discord.Message, user :discord.Member, points :int = 1):
+    async def add(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         
         await db.add_points(user.id, points)
         current_points = await db.fetch_points(user.id)
@@ -23,7 +23,7 @@ class Admin(commands.Cog):
     #Mod remove points 
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def MFremove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
+    async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         current_points = await db.fetch_points(user.id)
         
         if current_points-points:
@@ -42,7 +42,7 @@ class Admin(commands.Cog):
     #Mod clear points        
     @commands.command()
     @commands.has_permissions(administrator = True)
-    async def MFclear(self, ctx :discord.Message, user: discord.Member):
+    async def clear(self, ctx :discord.Message, user: discord.Member):
     
         await db.reset_points(user.id)   
         myEmbed = discord.Embed(color = 0x7e016f)
@@ -53,10 +53,9 @@ class Admin(commands.Cog):
      
     #Mod balance        
     @commands.command()
-    async def MFbalance(self, ctx :discord.Message, user: discord.Member):
+    async def balance(self, ctx :discord.Message, user: discord.Member):
     
-        with open ("MF Points.json", "r") as f:
-            users = json.load(f) 
+       
         
             if str(user.id) in users:
                 points = users[f"{user.id}"]["points"]
