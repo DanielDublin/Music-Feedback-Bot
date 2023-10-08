@@ -33,7 +33,7 @@ async def on_ready():
 # Load extensions (cogs)
 initial_extensions = [
     
-    'cogs.general'
+    'cogs.general',
     'cogs.user_listener',
     'cogs.guild_events',
     'cogs.music',
