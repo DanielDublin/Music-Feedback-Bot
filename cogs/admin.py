@@ -16,9 +16,9 @@ class Admin(commands.Cog):
         
         await db.add_points(user.id, points)
         current_points = await db.fetch_points(user.id)
-        myEmbed = discord.Embed(color = 0x7e016f)
-        myEmbed.add_field(name = "Music Feedback", value = f"You have given {user.mention} 1 MF point. They now have **{points}** MF point(s).", inline = False)
-        await ctx.send(embed = myEmbed)                       
+        embed = discord.Embed(color = 0x7e016f)
+        embed.add_field(name = "Music Feedback", value = f"You have given {user.mention} {points} MF point. They now have **{points}** MF point(s).", inline = False)
+        await ctx.send(embed = embed)                       
 
       
 
