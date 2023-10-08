@@ -1,5 +1,7 @@
 import discord
+import database.db as db
 from discord.ext import commands
+
 
 class Admin(commands.Cog):
     def __init__(self, bot):
