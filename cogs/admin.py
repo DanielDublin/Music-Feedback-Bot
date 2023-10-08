@@ -5,7 +5,7 @@ class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-                 
+     #add to db.py reset_points            
                                     
     #Mod give points     
     @commands.command()
@@ -44,22 +44,15 @@ class Admin(commands.Cog):
     @commands.has_permissions(administrator = True)
     async def MFclear(self, ctx :discord.Message, user: discord.Member):
     
-        with open ("MF Points.json", "r") as f:
-            users = json.load(f) 
-        
-            if str(user.id) in users:
-                users[f"{user.id}"]["points"] = 0
-                points = users[f"{user.id}"]["points"]
-                myEmbed = discord.Embed(color = 0x7e016f)
-                myEmbed.add_field(name = "Music Feedback", value = f"{user.mention} has lost all their MF points. They now have **{points}** MF points.", inline = False)
-                await ctx.send(embed = myEmbed)             
+        await db.reset_points(user.id)   
+        myEmbed = discord.Embed(color = 0x7e016f)
+        myEmbed.add_field(name = "Music Feedback", value = f"{user.mention} has lost all their MF points. They now have **0** MF points.", inline = False)
+        await ctx.channel.send(embed = myEmbed)             
 
-        with open("MF Points.json", "w") as f:
-            json.dump(users, f,indent = 4)  
         
      
     #Mod balance        
-    @client.command()
+    @commands.command()
     async def MFbalance(self, ctx :discord.Message, user: discord.Member):
     
         with open ("MF Points.json", "r") as f:
