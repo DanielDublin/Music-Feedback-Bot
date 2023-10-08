@@ -24,24 +24,28 @@ async def init_database():
 #fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users, add_user, remove_user
 
 async def fetch_points(user_id : int):
-    
+    a=0
 
 async def fetch_rank(user_id : int):
-    
+    a=0  
 
 async def fetch_top_users():
-
+    a=0  
     
 async def reduce_points(user_id:int, points : int):
+    a=0    
     
 async def add_points(user_id:int, points : int):
-    
+    a=0      
+
 async def add_user(user_id):
-    
+    a=0      
+
 async def remove_user(user_id):
-    
+    a=0      
+
 async def reset_points(user_id):
-    
+    a=0  
 
     
 
