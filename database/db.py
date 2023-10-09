@@ -171,6 +171,27 @@ async def reset_points(user_id: int):
     
 
 async def json_migration(users):
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            # Create a batch to accumulate SQL commands
+            batch = []
+            
+            for user_id, user_data in users.items():
+                points = user_data.get("points", 0)  # Default points to 0 if not present
+                batch.append((user_id, points))
+                
+                # If the batch size reaches 500 or at the end of the loop, execute the REPLACE command
+                if len(batch) == 500 or user_id == list(users.keys())[-1]:
+                    placeholders = ",".join(["(%s, %s, 0)"] * len(batch))
+                    sql = f"REPLACE INTO users (user_id, points, warnings) VALUES {placeholders}"
+                    values = [item for sublist in batch for item in sublist]
+                    
+                    await cursor.execute(sql, values)
+                    await conn.commit()
+                    
+                    
+                    # Clear the batch for the next set of data
+                    batch = []
     
 
 
