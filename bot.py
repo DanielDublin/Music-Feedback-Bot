@@ -1,9 +1,9 @@
 import discord
 import os
 import asyncio
+import database.db as db
 from discord.ext import commands
 from discord import app_commands
-from database.db import *
 import exception_handler
 from dotenv import load_dotenv
 
@@ -27,7 +27,7 @@ bot = commands.Bot(command_prefix='!', intents= intents)
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
-    await init_database()  # Initialize the database when the bot starts
+    await db.init_database()  # Initialize the database when the bot starts
     await bot.tree.sync(guild=discord.Object(id=763835373414776903))
 
 # Load extensions (cogs)
@@ -69,9 +69,10 @@ if __name__ == '__main__':
       # Create an event loop
     loop = asyncio.get_event_loop()
 
-    # Use the event loop's run_until_complete to execute the coroutine
+
     try:
-        loop.run_until_complete(load_extensions())
+        loop.run_until_complete(load_extensions()) # initializing the cogs
+        bot.loop.create_task(db.schedule_weekly_task()) # database weekly maintenance
     except KeyboardInterrupt:
         pass  # Handle Ctrl+C gracefully
 
