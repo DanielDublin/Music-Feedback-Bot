@@ -4,9 +4,6 @@ import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
-USER_ID = 0
-POINTS = 1
-WARNINGS = 2
 DATABASE_ERROR = -2
 
 
