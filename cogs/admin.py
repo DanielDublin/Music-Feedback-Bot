@@ -13,6 +13,7 @@ class Admin(commands.Cog):
     #Mod give points     
     @commands.command()
     @commands.has_permissions(administrator = True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def add(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         
         await db.add_points(str(user.id), points)
@@ -26,6 +27,7 @@ class Admin(commands.Cog):
     #Mod remove points 
     @commands.command(name = "remove")
     @commands.has_permissions(administrator = True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         current_points = int(await db.fetch_points(str(user.id)))
         
@@ -45,6 +47,7 @@ class Admin(commands.Cog):
     #Mod clear points        
     @commands.command(name = "clear")
     @commands.has_permissions(administrator = True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def clear(self, ctx :discord.Message, user: discord.Member):
     
         await db.reset_points(str(user.id))
@@ -55,6 +58,7 @@ class Admin(commands.Cog):
     #Mod migrate json    
     @commands.command()
     @commands.has_permissions(administrator = True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def migrate(self, ctx :discord.Message):
         
         await ctx.channel.send("starting migration process")

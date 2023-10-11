@@ -88,7 +88,7 @@ async def fetch_rank_from_db(user_id):
     return result
 
 # Fetch points for a user
-async def fetch_points(user_id: int):
+async def fetch_points(user_id: str):
     global users_dict
 
     if user_id in users_dict:
@@ -98,7 +98,7 @@ async def fetch_points(user_id: int):
         return users_dict[user_id]["Points"]
 
 # Fetch rank for a user
-async def fetch_rank(user_id: int):
+async def fetch_rank(user_id: str):
     global users_dict
 
     if user_id in users_dict and "Rank" in users_dict[user_id].keys():
@@ -146,7 +146,7 @@ async def fetch_top_users():
     return top_users_dict
 
 # Reduce points for a user
-async def reduce_points(user_id: int, points: int):
+async def reduce_points(user_id, points: int):
     global pool, users_dict
 
     if pool is None:
@@ -162,7 +162,7 @@ async def reduce_points(user_id: int, points: int):
             await conn.commit()
 
 # Add points for a user
-async def add_points(user_id: int, points: int):
+async def add_points(user_id, points: int):
     global pool, users_dict
 
     if pool is None:
@@ -178,7 +178,7 @@ async def add_points(user_id: int, points: int):
             await conn.commit()
 
 # Add a user
-async def add_user(user_id: int):
+async def add_user(user_id):
     global pool, users_dict
 
     if pool is None:
@@ -195,8 +195,8 @@ async def add_user(user_id: int):
         user_data = {"Points": 0, "Warnings": 0}
         users_dict[user_id] = user_data  # Add user to the dictionary
 
-# Remove a user
-async def remove_user(user_id: int):
+# Remove a user from DB - User was banned
+async def remove_user(user_id):
     global pool, users_dict
 
     if pool is None:
@@ -207,12 +207,12 @@ async def remove_user(user_id: int):
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
-            # Send SQL query to remove the user from the database
+           
             await cursor.execute("DELETE FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
             await conn.commit()
 
-# Reset points for a user
-async def reset_points(user_id: int):
+# Reset points for a user - user left or by command
+async def reset_points(user_id):
     global pool, users_dict
 
     if pool is None:

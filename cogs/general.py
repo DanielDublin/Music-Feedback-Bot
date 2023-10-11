@@ -6,15 +6,15 @@ import database.db as db
 FEEDBACK_CHANNEL_ID = 1103427357781528597
 SERVER_OWNER_ID = 1103427357781528597
 
+
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
 
-    #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
-
     #MF points - Shows how many points the current user has 
-    @commands.command(aliases = ["balance"])             
+    @commands.command(aliases = ["balance"])     
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def points(self, ctx :discord.Message, user :discord.Member = None): 
         
         # Gathering data
@@ -36,7 +36,8 @@ class General(commands.Cog):
 
 
     #MF leaderboard
-    @commands.command(aliases = ["leaderboard"] )  
+    @commands.command(aliases = ["leaderboard"] )
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def top(self, ctx : discord.Member):
      
         top_users = await db.fetch_top_users()   
@@ -63,6 +64,7 @@ class General(commands.Cog):
 
     #Add points 
     @commands.command(name = "R")       
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def MFR_command(self, ctx : discord.Message):
         global FEEDBACK_CHANNEL_ID
         
@@ -80,6 +82,7 @@ class General(commands.Cog):
 
     #Use points        
     @commands.command(name = "S")       
+    @commands.cooldown(1, 30, commands.BucketType.user)
     async def MFs_command(self, ctx : discord.Message):
         global FEEDBACK_CHANNEL_ID, SERVER_OWNER_ID
         

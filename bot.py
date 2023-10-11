@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 
 BOT_DEV_ID = 167329255502512128
+FEEDBACK_CHANNEL_ID = 1103427357781528597
+
 load_dotenv()
 
 token = os.environ.get('DISCORD_TOKEN')
@@ -29,6 +31,9 @@ async def on_ready():
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     await db.init_database()  # Initialize the database when the bot starts
     await bot.tree.sync(guild=discord.Object(id=763835373414776903))
+    general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
+    await general_chat.send("Music Feedback is online.") 
+    
 
 # Load extensions (cogs)
 initial_extensions = [
