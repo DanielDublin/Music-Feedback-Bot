@@ -160,13 +160,15 @@ async def add_points(user_id: int, points: int):
 
 # Add a user
 async def add_user(user_id: int):
+    global pool
     if user_id not in users_dict:
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 # Add or replace user in the database (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
                 await cursor.execute("REPLACE INTO users (user_id, points) VALUES (%s, 0)", (str(user_id),))  # Convert to str
                 await conn.commit()
-                users_dict[user_id] = [0, None, None]  # Add user to the dictionary
+                user_data = {"Points": 0, "Warnings": 0}
+                users_dict[user_id] = user_data  # Add user to the dictionary
 
 # Remove a user
 async def remove_user(user_id: int):
