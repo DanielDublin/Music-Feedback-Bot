@@ -11,7 +11,7 @@ class Admin(commands.Cog):
      #add to db.py reset_points            
                                     
     #Mod give points     
-    @commands.command(name = "add", aliases = [" add"])
+    @commands.command()
     @commands.has_permissions(administrator = True)
     async def add(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         
@@ -24,12 +24,12 @@ class Admin(commands.Cog):
       
 
     #Mod remove points 
-    @commands.command(name = "remove", aliases = [" remove"])
+    @commands.command(name = "remove")
     @commands.has_permissions(administrator = True)
     async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         current_points = int(await db.fetch_points(str(user.id)))
         
-        if current_points-points:
+        if current_points-points >=0:
             await db.reduce_points(str(user.id), points)       
             embed = discord.Embed(color = 0x7e016f)
             embed.add_field(name = "Music Feedback", value = f"You have taken {points} MF point from {user.mention}. They now have **{current_points - points}** MF point(s).", inline = False)
@@ -43,7 +43,7 @@ class Admin(commands.Cog):
         
 
     #Mod clear points        
-    @commands.command(name = "clear", aliases = [" clear"])
+    @commands.command(name = "clear")
     @commands.has_permissions(administrator = True)
     async def clear(self, ctx :discord.Message, user: discord.Member):
     
