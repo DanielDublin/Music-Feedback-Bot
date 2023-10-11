@@ -137,19 +137,14 @@ async def fetch_top_users():
 # Reduce points for a user
 async def reduce_points(user_id: int, points: int):
     if user_id in users_dict:
-        users_dict[user_id][0] -= points  # Reduce points in the dictionary
+        users_dict[user_id][0] -= points  # Reduce points in the dictionary        
    
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Reduce points in the database
             await cursor.execute("UPDATE users SET points = points - %s WHERE user_id = %s", (points, str(user_id)))  # Convert to str
             await conn.commit()
-            # Fetch updated user data from the database
-            await cursor.execute("SELECT points FROM users WHERE user_id = %s", (str(user_id),))  # Convert to str
-            result = await cursor.fetchone()
-            if result:
-                updated_points = result[0]
-                users_dict[user_id] = [updated_points, None, None]  # Update user in the dictionary
+           
 
 # Add points for a user
 async def add_points(user_id: int, points: int):
@@ -161,12 +156,7 @@ async def add_points(user_id: int, points: int):
                 # Add points in the database
                 await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s", (points, str(user_id)))  # Convert to str
                 await conn.commit()
-                # Fetch updated user data from the database
-                await cursor.execute("SELECT points FROM users WHERE user_id = %s", (str(user_id),))  # Convert to str
-                result = await cursor.fetchone()
-                if result:
-                    updated_points = result[0]
-                    users_dict[user_id] = [updated_points, None, None]  # Update user in the dictionary
+ 
 
 # Add a user
 async def add_user(user_id: int):
