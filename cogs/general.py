@@ -24,10 +24,10 @@ class General(commands.Cog):
         guild = ctx.guild
         points = await db.fetch_points(str(user.id))
         rank = await db.fetch_rank(str(user.id))
-        pfp = user.avatar_url            
+        pfp = user.avatar.url            
         
         embed = discord.Embed(color = 0x7e016f)
-        embed.set_author(name = f"Music Feedback: {user}", icon_url = guild.icon_url) 
+        embed.set_author(name = f"Music Feedback: {user}", icon_url = guild.icon.url) 
         embed.set_thumbnail(url = pfp)
         embed.add_field(name = "__MF Points__", value = f"You have **{points}** MF point(s).", inline = False)
         embed.add_field(name = "__MF Rank__", value = f"Your MF Rank is **#{rank}** out of **{guild.member_count}**.", inline = False)
@@ -50,10 +50,10 @@ class General(commands.Cog):
 
             if rank == 1:    
                 user = discord.utils.get(guild.members, id = int(user_id))
-                avatar = user.avatar_url                 
+                avatar = user.avatar.url                 
 
         embed = discord.Embed(color = 0x7e016f)
-        embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon_url)         
+        embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon.url)         
         embed.add_field(name = "Members", value = names, inline = False)
         embed.set_thumbnail(url = avatar)
         await ctx.channe.send(embed = embed)            

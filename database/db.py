@@ -80,10 +80,10 @@ async def fetch_rank_from_db(user_id):
             async with conn.cursor() as cursor:
                 # Fetch rank from the database
                 await cursor.execute("""
-                    SELECT COUNT(*) + 1 AS Rank
-                    FROM users
-                    WHERE points > (SELECT points FROM users WHERE user_id = %s)
-                """, (str(user_id)))  # Convert to str
+        SELECT (SELECT COUNT(*) + 1
+                FROM users AS u
+                WHERE u.points > (SELECT points FROM users WHERE user_id = %s)) AS Rank_value
+    """, (str(user_id)))  # Convert to str
     result = await cursor.fetchone()
     return result
 
@@ -111,8 +111,8 @@ async def fetch_rank(user_id: int):
         result = await fetch_rank_from_db(user_id)
         
         if result is not None:      
-            users_dict[user_id]["Rank"] = result["Rank"]    # Update rank in the dictionary
-            return result["Rank"]
+            users_dict[user_id]["Rank"] = result["Rank_value"]    # Update rank in the dictionary
+            return result["Rank_value"]
         else:
             return DATABASE_ERROR #database issue
 
