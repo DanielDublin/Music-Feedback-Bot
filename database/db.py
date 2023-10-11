@@ -56,6 +56,8 @@ async def initialize_database_pool():
 async def update_dict_from_db(user_id):
     global pool, users_dict
     
+    users_dict[str(user_id)] = {} # Initializes the parent dict - the user ID
+    
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             
@@ -177,6 +179,8 @@ async def add_user(user_id: int):
     global pool, users_dict
     
     if user_id not in users_dict:
+        users_dict[str(user_id)] = {} # Initializes the parent dict - the user ID
+        
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 # Add or replace user in the database (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
