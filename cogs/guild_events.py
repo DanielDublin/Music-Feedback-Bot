@@ -2,9 +2,9 @@ import discord
 from discord.ext import commands
 
 
-SUBMISSIONS_CHANNEL_ID = 736318707260719155
-GENERAL_CHAT_CHANNEL_ID = 732355624733638748
-MOD_SUBMISSION_LOGGER_CHANNEL_ID = 811399805406019595
+SUBMISSIONS_CHANNEL_ID = 1103427357781528597
+GENERAL_CHAT_CHANNEL_ID = 1103427357781528597
+MOD_SUBMISSION_LOGGER_CHANNEL_ID = 1103427357781528597
 
 class Guild_events(commands.Cog):
     def __init__(self, bot):
@@ -15,7 +15,7 @@ class Guild_events(commands.Cog):
 
     #MF points - Shows how many points the current user has 
     @commands.command(aliases = [" submit"])             
-    async def submit(self, ctx :discord.ctx): 
+    async def submit(self, ctx :discord.Message): 
         
         global SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
         guild = ctx.guild

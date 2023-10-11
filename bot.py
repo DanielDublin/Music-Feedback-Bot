@@ -65,18 +65,23 @@ async def load_extensions():
 
 
 # Run the bot using asyncio.run() to set up the event loop
-if __name__ == '__main__':
-      # Create an event loop
-    loop = asyncio.get_event_loop()
+async def main():
+  global bot
+  try:
+    await load_extensions() # Initializing the cogs
+  except KeyboardInterrupt:
+    pass # Handle Ctrl+C gracefully
+
+  # Create a task that will run the database weekly maintenance task
+  task = asyncio.create_task(db.schedule_weekly_task())
+
+  # Start the bot
+  await bot.start(token)
+
+  # Wait for the database weekly maintenance task to finish
+  await task
 
 
-    try:
-        loop.run_until_complete(load_extensions()) # initializing the cogs
-        bot.loop.create_task(db.schedule_weekly_task()) # database weekly maintenance
-    except KeyboardInterrupt:
-        pass  # Handle Ctrl+C gracefully
 
-    bot.run(token)
-
-
-
+if __name__ == "__main__":
+  asyncio.run(main())
