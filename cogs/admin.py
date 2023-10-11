@@ -51,7 +51,22 @@ class Admin(commands.Cog):
         myEmbed.add_field(name = "Music Feedback", value = f"{user.mention} has lost all their MF points. They now have **0** MF points.", inline = False)
         await ctx.channel.send(embed = myEmbed)             
 
-       
+    #Mod migrate json    
+    @commands.command()
+    @commands.has_permissions(administrator = True)
+    async def migrate(self, ctx :discord.Message):
         
+        await ctx.channel.send("starting migration process")
+        
+        #Load the JSON file with nested dictionaries
+        with open('MF Points.json', 'r') as json_file:
+            data = json.load(json_file)    
+ 
+        await db.json_migration(data)
+        await ctx.channel.send("finished migration process")
+
+print("Processing complete")
+
+
 async def setup(bot):
     await bot.add_cog(Admin(bot))
