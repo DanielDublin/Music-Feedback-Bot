@@ -3,8 +3,8 @@ from discord.ext import commands
 import database.db as db
 
 
-FEEDBACK_CHANNEL_ID = 749443325530079314
-SERVER_OWNER_ID = 412733389196623879
+FEEDBACK_CHANNEL_ID = 1103427357781528597
+SERVER_OWNER_ID = 1103427357781528597
 
 class General(commands.Cog):
     def __init__(self, bot):
@@ -14,7 +14,7 @@ class General(commands.Cog):
     #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
     #MF points - Shows how many points the current user has 
-    @commands.command(aliases = [" balance", "balance", "points"])             
+    @commands.command(aliases = [" balance", "balance", " points"])             
     async def points(self, ctx :discord.Message, user :discord.Member = None): 
         
         # Gathering data
@@ -23,7 +23,7 @@ class General(commands.Cog):
             
         guild = ctx.guild
         points = await db.fetch_points(user.id)
-        rank = await db.fetch_position(user.id)
+        rank = await db.fetch_rank(user.id)
         pfp = user.avatar_url            
         
         embed = discord.Embed(color = 0x7e016f)

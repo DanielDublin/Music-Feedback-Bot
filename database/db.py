@@ -19,6 +19,7 @@ users_dict = {} # id -> points, rank, warnings
 
 # Initialize the database connection (async)
 async def init_database():
+    global pool
     pool = await aiomysql.create_pool(
         host= os.environ.get("DB_HOST"),
         port= int(os.environ.get("PORT")),
@@ -30,13 +31,13 @@ async def init_database():
         cursorclass=aiomysql.DictCursor,
     )
     print("Database connection established.")
-    return pool
+
 
 
 
 
 # Define the weekly task coroutine
-async def weekly_task():
+def weekly_task():
     global users_dict
     users_dict = {}
     
@@ -55,7 +56,7 @@ async def initialize_database_pool():
     
     pool = await aiomysql.create_pool(host='your_host', user='your_user', password='your_password', db='your_database')
 
-async def update_dict_from_db(self, user_id):
+async def update_dict_from_db(user_id):
     global pool, users_dict, POINTS, WARNINGS
     
     async with pool.acquire() as conn:
@@ -72,7 +73,7 @@ async def update_dict_from_db(self, user_id):
                 await add_user(user_id)  # User is absent from DB
             
                 
-async def fetch_rank_from_db(self, user_id):
+async def fetch_rank_from_db(user_id):
     global pool
     
     async with pool.acquire() as conn:
