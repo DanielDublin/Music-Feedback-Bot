@@ -43,7 +43,9 @@ class General(commands.Cog):
         guild = ctx.guild
         names = ''
       
-        for user_id, points, rank in top_users:
+        for user_id, user_data in top_users.items():
+            rank = user_data["rank"]
+            points = user_data["points"]
             names += f"{rank} - <@{user_id}> | **{points}** MF point(s)\n"
 
             if rank == 1:    

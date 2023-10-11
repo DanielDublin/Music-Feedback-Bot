@@ -57,7 +57,7 @@ async def initialize_database_pool():
     pool = await aiomysql.create_pool(host='your_host', user='your_user', password='your_password', db='your_database')
 
 async def update_dict_from_db(user_id):
-    global pool, users_dict, POINTS, WARNINGS
+    global pool, users_dict
     
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
@@ -67,8 +67,8 @@ async def update_dict_from_db(user_id):
             result = await cursor.fetchone()
             
             if result is not None: # Addding only points and warnings, not Rank to reduce queries
-                users_dict[user_id]["Points"] = result[POINTS]
-                users_dict[user_id]["Warnings"] = result[WARNINGS]
+                users_dict[user_id]["Points"] = result["points"]
+                users_dict[user_id]["Warnings"] = result["warnings"]
             else:
                 await add_user(user_id)  # User is absent from DB
             
@@ -118,11 +118,10 @@ async def fetch_rank(user_id: int):
 
      
 
-
 # Fetch the top 5 users with the best point scores
 async def fetch_top_users():
-    global pool, users_dict, USER_ID, POINTS
-    
+    global pool, users_dict
+
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Fetch top users from the database
@@ -132,8 +131,18 @@ async def fetch_top_users():
                 ORDER BY points DESC
                 LIMIT 5
             """)
+    
     top_users = await cursor.fetchall()
-    top_users_dict = {user[USER_ID]: str(user[POINTS]) for user in top_users}
+    top_users_dict = {}
+
+    for index, user in enumerate(top_users, start=1):
+        user_id = user["user_id"]
+        points = user["points"]
+        rank = index  # Calculate the rank based on the order in the result set
+
+        user_data = {"points": points, "rank": rank}
+        top_users_dict[user_id] = user_data
+
     return top_users_dict
         
 
