@@ -5,6 +5,8 @@ async def handle_exception(ctx, error):
     # Get the cog name if available
     try:
         cog_name = getattr(ctx.command.cog, "qualified_name", "Unknown Cog")
+        if cog_name is None:
+            cog_name = "Unknown"
     except Exception as cog_error:
         print("someone tried to use a command that doesnt exist")
 
