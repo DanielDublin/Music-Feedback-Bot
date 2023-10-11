@@ -24,9 +24,14 @@ class User_listener(commands.Cog):
         await db.add_user(member.id)  
     
 
-    #Remove member json
+    # User left - reset his points
     @commands.Cog.listener()
-    async def on_member_remove(member):
+    async def on_member_remove(member): 
+        await db.reset_points(member.id)
+        
+    # User was banned - remove him from DB
+    @commands.Cog.listener()
+    async def on_member_ban(guild, member):
         await db.remove_user(member.id)
     
     
