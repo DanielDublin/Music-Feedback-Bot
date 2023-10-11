@@ -16,7 +16,7 @@ class Admin(commands.Cog):
     async def add(self, ctx :discord.Message, user :discord.Member, points :int = 1):
         
         await db.add_points(str(user.id), points)
-        current_points = await db.fetch_points(str(user.id))
+        current_points = int(await db.fetch_points(str(user.id)))
         embed = discord.Embed(color = 0x7e016f)
         embed.add_field(name = "Music Feedback", value = f"You have given {user.mention} {points} MF point. They now have **{points}** MF point(s).", inline = False)
         await ctx.send(embed = embed)                       
@@ -27,7 +27,7 @@ class Admin(commands.Cog):
     @commands.command(name = "remove", aliases = [" remove"])
     @commands.has_permissions(administrator = True)
     async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
-        current_points = await db.fetch_points(str(user.id))
+        current_points = int(await db.fetch_points(str(user.id)))
         
         if current_points-points:
             await db.reduce_points(str(user.id), points)       

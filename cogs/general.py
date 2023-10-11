@@ -14,7 +14,7 @@ class General(commands.Cog):
     #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
     #MF points - Shows how many points the current user has 
-    @commands.command(aliases = [" balance", "balance", " points"])             
+    @commands.command(aliases = ["balance"])             
     async def points(self, ctx :discord.Message, user :discord.Member = None): 
         
         # Gathering data
@@ -56,7 +56,7 @@ class General(commands.Cog):
         embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon.url)         
         embed.add_field(name = "Members", value = names, inline = False)
         embed.set_thumbnail(url = avatar)
-        await ctx.channe.send(embed = embed)            
+        await ctx.channel.send(embed = embed)            
 
 
     #Add points 
@@ -66,7 +66,7 @@ class General(commands.Cog):
         
         await db.add_points(str(ctx.author.id), 1)
         mention = ctx.author.mention
-        points = await db.fetch_points(str(ctx.author.id))
+        points = int(await db.fetch_points(str(ctx.author.id)))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         
         embed = discord.Embed(color = 0x7e016f)
@@ -82,7 +82,7 @@ class General(commands.Cog):
         global FEEDBACK_CHANNEL_ID, SERVER_OWNER_ID
         
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
-        points = await db.fetch_points(str(ctx.author.id))
+        points = int(await db.fetch_points(str(ctx.author.id)))
         mention = ctx.author.mention
         
         if points: # user have points, reduce them and send message + log
