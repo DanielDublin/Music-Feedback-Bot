@@ -42,6 +42,7 @@ class General(commands.Cog):
         top_users = await db.fetch_top_users()   
         guild = ctx.guild
         names = ''
+        avatar = guild.icon.url
       
         for user_id, user_data in top_users.items():
             rank = user_data["rank"]
@@ -50,7 +51,8 @@ class General(commands.Cog):
 
             if rank == 1:    
                 user = discord.utils.get(guild.members, id = int(user_id))
-                avatar = user.avatar.url                 
+                if user is not None:
+                    avatar = user.avatar.url                 
 
         embed = discord.Embed(color = 0x7e016f)
         embed.set_author(name = "Top Music Feedbackers", icon_url = guild.icon.url)         

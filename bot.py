@@ -21,7 +21,7 @@ intents.typing = True
 intents.presences = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents= intents, case_insensitive=True, owner_id = BOT_DEV_ID)
+bot = commands.Bot(command_prefix='!', intents= intents, case_insensitive=True, strip_after_prefix = True, owner_id = BOT_DEV_ID)
 
 # Define the on_ready event
 @bot.event

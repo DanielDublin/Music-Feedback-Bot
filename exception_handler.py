@@ -3,6 +3,7 @@ import discord
 # Define a function to handle exceptions
 async def handle_exception(ctx, error):
     # Get the cog name if available
+    cog_name = "Unknown"
     try:
         cog_name = getattr(ctx.command.cog, "qualified_name", "Unknown Cog")
         if cog_name is None:
