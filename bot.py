@@ -34,6 +34,7 @@ async def on_ready():
     general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
     await general_chat.send("Music Feedback is online.") 
     
+    
 
 # Load extensions (cogs)
 initial_extensions = [
