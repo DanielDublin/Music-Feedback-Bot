@@ -4,6 +4,12 @@ import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
+USER_ID = 0
+POINTS = 1
+WARNINGS = 2
+SUCCESS = 100
+DATABASE_ERROR = -2
+
 
 WEEK_TIME_IN_SECONDS = 60*60*24*7
 
@@ -49,29 +55,25 @@ async def initialize_database_pool():
     global pool
     pool = await aiomysql.create_pool(host='your_host', user='your_user', password='your_password', db='your_database')
 
-# Fetch points for a user
-async def fetch_points(user_id: int):
-    if user_id in users_dict:
-        return users_dict[user_id][0]  # Return points from the dictionary
-    else:
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                # Fetch points from the database
-                await cursor.execute("SELECT points FROM users WHERE user_id = %s", (str(user_id),))  # Convert to str
-                result = await cursor.fetchone()
-                if result:
-                    points = result[0]
-                    users_dict[user_id] = [points, None, None]  # Initialize user in the dictionary
-                    return points
-                else:
-                    return None  # User not found
-
-# Fetch rank for a user
-async def fetch_rank(user_id: int):
-    if user_id in users_dict and users_dict[user_id][1] is not None:
-        return users_dict[user_id][1]  # Return rank from the dictionary
-    else:
-        async with pool.acquire() as conn:
+async def update_dict_from_db(self, user_id):
+    global pool, users_dict, USER_ID, POINTS, WARNINGS, SUCCESS
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            
+            # Fetch all the data about the user from DB
+            await cursor.execute("SELECT * FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
+            result = await cursor.fetchone()
+            
+            if result is not None: # Addding only points and warnings, not Rank to reduce queries
+                users_dict[user_id]["Points"] = result[POINTS]
+                users_dict[user_id]["Warnings"] = result[WARNINGS]
+            else:
+                await add_user(user_id)  # User is absent from DB
+            
+                
+async def fetch_rank_from_db(self, user_id):
+    global pool
+    async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 # Fetch rank from the database
                 await cursor.execute("""
@@ -80,18 +82,43 @@ async def fetch_rank(user_id: int):
                     WHERE points > (SELECT points FROM users WHERE user_id = %s)
                 """, (str(user_id),))  # Convert to str
                 result = await cursor.fetchone()
-                if result:
-                    rank = result[0]
-                    if user_id in users_dict:
-                        users_dict[user_id][1] = rank  # Update rank in the dictionary
-                    else:
-                        users_dict[user_id] = [None, rank, None]  # Initialize user in the dictionary
-                    return rank
-                else:
-                    return None  # User not found
+                return result
+
+# Fetch points for a user
+async def fetch_points(user_id: int):
+    global users_dict
+    if user_id in users_dict:
+        return users_dict[user_id]["Points"]  # Return points from the dictionary
+    else:
+            await update_dict_from_db(user_id)
+            return users_dict[user_id]["Points"]
+      
+
+# Fetch rank for a user
+async def fetch_rank(user_id: int):
+    global users_dict
+    
+    if user_id in users_dict and users_dict[user_id]["Rank"] is not None:
+        return users_dict[user_id]["Rank"]  # Return rank from the dictionary
+    
+    else:
+        if user_id not in users_dict:
+            await update_dict_from_db(user_id)        
+        result = await fetch_rank_from_db()
+        
+        if result is not None:      
+            users_dict[user_id]["Rank"] = result[0]    # Update rank in the dictionary
+            return result[0]
+        else:
+            return DATABASE_ERROR #database issue
+
+     
+
 
 # Fetch the top 5 users with the best point scores
 async def fetch_top_users():
+    global pool, USER_ID, POINTS
+    
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Fetch top users from the database
@@ -102,25 +129,27 @@ async def fetch_top_users():
                 LIMIT 5
             """)
             top_users = await cursor.fetchall()
-            top_users_dict = {user[0]: user[1] for user in top_users}
+            top_users_dict = {user[USER_ID]: str(user[POINTS]) for user in top_users}
             return top_users_dict
+        
+
 
 # Reduce points for a user
 async def reduce_points(user_id: int, points: int):
     if user_id in users_dict:
         users_dict[user_id][0] -= points  # Reduce points in the dictionary
-    else:
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                # Reduce points in the database
-                await cursor.execute("UPDATE users SET points = points - %s WHERE user_id = %s", (points, str(user_id)))  # Convert to str
-                await conn.commit()
-                # Fetch updated user data from the database
-                await cursor.execute("SELECT points FROM users WHERE user_id = %s", (str(user_id),))  # Convert to str
-                result = await cursor.fetchone()
-                if result:
-                    updated_points = result[0]
-                    users_dict[user_id] = [updated_points, None, None]  # Update user in the dictionary
+   
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            # Reduce points in the database
+            await cursor.execute("UPDATE users SET points = points - %s WHERE user_id = %s", (points, str(user_id)))  # Convert to str
+            await conn.commit()
+            # Fetch updated user data from the database
+            await cursor.execute("SELECT points FROM users WHERE user_id = %s", (str(user_id),))  # Convert to str
+            result = await cursor.fetchone()
+            if result:
+                updated_points = result[0]
+                users_dict[user_id] = [updated_points, None, None]  # Update user in the dictionary
 
 # Add points for a user
 async def add_points(user_id: int, points: int):
