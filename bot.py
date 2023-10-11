@@ -8,7 +8,7 @@ import exception_handler
 from dotenv import load_dotenv
 
 
-
+BOT_DEV_ID = 167329255502512128
 load_dotenv()
 
 token = os.environ.get('DISCORD_TOKEN')
@@ -21,7 +21,7 @@ intents.typing = True
 intents.presences = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents= intents)
+bot = commands.Bot(command_prefix='!', intents= intents, case_insensitive=True, owner_id = BOT_DEV_ID)
 
 # Define the on_ready event
 @bot.event
