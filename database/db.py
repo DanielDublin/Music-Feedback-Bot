@@ -56,7 +56,8 @@ async def initialize_database_pool():
 async def update_dict_from_db(user_id):
     global pool, users_dict
     
-    users_dict[str(user_id)] = {} # Initializes the parent dict - the user ID
+    
+    users_dict[user_id] = {} # Initializes the parent dict - the user ID
     
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
@@ -66,8 +67,8 @@ async def update_dict_from_db(user_id):
             result = await cursor.fetchone()
             
             if result is not None: # Addding only points and warnings, not Rank to reduce queries
-                users_dict[user_id]["Points"] = result["points"]
-                users_dict[user_id]["Warnings"] = result["warnings"]
+                users_dict[user_id]["Points"] = str(result["points"])
+                users_dict[user_id]["Warnings"] = str(result["warnings"])
             else:
                 await add_user(user_id)  # User is absent from DB
             

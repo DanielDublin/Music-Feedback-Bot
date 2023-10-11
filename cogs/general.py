@@ -22,8 +22,8 @@ class General(commands.Cog):
             user = ctx.author
             
         guild = ctx.guild
-        points = await db.fetch_points(user.id)
-        rank = await db.fetch_rank(user.id)
+        points = await db.fetch_points(str(user.id))
+        rank = await db.fetch_rank(str(user.id))
         pfp = user.avatar_url            
         
         embed = discord.Embed(color = 0x7e016f)
@@ -64,9 +64,9 @@ class General(commands.Cog):
     async def MFR_command(self, ctx : discord.Message):
         global FEEDBACK_CHANNEL_ID
         
-        await db.add_points(ctx.author.id, 1)
+        await db.add_points(str(ctx.author.id), 1)
         mention = ctx.author.mention
-        points = await db.fetch_points(ctx.author.id)
+        points = await db.fetch_points(str(ctx.author.id))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         
         embed = discord.Embed(color = 0x7e016f)
@@ -82,12 +82,12 @@ class General(commands.Cog):
         global FEEDBACK_CHANNEL_ID, SERVER_OWNER_ID
         
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
-        points = await db.fetch_points(ctx.author.id)
+        points = await db.fetch_points(str(ctx.author.id))
         mention = ctx.author.mention
         
         if points: # user have points, reduce them and send message + log
             points -= 1
-            await db.reduce_points(ctx.author.id, 1)
+            await db.reduce_points(str(ctx.author.id), 1)
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).", delete_after = 4)
             
             embed = discord.Embed(color = 0x7e016f)
