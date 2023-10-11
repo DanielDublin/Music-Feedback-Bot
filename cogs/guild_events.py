@@ -14,7 +14,8 @@ class Guild_events(commands.Cog):
     #note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
     #MF points - Shows how many points the current user has 
-    @commands.command(aliases = [" submit"])             
+    @commands.command()      
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx :discord.Message): 
         
         global SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
