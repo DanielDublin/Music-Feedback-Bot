@@ -21,18 +21,18 @@ class User_listener(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member : discord.Member):
-        await db.add_user(member.id)  
+        await db.add_user(str(member.id))
     
 
     # User left - reset his points
     @commands.Cog.listener()
     async def on_member_remove(member): 
-        await db.reset_points(member.id)
+        await db.reset_points(str(member.id))
         
     # User was banned - remove him from DB
     @commands.Cog.listener()
     async def on_member_ban(guild, member):
-        await db.remove_user(member.id)
+        await db.remove_user(str(member.id))
     
     
    
