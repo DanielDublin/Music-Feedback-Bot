@@ -57,8 +57,7 @@ class Admin(commands.Cog):
 
     #Mod migrate json    
     @commands.command()
-    @commands.has_permissions(administrator = True)
-    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.is_owner()
     async def migrate(self, ctx :discord.Message):
         
         await ctx.channel.send("starting migration process")
