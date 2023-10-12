@@ -8,17 +8,18 @@ async def handle_exception(ctx, error):
         cog_name = getattr(ctx.command.cog, "qualified_name", "Unknown Cog")
         if cog_name is None:
             cog_name = "Unknown"
-        print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n{str(e)}")
+            print("someone tried to use a command that doesnt exist")
+        print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n")
     except Exception as cog_error:
-        print("someone tried to use a command that doesnt exist")
         try:
                 await ctx.send(f"No such command exists.")
+                return
         except Exception as e:
-            print("No permissions to send message\n"+str(e))
+            print("No permissions to send message\n"+str(e)+"\n"+str(cog_error))
 
     try:
         if isinstance(error, discord.ext.commands.CommandOnCooldown):
-            await ctx.send('This command is on cooldown, you can use it in {round(error.retry_after, 2)}')
+            await ctx.send(f'This command is on cooldown, you can use it in {round(error.retry_after, 2)}s')
         elif isinstance(error, discord.ext.commands.MissingPermissions):
             await ctx.send(f"You don't have permissions to use the command.")
         elif isinstance(error, discord.ext.commands.CheckFailure):
