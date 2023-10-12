@@ -238,7 +238,7 @@ async def json_migration(users):
             batch = []
 
             for user_id, user_data in users.items():
-                points = user_data.get("points", 0)  # Default points to 0 if not present
+                points = user_data  # Default points to 0 if not present
                 batch.append((user_id, points))
 
                 # If the batch size reaches 500 or at the end of the loop, execute the REPLACE command
