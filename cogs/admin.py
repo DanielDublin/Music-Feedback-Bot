@@ -19,13 +19,13 @@ class Admin(commands.Cog):
         await db.add_points(str(user.id), points)
         current_points = int(await db.fetch_points(str(user.id)))
         embed = discord.Embed(color = 0x7e016f)
-        embed.add_field(name = "Music Feedback", value = f"You have given {user.mention} {points} MF point. They now have **{points}** MF point(s).", inline = False)
+        embed.add_field(name = "Music Feedback", value = f"You have given {user.mention} {points} MF point. They now have **{current_points}** MF point(s).", inline = False)
         await ctx.send(embed = embed)                       
 
       
 
     #Mod remove points 
-    @commands.command(name = "remove")
+    @commands.command()
     @commands.has_permissions(administrator = True)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def remove(self, ctx :discord.Message, user :discord.Member, points :int = 1):
