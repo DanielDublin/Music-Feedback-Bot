@@ -68,6 +68,17 @@ class Admin(commands.Cog):
  
         await db.json_migration(data)
         await ctx.channel.send("finished migration process")
+        
+    #Mod migrate json    
+    @commands.command()
+    @commands.is_owner()
+    async def migrate_warnings(self, ctx :discord.Message):
+        
+        await ctx.channel.send("starting warning migration process")
+        await db.migrate_warnings()
+        await ctx.channel.send("finished warning migration process")
+        
+
 
 print("Processing complete")
 
