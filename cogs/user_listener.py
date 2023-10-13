@@ -33,7 +33,7 @@ class User_listener(commands.Cog):
                 embed = discord.Embed(color = 0x7e016f)
                 embed.set_author(name = f"Music Feedback: {target_user.name}", icon_url = ctx.guild.icon.url) 
                 embed.set_thumbnail(url = pfp)
-                embed.add_field(name = "__MF Warnings__", value = f"User have **{warnings}** warnings.", inline = False)
+                embed.add_field(name = "__MF Warnings__", value = f"User has **{warnings}** warnings.", inline = False)
                 embed.add_field(name="Please consider taking an action against this user:", value=f"{target_user.mention}", inline=False)
                 embed.timestamp = datetime.now()
                 await warning_log_channel.send(embed = embed) 
