@@ -256,7 +256,7 @@ async def migrate_warnings():
         async with conn.cursor() as cursor:
             for user_id, warnings in user_ids_json.items():
                 # Check if the user ID exists in the database
-                await cursor.execute("UPDATE users SET warnings = %s WHERE user_id = %s", (warnings, user_id))
+                await cursor.execute("UPDATE users SET warnings = %s WHERE user_id = %s;", (warnings, user_id))
                 if cursor.rowcount > 0:
                     logging.info(f"Updated user {user_id} with {warnings} warnings")
                 else:
