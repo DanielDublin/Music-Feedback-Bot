@@ -238,7 +238,7 @@ async def add_warning_to_user(user_id :str):
     return users_dict[user_id]["Warnings"]
 
 
-import logging
+
 
 async def migrate_warnings():
     global pool, users_dict
