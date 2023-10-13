@@ -16,23 +16,23 @@ class Guild_events(commands.Cog):
     #MF points - Shows how many points the current user has 
     @commands.command()      
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def submit(self, ctx :discord.Message): 
+    async def submit(self, ctx): 
         
         global SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
         guild = ctx.guild
         file = None
-
-        if ctx.attachments: # Checks if the correct channels were used to be sent a file
+        
+        if len(ctx.message.attachments): # Checks if the correct channels were used to be sent a file
             if ctx.channel.id == SUBMISSIONS_CHANNEL_ID or ctx.channel.id == GENERAL_CHAT_CHANNEL_ID:
-                file = await ctx.attachments[0].to_file() 
+                file = await ctx.message.attachments[0].to_file() 
                 
-        await ctx.delete()
+        await ctx.message.delete()
         
         embed = discord.Embed(color = 0x7e016f)
-        embed.add_field(name = ":ballot_box_with_check:  Success!", value = "Your submission has been received.", inline = False)                
+        embed.add_field(name = ":ballot_box_with_check:  Success!", value = f"{ctx.author.mention}, your submission has been received.", inline = False)                
         await ctx.channel.send(embed = embed)
         channel = self.bot.get_channel(MOD_SUBMISSION_LOGGER_CHANNEL_ID)
-        await channel.send(f"-----------\n**Sent from:** <#{ctx.channel.id}>\n**Submitted by:** <@!{ctx.author.id}>\n {ctx.content}", file=file)    
+        await channel.send(f"-----------\n**Sent from:** <#{ctx.channel.id}>\n**Submitted by:** <@!{ctx.author.id}>\n {ctx.message.content}", file=file)    
                       
    
 async def setup(bot):

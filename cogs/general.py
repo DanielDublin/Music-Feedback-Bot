@@ -101,7 +101,12 @@ class General(commands.Cog):
 
 
         else: # User doesn't have points
-            await ctx.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.", delete_after = 5)  
+            await ctx.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.\nYour request will be DMed to you for future reference.", delete_after = 6)  
+            try:
+                await ctx.author.send(ctx.content)
+            except Exception as e:
+                await ctx.channel.send(f'''{mention}, It seems like the we couldn't DM your requst to you, please ask a moderator for help.''', delete_after = 5)  
+                
             await ctx.delete()
             await channel.send(f"<@{SERVER_OWNER_ID}>:") 
             
