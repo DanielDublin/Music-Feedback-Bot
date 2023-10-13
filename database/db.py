@@ -1,7 +1,9 @@
+from tkinter import W
 import aiomysql
 import os
 import asyncio
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 DATABASE_ERROR = -2
@@ -210,6 +212,56 @@ async def remove_user(user_id):
            
             await cursor.execute("DELETE FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
             await conn.commit()
+
+
+# Add warning to a user
+async def add_warning_to_user(user_id :str):
+    global pool, users_dict
+
+    if pool is None:
+        await init_database()  # Reconnect the database if the pool is None
+
+    if user_id in users_dict:
+        users_dict[user_id]["Warnings"] += 1  # Add points in the dictionary
+       
+
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            # Add points in the database
+            await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s", (1, str(user_id)))  # Convert to str
+            await conn.commit()
+            await cursor.execute("SELECT warnings FROM users WHERE user_id = %s", (user_id,))
+            result = await cursor.fetchone()
+            if result is not None:
+                return result["warnings"]
+            else:
+                return -1    
+
+
+async def migrate_warnings():
+    global pool, users_dict
+    if pool is None:
+        await init_database()  # Reconnect the database if the pool is None
+        
+        # Read user_ids_json from a file
+    with open('user_ids.json', 'r') as file:
+        user_ids_json = json.load(file)     
+        
+    async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                for user_id, warnings in user_ids_json.items():
+                    # Check if the user ID exists in the database
+                    await cursor.execute("UPDATE users SET warnings = %s WHERE user_id = %s", (warnings, user_id))
+                    if cursor.rowcount > 0:
+                        print(f"Updated user {user_id} with {warnings} warnings")
+                    else:
+                        print(f"User {user_id} not found in the database")
+
+
+   
+
+
+  
 
 # Reset points for a user - user left or by command
 async def reset_points(user_id):
