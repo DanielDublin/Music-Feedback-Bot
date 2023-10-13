@@ -68,6 +68,7 @@ async def update_dict_from_db(user_id):
                 users_dict[user_id]["Points"] = int(result["points"])
                 users_dict[user_id]["Warnings"] = int(result["warnings"])
             else:
+                del users_dict[user_id]
                 await add_user(user_id)  # User is absent from DB
 
 async def fetch_rank_from_db(user_id):
@@ -221,21 +222,18 @@ async def add_warning_to_user(user_id :str):
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
 
-    if user_id in users_dict:
-        users_dict[user_id]["Warnings"] += 1  # Add points in the dictionary
-       
+    if user_id not in users_dict:
+        await update_dict_from_db(user_id)
+        
+    users_dict[user_id]["Warnings"] += 1  # Add points in the dictionary
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Add points in the database
-            await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s", (1, str(user_id)))  # Convert to str
+            await cursor.execute("UPDATE users SET warnings = warnings + %s WHERE user_id = %s", (1, str(user_id)))  # Convert to str
             await conn.commit()
-            await cursor.execute("SELECT warnings FROM users WHERE user_id = %s", (user_id,))
-            result = await cursor.fetchone()
-            if result is not None:
-                return result["warnings"]
-            else:
-                return -1    
+            
+    return users_dict[user_id]["Warnings"]
 
 
 async def migrate_warnings():
