@@ -12,11 +12,11 @@ BOT_DEV_ID = 167329255502512128
 FEEDBACK_CHANNEL_ID = 1103427357781528597
 
 load_dotenv()
-
 token = os.environ.get('DISCORD_TOKEN')
 
-# Initialize the bot
 
+
+# Initialize the bot
 intents = discord.Intents.default()
 intents.members = True
 intents.typing = True

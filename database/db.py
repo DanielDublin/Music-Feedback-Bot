@@ -4,6 +4,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 import json
+import logging
 
 load_dotenv()
 DATABASE_ERROR = -2
@@ -14,6 +15,7 @@ WEEK_TIME_IN_SECONDS = 60 * 60 * 24 * 7
 pool = None
 
 users_dict = {}  # id -> points, rank, warnings
+
 
 # Initialize the database connection (async)
 async def init_database():
@@ -236,24 +238,30 @@ async def add_warning_to_user(user_id :str):
     return users_dict[user_id]["Warnings"]
 
 
+import logging
+
 async def migrate_warnings():
     global pool, users_dict
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
+
+    # Configure the logger
+    logging.basicConfig(filename='migration.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
         
-        # Read user_ids_json from a file
+    # Read user_ids_json from a file
     with open('user_ids.json', 'r') as file:
         user_ids_json = json.load(file)     
         
     async with pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                for user_id, warnings in user_ids_json.items():
-                    # Check if the user ID exists in the database
-                    await cursor.execute("UPDATE users SET warnings = %s WHERE user_id = %s", (warnings, user_id))
-                    if cursor.rowcount > 0:
-                        print(f"Updated user {user_id} with {warnings} warnings")
-                    else:
-                        print(f"User {user_id} not found in the database")
+        async with conn.cursor() as cursor:
+            for user_id, warnings in user_ids_json.items():
+                # Check if the user ID exists in the database
+                await cursor.execute("UPDATE users SET warnings = %s WHERE user_id = %s", (warnings, user_id))
+                if cursor.rowcount > 0:
+                    logging.info(f"Updated user {user_id} with {warnings} warnings")
+                else:
+                    logging.warning(f"User {user_id} not found in the database")
+
 
 
    
