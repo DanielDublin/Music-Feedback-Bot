@@ -4,7 +4,8 @@ import database.db as db
 
 
 FEEDBACK_CHANNEL_ID = 1103427357781528597
-SERVER_OWNER_ID = 1103427357781528597
+SERVER_OWNER_ID = 167329255502512128
+FEEDBACK_ACCESS_CHANNEL_ID = 1103427357781528597
 
 
 class General(commands.Cog):
@@ -101,13 +102,15 @@ class General(commands.Cog):
 
 
         else: # User doesn't have points
-            await ctx.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.\nYour request will be DMed to you for future reference.", delete_after = 6)  
+         
             try:
-                await ctx.author.send(ctx.content)
+                await ctx.author.send(ctx.message.content)
+                await ctx.channel.send(f"{mention}, you do not have any MF points. Please give feedback first.\nYour request was DMed to you for future reference. Please reread <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.", delete_after = 60)  
             except Exception as e:
-                await ctx.channel.send(f'''{mention}, It seems like the we couldn't DM your requst to you, please ask a moderator for help.''', delete_after = 5)  
+                await ctx.channel.send(f'''{mention}, you do not have any MF points. Please give feedback first.
+**ATTENTION**: _We could not DM you with a copy of your submission.\n Please contact Moderators for help or reread <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._''', delete_after = 60)  
                 
-            await ctx.delete()
+            await ctx.message.delete()
             await channel.send(f"<@{SERVER_OWNER_ID}>:") 
             
             embed = discord.Embed(color = 0x7e016f)

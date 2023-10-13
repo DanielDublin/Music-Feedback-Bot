@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 BOT_DEV_ID = 167329255502512128
 FEEDBACK_CHANNEL_ID = 1103427357781528597
+IS_READY =0
 
 load_dotenv()
 token = os.environ.get('DISCORD_TOKEN')
@@ -28,11 +29,15 @@ bot = commands.Bot(command_prefix='!', intents= intents, case_insensitive=True, 
 # Define the on_ready event
 @bot.event
 async def on_ready():
-    print(f'Logged in as {bot.user.name} ({bot.user.id})')
-    await db.init_database()  # Initialize the database when the bot starts
-    await bot.tree.sync(guild=discord.Object(id=763835373414776903))
-    general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
-    await general_chat.send("Music Feedback is online.") 
+    global IS_READY
+    
+    if not IS_READY: 
+        print(f'Logged in as {bot.user.name} ({bot.user.id})')
+        await db.init_database()  # Initialize the database when the bot starts
+        await bot.tree.sync(guild=discord.Object(id=763835373414776903))
+        general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
+        await general_chat.send("Music Feedback is online.") 
+        IS_READY += 1
     
     
 
