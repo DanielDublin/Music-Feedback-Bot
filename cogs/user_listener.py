@@ -16,6 +16,8 @@ class User_listener(commands.Cog):
         
     @commands.Cog.listener()
     async def on_message(self, ctx : discord.Message):
+        if ctx.author.bot:
+            return
 
         if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members:
             
