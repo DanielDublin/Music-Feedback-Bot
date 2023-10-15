@@ -1,24 +1,22 @@
 import discord
-import soundcloud
 import youtube_dl
 import re
+import os
+import aiohttp
 from discord.ext import commands
 import database.db as db
 from datetime import datetime
+from dotenv import load_dotenv
 
+load_dotenv()
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_TOKEN')
 
 
 FEEDBACK_CHANNEL_ID = 1103427357781528597 #749443325530079314
 SERVER_OWNER_ID = 167329255502512128 #412733389196623879
 WARNING_CHANNEL =  1103427357781528597 #920730664029020180  #msb_log_channel channel
-
-
 MODERATORS_ROLE_ID = 915720537660084244 #732377221905252374
-SOUNDCLOUD_CLIENT_ID = 'YOUR_SOUNDCLOUD_CLIENT_ID'
-YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'
 
-# Initialize the SoundCloud and YouTube clients
-soundcloud_client = soundcloud.Client(client_id=SOUNDCLOUD_CLIENT_ID)
 
 youtube_dl_opts = {
     'format': 'bestaudio/best',
@@ -45,39 +43,80 @@ def extract_youtube_video_id(content):
     return None
 
 
-# Function to extract the video ID from a YouTube URL
-def extract_soundcloud_username(content):
-    soundcloud_match = soundcloud_url_pattern.search(content)
+async def expand_soundcloud_url(short_url):
+    async with aiohttp.ClientSession() as session:
+        async with session.head(short_url, allow_redirects=True) as response:
+            if response.status == 200:
+                # Extract the full URL from the response headers
+                full_url = response.url
+                
+                # Check if the full URL is a SoundCloud URL
+                if re.match(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)', str(full_url)):
+                    return full_url
+                else:
+                    return None
+            else:
+                return None
+
+def extract_soundcloud_url(message_content):
+    # Regular expression to match SoundCloud URLs
+    soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
+
+    # Find the first SoundCloud URL in the message
+    match = soundcloud_url_pattern.search(message_content)
+
+    if match:
+        # Extract the URL
+        short_url = match.group(0)
+        return short_url
+    else:
+        return None
+
+def extract_soundcloud_channel_name(expanded_url):
+    # Regular expression to match the channel name in a SoundCloud URL
+    soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
+
+    match = soundcloud_url_pattern.match(expanded_url)
+
+    if match:
+        channel_name = match.group(2)
+        # Replace spaces with underscores (or any other character)
+        channel_name = channel_name.replace(" ", "_")
+        return channel_name
+    else:
+        return None
     
-    if soundcloud_match:
-        return soundcloud_match.group(1)
-    return None
-
-
 
 async def check_soundcloud(message):
     content =message.content
   
-
-    # Search for a SoundCloud URL in the content
-    soundcloud_user = extract_soundcloud_username(content)
-
-    if soundcloud_user is None:
+    short_url = extract_soundcloud_url(content)
+    if short_url is None:
         return False
-
+    
+    expanded_url = await expand_soundcloud_url(short_url)
+    if expanded_url is None:
+        print("error while expanding url from soundcloud")
+        return False
+    
+    soundcloud_user = extract_soundcloud_channel_name(expanded_url)
+    if soundcloud_user is None:
+        print("error while getting username from soundcloud")
+        return False
+    soundcloud_user = soundcloud_user.lower()
 
     try:
         # Get the author's profile
         profile = await message.author.fetch()
 
         # Check if the author's username or display name contains the SoundCloud username
-        if (soundcloud_user in profile.name or soundcloud_user in profile.display_name or soundcloud_user in profile.bio):
+        if (soundcloud_user in profile.name.replace(" ","").lower() or soundcloud_user in profile.display_name.replace(" ","").lower() or soundcloud_user in profile.bio.replace(" ","").lower()):
             return True
         else:
           
             # Check if the link to SoundCloud is in the user's connections
             soundcloud_in_connections = any(
-                soundcloud_user in connection.get('name', '') and connection.get('type') == discord.ConnectionType.soundcloud for connection in profile.connections
+                soundcloud_user in connection.get('name', '').replace(" ","").lower() and connection.get('type') == discord.ConnectionType.soundcloud for connection in profile.connections
             )
             if  soundcloud_in_connections:
                 return True
