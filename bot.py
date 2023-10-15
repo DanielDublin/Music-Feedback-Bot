@@ -17,6 +17,8 @@ token = os.environ.get('DISCORD_TOKEN')
 
 
 
+
+
 # Initialize the bot
 intents = discord.Intents.default()
 intents.members = True
