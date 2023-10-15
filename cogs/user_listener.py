@@ -1,4 +1,7 @@
 import discord
+import soundcloud
+import youtube_dl
+import re
 from discord.ext import commands
 import database.db as db
 from datetime import datetime
@@ -8,7 +11,115 @@ from datetime import datetime
 FEEDBACK_CHANNEL_ID = 1103427357781528597 #749443325530079314
 SERVER_OWNER_ID = 167329255502512128 #412733389196623879
 WARNING_CHANNEL =  1103427357781528597 #920730664029020180  #msb_log_channel channel
+
+
 MODERATORS_ROLE_ID = 915720537660084244 #732377221905252374
+SOUNDCLOUD_CLIENT_ID = 'YOUR_SOUNDCLOUD_CLIENT_ID'
+YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY'
+
+# Initialize the SoundCloud and YouTube clients
+soundcloud_client = soundcloud.Client(client_id=SOUNDCLOUD_CLIENT_ID)
+
+youtube_dl_opts = {
+    'format': 'bestaudio/best',
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+}
+
+# Regular expressions to match different YouTube URL formats
+youtube_url_pattern = re.compile(r'(https?://)?(www\.)?(youtube\.com|youtu\.be)/(.+)')
+
+# Define a regular expression pattern to match SoundCloud URLs
+soundcloud_url_pattern = re.compile(r'https?://soundcloud\.com/([A-Za-z0-9_-]+)')
+
+
+
+# Function to extract the video ID from a YouTube content
+def extract_youtube_video_id(content):
+    match = youtube_url_pattern.match(content)
+    if match:
+        return match.group(4)
+    return None
+
+
+# Function to extract the video ID from a YouTube URL
+def extract_soundcloud_username(content):
+    soundcloud_match = soundcloud_url_pattern.search(content)
+    
+    if soundcloud_match:
+        return soundcloud_match.group(1)
+    return None
+
+
+
+async def check_soundcloud(message):
+    content =message.content
+  
+
+    # Search for a SoundCloud URL in the content
+    soundcloud_user = extract_soundcloud_username(content)
+
+    if soundcloud_user is None:
+        return False
+
+
+    try:
+        # Get the author's profile
+        profile = await message.author.fetch()
+
+        # Check if the author's username or display name contains the SoundCloud username
+        if (soundcloud_user in profile.name or soundcloud_user in profile.display_name or soundcloud_user in profile.bio):
+            return True
+        else:
+          
+            # Check if the link to SoundCloud is in the user's connections
+            soundcloud_in_connections = any(
+                soundcloud_user in connection.get('name', '') and connection.get('type') == discord.ConnectionType.soundcloud for connection in profile.connections
+            )
+            if  soundcloud_in_connections:
+                return True
+            else:
+                return False
+    except discord.errors.NotFound:
+        print(f"Unable to fetch the user's profile.")
+        
+
+async def check_youtube(message):
+    
+    content = message.content
+    
+    # Extract YouTube video ID from the URL
+    youtube_video_id = extract_youtube_video_id(content)
+
+    try:
+        # Get the author's profile
+        profile = await message.author.fetch()
+
+        # Get the YouTube video's details
+        ydl = youtube_dl.YoutubeDL(youtube_dl_opts)
+        with ydl:
+            info = ydl.extract_info(f'https://www.youtube.com/watch?v={youtube_video_id}', download=False)
+            creator = info.get('creator')
+
+        # Check if the author's username or display name contains the YouTube creator's name
+        if creator and (creator in profile.name or creator in profile.display_name or profile.bio):
+            return True
+        else:
+
+            # Check if the link to YouTube is in the user's connections
+            creator_in_youtube_connections = any(
+                    creator in connection.get('name', '') and connection.get('type') == discord.ConnectionType.youtube for connection in profile.connections
+                )
+            if  creator_in_youtube_connections:
+                return True
+            else:
+                return False
+    except discord.errors.NotFound:
+        print("Unable to fetch the user's profile.")
+
 
 class User_listener(commands.Cog):
     def __init__(self, bot):
@@ -18,7 +129,8 @@ class User_listener(commands.Cog):
     async def on_message(self, ctx : discord.Message):
         if ctx.author.bot:
             return
-
+        
+        content = ctx.message.content
         if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members:
             
             mentions = ctx.mentions
@@ -41,6 +153,16 @@ class User_listener(commands.Cog):
                 embed.timestamp = datetime.now()
                 await warning_log_channel.send(embed = embed) 
                 await warning_log_channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+                
+        elif 'soundcloud.com' in content and not ctx.author.guild_permissions.kick_members:
+            is_promoting = await check_soundcloud(ctx.message)
+
+        elif ('youtube.com' in content or 'youtu.be') and not ctx.author.guild_permissions.kick_members:
+            is_promoting = await check_youtube(ctx.message)
+            await ctx.message.channel.send(f"{message.author.name} is promoting their song on YouTube.")
+
+
+
                  
                 
              
