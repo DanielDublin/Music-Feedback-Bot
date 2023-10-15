@@ -60,7 +60,7 @@ class User_listener(commands.Cog):
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower()) and not ctx.author.guild_permissions.kick_members:
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID or ctx.channel.id == MUSIC_CHANNEL_ID:
-                is_promoting = await SCP_checker.check_soundcloud(ctx)
+                is_promoting = await YT_checker.check_youtube(ctx)
                 if is_promoting:
                     channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
                 
