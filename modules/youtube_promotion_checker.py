@@ -63,16 +63,7 @@ async def check_youtube(message):
             # Check if the author's username or display name contains the YouTube creator's name
             if creator and (creator.lower() == profile.global_name.lower() or creator.lower() == profile.display_name.lower()):
                 return True
-            else:
-
-                # Check if the link to YouTube is in the user's connections
-                creator_in_youtube_connections = any(
-                        creator in connection.get('name', '') and connection.get('type') == discord.ConnectionType.youtube for connection in profile.connections
-                    )
-                if  creator_in_youtube_connections:
-                    return True
-                else:
-                    continue
+    
         except discord.errors.NotFound:
             print("Unable to fetch the user's profile.")
         except Exception as e:
