@@ -17,7 +17,7 @@ class User_listener(commands.Cog):
         if ctx.author.bot:
             return
         
-        content = ctx.message.content
+        content = ctx.content
         if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members:
             
             mentions = ctx.mentions
@@ -43,7 +43,7 @@ class User_listener(commands.Cog):
                 
         elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members:
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID or ctx.channel.id == MUSIC_CHANNEL_ID:
-                is_promoting = await SCP_checker.check_soundcloud(ctx.message)
+                is_promoting = await SCP_checker.check_soundcloud(ctx)
                 if is_promoting:
                     channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
                 
@@ -52,7 +52,7 @@ class User_listener(commands.Cog):
                     embed.set_author(name = f"Music Feedback: {ctx.author.name}", icon_url = ctx.guild.icon.url) 
                     embed.set_thumbnail(url = pfp)
                     embed.add_field(name = "__Possible promotion alert__", 
-                                    value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending SoundCloud links at {ctx.message.jump_url}.", inline = False)
+                                    value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending SoundCloud links at {ctx.jump_url}.", inline = False)
                     embed.timestamp = datetime.now()
                     await channel.send(embed = embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
@@ -60,7 +60,7 @@ class User_listener(commands.Cog):
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower()) and not ctx.author.guild_permissions.kick_members:
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID or ctx.channel.id == MUSIC_CHANNEL_ID:
-                is_promoting = await SCP_checker.check_soundcloud(ctx.message)
+                is_promoting = await SCP_checker.check_soundcloud(ctx)
                 if is_promoting:
                     channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
                 
@@ -69,7 +69,7 @@ class User_listener(commands.Cog):
                     embed.set_author(name = f"Music Feedback: {ctx.author.name}", icon_url = ctx.guild.icon.url) 
                     embed.set_thumbnail(url = pfp)
                     embed.add_field(name = "__Possible promotion alert__",
-                                    value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending YouTube links at {ctx.message.jump_url}.", inline = False)
+                                    value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending YouTube links at {ctx.jump_url}.", inline = False)
                     embed.timestamp = datetime.now()
                     await channel.send(embed = embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
