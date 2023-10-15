@@ -19,7 +19,19 @@ async def expand_soundcloud_url(short_url):
                     return None
             else:
                 return None
+            
+def extract_soundcloud_channel_name(expanded_url):
+    # Regular expression to match the channel name in a SoundCloud URL
+    soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
 
+    match = soundcloud_url_pattern.match(expanded_url)
+
+    if match:
+        channel_name = match.group(2)
+        return channel_name
+    else:
+        return None
+    
 def extract_soundcloud_url(message_content):
     # Regular expression to match SoundCloud URLs
     soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
@@ -34,18 +46,7 @@ def extract_soundcloud_url(message_content):
     else:
         return None
 
-def extract_soundcloud_channel_name(expanded_url):
-    # Regular expression to match the channel name in a SoundCloud URL
-    soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
 
-    match = soundcloud_url_pattern.match(expanded_url)
-
-    if match:
-        channel_name = match.group(2)
-        return channel_name
-    else:
-        return None
-    
 
 async def check_soundcloud(message):
     content =message.content
@@ -70,7 +71,7 @@ async def check_soundcloud(message):
         profile = await message.author.fetch()
 
         # Check if the the Soundcloud username is in the name, nickname or bio of the discord's user
-        if soundcloud_user in profile.name.replace(" ","").lower() or soundcloud_user in profile.display_name.replace(" ","").lower() or soundcloud_user in profile.bio.replace(" ","").lower():
+        if soundcloud_user in profile.global_name.replace(" ","").lower() or soundcloud_user in profile.display_name.replace(" ","").lower():
             return True
         else:
           
