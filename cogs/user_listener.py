@@ -4,13 +4,8 @@ import database.db as db
 import modules.soundcloud_promotion_checker as SCP_checker
 import modules.youtube_promotion_checker as YT_checker
 from datetime import datetime
+from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, 
 
-
-
-FEEDBACK_CHANNEL_ID = 1103427357781528597 #749443325530079314
-SERVER_OWNER_ID = 167329255502512128 #412733389196623879
-WARNING_CHANNEL =  1103427357781528597 #920730664029020180  #msb_log_channel channel
-MODERATORS_ROLE_ID = 915720537660084244 #732377221905252374
 
 
 class User_listener(commands.Cog):
@@ -48,15 +43,34 @@ class User_listener(commands.Cog):
                 
         elif 'soundcloud.com' in content and not ctx.author.guild_permissions.kick_members:
             is_promoting = await SCP_checker.check_soundcloud(ctx.message)
+            if is_promoting:
+                channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+                
+                pfp = ctx.author.avatar.url            
+                embed = discord.Embed(color = 0x7e016f)
+                embed.set_author(name = f"Music Feedback: {ctx.author.name}", icon_url = ctx.guild.icon.url) 
+                embed.set_thumbnail(url = pfp)
+                embed.add_field(name = "__Possible promotion alert__", value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending SoundCloud links at {ctx.message.jump_url}.", inline = False)
+                embed.timestamp = datetime.now()
+                await channel.send(embed = embed)
+                await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+
 
         elif ('youtube.com' in content or 'youtu.be') and not ctx.author.guild_permissions.kick_members:
-            is_promoting = await YT_checker.check_youtube(ctx.message)
-            await ctx.message.channel.send(f"{ctx.message.author.name} is promoting their song on YouTube.")
-
-
-
-                 
+            is_promoting = await SCP_checker.check_soundcloud(ctx.message)
+            if is_promoting:
+                channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
                 
+                pfp = ctx.author.avatar.url            
+                embed = discord.Embed(color = 0x7e016f)
+                embed.set_author(name = f"Music Feedback: {ctx.author.name}", icon_url = ctx.guild.icon.url) 
+                embed.set_thumbnail(url = pfp)
+                embed.add_field(name = "__Possible promotion alert__", value = f"{ctx.author.mention} | {ctx.author.id} is under suspicion of sending YouTube links at {ctx.message.jump_url}.", inline = False)
+                embed.timestamp = datetime.now()
+                await channel.send(embed = embed)
+                await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+
+
              
 
     @commands.Cog.listener()

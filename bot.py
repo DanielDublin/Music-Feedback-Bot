@@ -6,10 +6,9 @@ from discord.ext import commands
 from discord import app_commands
 import exception_handler
 from dotenv import load_dotenv
+from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID
 
 
-BOT_DEV_ID = 167329255502512128
-FEEDBACK_CHANNEL_ID = 1103427357781528597
 IS_READY =0
 
 load_dotenv()
@@ -36,7 +35,7 @@ async def on_ready():
     if not IS_READY: 
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        await bot.tree.sync(guild=discord.Object(id=763835373414776903))
+        await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         await general_chat.send("Music Feedback is online.") 
         IS_READY += 1
