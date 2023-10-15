@@ -33,19 +33,14 @@ def extract_soundcloud_channel_name(expanded_url):
         return None
     
 def extract_soundcloud_url(message_content):
-    # Regular expression to match SoundCloud URLs
-    soundcloud_url_pattern = re.compile(r'https?://(www\.)?soundcloud\.com/([A-Za-z0-9_-]+)')
-
-    # Find the first SoundCloud URL in the message
-    match = soundcloud_url_pattern.search(message_content)
-
-    if match:
-        # Extract the URL
-        short_url = match.group(0)
-        return short_url
-    else:
-        return None
-
+    # Function to extract URLs from text
+    out_links = []
+    urls = list(url_extractor.find_urls(content))
+    for url in urls:
+        if 'soundcloud' in url:
+            out_links.append(url)
+    return out_links
+        
 
 
 async def check_soundcloud(message):
