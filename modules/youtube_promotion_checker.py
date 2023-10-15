@@ -16,7 +16,7 @@ ydl_opts = {
 
 # Regular expression to match YouTube URLs and extract video IDs
 youtube_url_pattern = re.compile(r'(?:https?://)?(?:www\.)?(?:(?:youtube\.com/embed/|youtube\.com/v/|youtube\.com/watch\?v=|youtube\.com/attribution_link\?a=|youtu\.be/)([\w-]+)|(?:youtube\.com/shorts/|youtube\.com/playlist\?list=)([A-Za-z0-9_-]+))(?:&\S*)?$')
-    # Initialize the URL extractor
+# Initialize the URL extractor
 url_extractor = urlextract.URLExtract()
 
 # Function to extract the first video ID from a text
