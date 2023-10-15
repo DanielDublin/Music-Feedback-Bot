@@ -1,10 +1,12 @@
 import re
 import aiohttp
 import discord
-from discord.audit_logs import F
+import urlextract
 
 # Define a regular expression pattern to match SoundCloud URLs
 soundcloud_url_pattern = re.compile(r'https?://soundcloud\.com/([A-Za-z0-9_-]+)')
+# Initialize the URL extractor
+url_extractor = urlextract.URLExtract()
 
 async def expand_soundcloud_url(short_url):
     async with aiohttp.ClientSession() as session:
