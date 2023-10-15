@@ -34,6 +34,8 @@ async def check_youtube(message):
     
     # Extract YouTube video ID from the URL
     youtube_video_id = extract_youtube_video_id(content)
+    if youtube_video_id is None:
+        return False
 
     try:
         # Get the author's profile

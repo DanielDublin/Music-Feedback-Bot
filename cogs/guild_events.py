@@ -1,10 +1,6 @@
 import discord
 from discord.ext import commands
-
-
-SUBMISSIONS_CHANNEL_ID = 1103427357781528597
-GENERAL_CHAT_CHANNEL_ID = 1103427357781528597
-MOD_SUBMISSION_LOGGER_CHANNEL_ID = 1103427357781528597
+from data.constants import SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
 
 class Guild_events(commands.Cog):
     def __init__(self, bot):
@@ -18,7 +14,6 @@ class Guild_events(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx): 
         
-        global SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
         guild = ctx.guild
         file = None
         

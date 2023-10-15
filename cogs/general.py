@@ -1,11 +1,7 @@
 import discord
 from discord.ext import commands
 import database.db as db
-
-
-FEEDBACK_CHANNEL_ID = 1103427357781528597
-SERVER_OWNER_ID = 167329255502512128
-FEEDBACK_ACCESS_CHANNEL_ID = 1103427357781528597
+from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID
 
 
 class General(commands.Cog):
@@ -67,7 +63,7 @@ class General(commands.Cog):
     @commands.command(name = "R")       
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx : discord.Message):
-        global FEEDBACK_CHANNEL_ID
+       
         
         await db.add_points(str(ctx.author.id), 1)
         mention = ctx.author.mention
@@ -85,7 +81,7 @@ class General(commands.Cog):
     @commands.command(name = "S")       
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx : discord.Message):
-        global FEEDBACK_CHANNEL_ID, SERVER_OWNER_ID
+      
         
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
