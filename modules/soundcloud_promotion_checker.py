@@ -38,7 +38,7 @@ def extract_soundcloud_channel_name(expanded_url):
 def extract_soundcloud_url(message_content):
     # Function to extract URLs from text
     out_links = []
-    urls = list(url_extractor.find_urls(content))
+    urls = list(url_extractor.find_urls(message_content))
     for url in urls:
         if 'soundcloud' in url:
             out_links.append(url)
