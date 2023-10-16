@@ -60,8 +60,7 @@ class User_listener(commands.Cog):
                     await channel.send(embed=embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
-        elif (
-                'youtube.com' in content.lower() or 'youtu.be' in content.lower())\
+        elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower())\
                 and not ctx.author.guild_permissions.kick_members:
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID \
                     or ctx.channel.id == MUSIC_CHANNEL_ID:
@@ -80,6 +79,8 @@ class User_listener(commands.Cog):
                     embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+        elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID:
+            await ctx.channel.send("🤘 **Primus SUX!** 🤘")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
