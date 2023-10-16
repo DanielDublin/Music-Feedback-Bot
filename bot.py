@@ -35,7 +35,8 @@ async def on_ready():
     if not IS_READY: 
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
+        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
+        print('Sync-ed slash commands')
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         await general_chat.send("Music Feedback is online.") 
         IS_READY += 1
