@@ -1,5 +1,6 @@
 import discord
 
+
 # Define a function to handle exceptions
 async def handle_exception(ctx, error):
     # Get the cog name if available
@@ -12,10 +13,10 @@ async def handle_exception(ctx, error):
         print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n")
     except Exception as cog_error:
         try:
-                await ctx.send(f"No such command exists.")
-                return
+            await ctx.send(f"No such command exists.")
+            return
         except Exception as e:
-            print("No permissions to send message\n"+str(e)+"\n"+str(cog_error))
+            print("No permissions to send message\n" + str(e) + "\n" + str(cog_error))
 
     try:
         if isinstance(error, discord.ext.commands.CommandOnCooldown):
