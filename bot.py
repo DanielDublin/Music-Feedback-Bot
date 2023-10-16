@@ -8,15 +8,10 @@ import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID
 
-
-IS_READY =0
+IS_READY = 0
 
 load_dotenv()
 token = os.environ.get('DISCORD_TOKEN')
-
-
-
-
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -25,27 +20,28 @@ intents.typing = True
 intents.presences = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents= intents, case_insensitive=True, strip_after_prefix = True, owner_id = BOT_DEV_ID)
+bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True, strip_after_prefix=True,
+                   owner_id=BOT_DEV_ID)
+
 
 # Define the on_ready event
 @bot.event
 async def on_ready():
     global IS_READY
-    
-    if not IS_READY: 
+
+    if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
+        # await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
         print('Sync-ed slash commands')
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
-        await general_chat.send("Music Feedback is online.") 
+        await general_chat.send("Music Feedback is online.")
         IS_READY += 1
-    
-    
+
 
 # Load extensions (cogs)
 initial_extensions = [
-    
+
     'cogs.general',
     'cogs.user_listener',
     'cogs.guild_events',
@@ -59,7 +55,6 @@ slash_extensions = [
     'cogs.slash_commands.hello'  # Replace with your slash command cogs
     # Add more slash command cogs as needed
 ]
-
 
 
 # Define an exception handler
@@ -76,25 +71,23 @@ async def load_extensions():
         await bot.load_extension(extension)
 
 
-
 # Run the bot using asyncio.run() to set up the event loop
 async def main():
-  global bot
-  try:
-    await load_extensions() # Initializing the cogs
-  except KeyboardInterrupt:
-    pass # Handle Ctrl+C gracefully
+    global bot
+    try:
+        await load_extensions()  # Initializing the cogs
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
 
-  # Create a task that will run the database weekly maintenance task
-  task = asyncio.create_task(db.schedule_weekly_task())
+    # Create a task that will run the database weekly maintenance task
+    task = asyncio.create_task(db.schedule_weekly_task())
 
-  # Start the bot
-  await bot.start(token)
+    # Start the bot
+    await bot.start(token)
 
-  # Wait for the database weekly maintenance task to finish
-  await task
-
+    # Wait for the database weekly maintenance task to finish
+    await task
 
 
 if __name__ == "__main__":
-  asyncio.run(main())
+    asyncio.run(main())

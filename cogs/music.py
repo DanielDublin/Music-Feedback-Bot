@@ -5,7 +5,7 @@ import json
 
 class NotesMenu(menus.Menu):
     def __init__(self, ctx, bot, json_data):
-        super().__init__(timeout=60.0, delete_message_after=True, clear_reactions_after = True)
+        super().__init__(timeout=60.0, delete_message_after=True, clear_reactions_after=True)
         self.json_data = json_data
         self.current_level = 0
         self.selections = []
@@ -25,7 +25,8 @@ class NotesMenu(menus.Menu):
         if payload.user_id == self.bot.user.id:
             return
         if payload.user_id != self.user_id:
-            await self.menu_message.channel.send(f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
+            await self.menu_message.channel.send(
+                f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
             return
 
         message_id = payload.message_id
@@ -68,55 +69,52 @@ class NotesMenu(menus.Menu):
         options = self.get_options()  # Fetch updated options
         await self.send_menu(menu_message, options, update=True)  # Pass the updated options
 
-    async def send_menu(self, message, options, update=False):
+    async def send_menu(self, message, update=False):
         if not update:
             self.page_index = 0
-        await self.show_page(message, update)
+        await self.show_page(message)
 
-    async def show_page(self, message, update=False):
-        degree = "\u00b0"
+    async def show_page(self, message):
+
         options = self.get_options()
         self.current_options = options  # Store the current options for pagination
         self.pages = [options[i:i + self.options_per_page] for i in range(0, len(options), self.options_per_page)]
 
         if len(options) == 3 and "Degree" in options and "Chords" in options and "Notes" in options:
 
-            values = self.get_options(output =True)
+            values = self.get_options(output=True)
 
             # Create a custom embed for the specific case
-            myEmbed = discord.Embed(color=0x7e016f)
+            embed = discord.Embed(color=0x7e016f)
             chord_name = self.selections[-1] if self.selections else "Unknown Chords"
-            myEmbed.set_author(name=f"{chord_name} Chords", icon_url=message.guild.icon.url)
-            
+            embed.set_author(name=f"{chord_name} Chords", icon_url=message.guild.icon.url)
+
             # Fetch values for Degree, Chords, and Notes from your JSON data
             degree_values = values['Degree']
             chords_values = values['Chords']
             notes_values = values['Notes']
 
-
-
             # Add fields for Degree, Chords, and Notes based on your JSON data if values are not empty
             if degree_values:
-                degree_values = degree_values.replace('{degree}','°' )
-                myEmbed.add_field(name="Degree", value=f"`{degree_values}`", inline=True)
+                degree_values = degree_values.replace('{degree}', '°')
+                embed.add_field(name="Degree", value=f"`{degree_values}`", inline=True)
             if chords_values:
-                degree_values = degree_values.replace('{degree}','°' )
-                myEmbed.add_field(name="Chords", value=f"`{chords_values}`", inline=True)
+                degree_values = degree_values.replace('{degree}', '°')
+                embed.add_field(name="Chords", value=f"`{chords_values}`", inline=True)
             if notes_values:
-                degree_values = degree_values.replace('{degree}','°' )
-                myEmbed.add_field(name="Notes", value=f"`{notes_values}`", inline=True)
-
-
+                degree_values = degree_values.replace('{degree}', '°')
+                embed.add_field(name="Notes", value=f"`{notes_values}`", inline=True)
 
             if self.menu_message is None:
-                self.menu_message = await message.channel.send(embed=myEmbed)
+                self.menu_message = await message.channel.send(embed=embed)
             else:
-                await self.menu_message.edit(embed=myEmbed)
+                await self.menu_message.edit(embed=embed)
 
         else:
             # Create a standard embed
             embed = discord.Embed(color=0x7e016f,
-                                 description="\n".join(f"{index + 1}. {option}" for index, option in enumerate(self.pages[self.page_index]))
+                                  description="\n".join(f"{index + 1}. {option}" for index, option in
+                                                        enumerate(self.pages[self.page_index]))
                                   )
             chord_name = self.selections[-1] if self.selections else "Menu"
             embed.set_author(name=f"{chord_name}", icon_url=message.guild.icon.url)
@@ -135,7 +133,8 @@ class NotesMenu(menus.Menu):
         if self.current_level > 0:
             await self.menu_message.add_reaction("↩️")  # Always add "Go Back" reaction
 
-        if len(options) > 1 and not (len(options) == 3 and "Degree" in options and "Chords" in options and "Notes" in options):
+        if len(options) > 1 and not (
+                len(options) == 3 and "Degree" in options and "Chords" in options and "Notes" in options):
             for i in range(len(self.pages[self.page_index])):
                 emoji_label = f"{i + 1}\u20e3"
                 await self.menu_message.add_reaction(emoji_label)
@@ -145,8 +144,7 @@ class NotesMenu(menus.Menu):
         if len(self.pages) > 1 and self.page_index < len(self.pages) - 1:
             await self.menu_message.add_reaction("➡️")  # Right arrow (only if there's a next page)
 
-
-    def get_options(self, output= False):
+    def get_options(self, output=False):
         options = []
 
         data = self.json_data
@@ -178,12 +176,12 @@ class NotesMenu(menus.Menu):
     async def start(self, ctx):
         options = self.get_options()
         self.current_options = options  # Store the current options for pagination
-        await self.send_menu(ctx, options)
+        await self.send_menu(ctx)
+
 
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
 
     @commands.command()
     async def notes(self, ctx):
@@ -192,7 +190,7 @@ class Music(commands.Cog):
 
         menu = NotesMenu(ctx, self.bot, json_data)
         await menu.start(ctx)
-     
+
 
 async def setup(bot):
     await bot.add_cog(Music(bot))

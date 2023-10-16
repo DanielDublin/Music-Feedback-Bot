@@ -38,11 +38,13 @@ def weekly_task():
     global users_dict
     users_dict = {}
 
+
 # Schedule the weekly task to run every Sunday at a specific time (adjust as needed)
 async def schedule_weekly_task():
     while True:
         await asyncio.sleep(WEEK_TIME_IN_SECONDS)
         weekly_task()
+
 
 # Initialize the database connection pool (you should do this before using the functions)
 async def initialize_database_pool():
@@ -50,6 +52,7 @@ async def initialize_database_pool():
 
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
+
 
 async def update_dict_from_db(user_id):
     global pool, users_dict
@@ -73,6 +76,7 @@ async def update_dict_from_db(user_id):
                 del users_dict[user_id]
                 await add_user(user_id)  # User is absent from DB
 
+
 async def fetch_rank_from_db(user_id):
     global pool
 
@@ -81,7 +85,6 @@ async def fetch_rank_from_db(user_id):
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
-
             # Fetch rank from the database
             await cursor.execute("""
                 SELECT (SELECT COUNT(*) + 1
@@ -92,6 +95,7 @@ async def fetch_rank_from_db(user_id):
     result = await cursor.fetchone()
     return result
 
+
 # Fetch points for a user
 async def fetch_points(user_id: str):
     global users_dict
@@ -101,6 +105,7 @@ async def fetch_points(user_id: str):
     else:
         await update_dict_from_db(user_id)
         return users_dict[user_id]["Points"]
+
 
 # Fetch rank for a user
 async def fetch_rank(user_id: str):
@@ -119,6 +124,7 @@ async def fetch_rank(user_id: str):
             return result["Rank_value"]
         else:
             return DATABASE_ERROR  # database issue
+
 
 # Fetch the top 5 users with the best point scores
 async def fetch_top_users():
@@ -150,6 +156,7 @@ async def fetch_top_users():
 
     return top_users_dict
 
+
 # Reduce points for a user
 async def reduce_points(user_id, points: int):
     global pool, users_dict
@@ -163,8 +170,10 @@ async def reduce_points(user_id, points: int):
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Reduce points in the database
-            await cursor.execute("UPDATE users SET points = (points - %s) WHERE user_id = %s", (points, str(user_id)))  # Convert to str
+            await cursor.execute("UPDATE users SET points = (points - %s) WHERE user_id = %s",
+                                 (points, str(user_id)))  # Convert to str
             await conn.commit()
+
 
 # Add points for a user
 async def add_points(user_id, points: int):
@@ -175,12 +184,14 @@ async def add_points(user_id, points: int):
 
     if user_id in users_dict:
         users_dict[user_id]["Points"] += points  # Add points in the dictionary
-   
+
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Add points in the database
-            await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s", (points, str(user_id)))  # Convert to str
+            await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s",
+                                 (points, str(user_id)))  # Convert to str
             await conn.commit()
+
 
 # Add a user
 async def add_user(user_id):
@@ -194,11 +205,13 @@ async def add_user(user_id):
 
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
-                # Add or replace user in the database (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
+                # Add or replace user in the database
+                # (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
                 await cursor.execute("REPLACE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
                 await conn.commit()
         user_data = {"Points": 0, "Warnings": 0}
         users_dict[user_id] = user_data  # Add user to the dictionary
+
 
 # Remove a user from DB - User was banned
 async def remove_user(user_id):
@@ -212,13 +225,12 @@ async def remove_user(user_id):
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
-           
             await cursor.execute("DELETE FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
             await conn.commit()
 
 
 # Add warning to a user
-async def add_warning_to_user(user_id :str):
+async def add_warning_to_user(user_id: str):
     global pool, users_dict
 
     if pool is None:
@@ -226,18 +238,17 @@ async def add_warning_to_user(user_id :str):
 
     if user_id not in users_dict:
         await update_dict_from_db(user_id)
-        
+
     users_dict[user_id]["Warnings"] += 1  # Add points in the dictionary
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             # Add points in the database
-            await cursor.execute("UPDATE users SET warnings = warnings + %s WHERE user_id = %s", (1, str(user_id)))  # Convert to str
+            await cursor.execute("UPDATE users SET warnings = warnings + %s WHERE user_id = %s",
+                                 (1, str(user_id)))  # Convert to str
             await conn.commit()
-            
+
     return users_dict[user_id]["Warnings"]
-
-
 
 
 async def migrate_warnings():
@@ -246,12 +257,13 @@ async def migrate_warnings():
         await init_database()  # Reconnect the database if the pool is None
 
     # Configure the logger
-    logging.basicConfig(filename='migration.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-        
+    logging.basicConfig(filename='migration.log', level=logging.INFO,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Read user_ids_json from a file
     with open('user_ids.json', 'r') as file:
-        user_ids_json = json.load(file)     
-        
+        user_ids_json = json.load(file)
+
     async with pool.acquire() as conn:
         async with conn.cursor() as cursor:
             for user_id, warnings in user_ids_json.items():
@@ -262,12 +274,6 @@ async def migrate_warnings():
                 else:
                     logging.warning(f"User {user_id} not found in the database")
 
-
-
-   
-
-
-  
 
 # Reset points for a user - user left or by command
 async def reset_points(user_id):
@@ -283,6 +289,7 @@ async def reset_points(user_id):
         async with conn.cursor() as cursor:
             # Send SQL query to reset points for the user in the database
             await cursor.execute("UPDATE users SET points = 0 WHERE user_id = %s", (str(user_id)))  # Convert to str
+
 
 async def json_migration(users):
     global pool
