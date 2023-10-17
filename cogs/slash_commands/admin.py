@@ -28,7 +28,7 @@ class Admin(commands.Cog):
                         value=f"{interaction.user.mention} has given {user.mention} {points} MF point."
                               f" They now have **{current_points}** MF point(s).",
                         inline=False)
-        await interaction.response.send_message("Done!")
+        await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
         # Mod remove points
@@ -49,7 +49,7 @@ class Admin(commands.Cog):
                             value=f"{interaction.user.mention} has taken {points} MF point from {user.mention}."
                                   f" They now have **{current_points - points}** MF point(s).",
                             inline=False)
-            await interaction.response.send_message("Done!")
+            await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
         else:
@@ -57,7 +57,7 @@ class Admin(commands.Cog):
             embed.add_field(name="Music Feedback",
                             value=f"Can't remove points, This member already has **{current_points}** MF points.",
                             inline=False)
-            await interaction.response.send_message("Nope!")
+            await interaction.response.send_message("Nope!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
             # Mod clear points
@@ -74,7 +74,7 @@ class Admin(commands.Cog):
         embed.add_field(name="Music Feedback",
                         value=f"{interaction.user.mention} has cleared all of {user.mention}'s MF points. They now have **0** MF points.",
                         inline=False)
-        await interaction.response.send_message("Done!")
+        await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
 print("Processing complete")

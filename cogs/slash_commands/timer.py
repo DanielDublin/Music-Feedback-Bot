@@ -8,6 +8,7 @@ class TimerCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.active_timer = None  
+        self.minutes =0
     
         
         
@@ -17,26 +18,26 @@ class TimerCog(commands.Cog):
     @group.command(name = "status") 
     async def status(self, interaction):
         if self.active_timer is not None:
-            await interaction.response.send_message(f"A timer is already running. Use `/timer stop` to stop it.", ephemeral=True)
+            await interaction.response.send_message(f"There are {self.minutes} minutes left.")
         else:
-            await interaction.response.send_message(f"Use `/timer start <minutes>` to start a timer.", ephemeral=True)
+            await interaction.response.send_message(f"No timers are currently active, use `/timer start <minutes>` to start a timer.", ephemeral=True)
 
-    async def timer_countdown(self, interaction, minutes):
+    async def timer_countdown(self, interaction):
         
         channel = interaction.channel
-        await channel.send(f"{interaction.user.mention} has started the timer.\n{minutes} minutes is on the clock, starting... **NOW!**")
+        
+        await channel.send(f"{interaction.user.mention} has started the timer.\n{self.minutes} minutes is on the clock, starting... **NOW!**")
         counter =0
         timers =  [5, 4, 3, 2, 1]
         
         while counter != len(timers):
-            if minutes in timers:
+            if self.minutes in timers:
                 counter +=1
-                await channel.send(f"{minutes} minutes remaining.")
+                await channel.send(f"{self.minutes} minutes remaining.")
                 
             await asyncio.sleep(60)
-            minutes -=1
+            self.minutes -=1
                 
-        await asyncio.sleep(60)
         await channel.send("Time is up!")
         self.active_timer = None
         
@@ -49,7 +50,8 @@ class TimerCog(commands.Cog):
             await interaction.response.send_message(f"A timer is already running. Use `/timer stop` to stop it.", ephemeral=True)
         else:
             await interaction.response.send_message("Starting the timer.", ephemeral=True)
-            self.active_timer = asyncio.create_task(self.timer_countdown(interaction, minutes))
+            self.minutes = minutes
+            self.active_timer = asyncio.create_task(self.timer_countdown(interaction))
             
 
     @group.command(name="stop")
@@ -58,6 +60,7 @@ class TimerCog(commands.Cog):
         
         if self.active_timer is not None:
             self.active_timer.cancel()
+            self.minutes = 0
             await interaction.response.send_message("Timer stopped.", ephemeral=True)
             self.active_timer = None
         else:
