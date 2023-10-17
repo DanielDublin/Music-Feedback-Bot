@@ -3,7 +3,7 @@ import os
 import asyncio
 import database.db as db
 from discord.ext import commands
-from discord import app_commands
+from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID
@@ -32,7 +32,7 @@ async def on_ready():
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        # await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
+        await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
         print('Sync-ed slash commands')
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         await general_chat.send("Music Feedback is online.")
@@ -46,13 +46,15 @@ initial_extensions = [
     'cogs.user_listener',
     'cogs.guild_events',
     'cogs.music',
-    'cogs.admin'
+    'cogs.owner_utilities'
     # Add more cogs as needed
 ]
 
 # Load slash command cogs
 slash_extensions = [
-    'cogs.slash_commands.hello'  # Replace with your slash command cogs
+    'cogs.slash_commands.hello',  # Replace with your slash command cogs
+    'cogs.slash_commands.timer',
+    'cogs.slash_commands.admin'
     # Add more slash command cogs as needed
 ]
 
@@ -61,9 +63,15 @@ slash_extensions = [
 @bot.event
 async def on_command_error(ctx, error):
     await exception_handler.handle_exception(ctx, error)  # Call the exception handling function
+    
+@bot.tree.error
+async def on_app_command_error(interaction, error):
+    await interaction.channel.send(str(error))
 
 
 async def load_extensions():
+    global initial_extensions, slash_extensions
+    
     for extension in initial_extensions:
         await bot.load_extension(extension)
 
