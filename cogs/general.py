@@ -104,12 +104,12 @@ class General(commands.Cog):
                 await ctx.channel.send(
                     f"{mention}, you do not have any MF points."
                     f" Please give feedback first.\nYour request was DMed to you for future"
-                    f" reference. Please reread <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                     delete_after=60)
             except Exception:
                 await ctx.channel.send(f'{mention}, you do not have any MF points. Please give feedback first.'
-                                       f'**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\n Please contact Moderators for help or reread'
+                                       f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
+                                       f'\n Please contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)
 
