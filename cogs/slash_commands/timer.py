@@ -17,14 +17,14 @@ class TimerCog(commands.Cog):
     @group.command(name = "status") 
     async def status(self, interaction):
         if self.active_timer is not None:
-            await interaction.response.send_message(f"A timer is already running. Use `{self.bot.command_prefix}timer stop` to stop it.", ephemeral=True)
+            await interaction.response.send_message(f"A timer is already running. Use `/timer stop` to stop it.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"Use `{self.bot.command_prefix}timer start <minutes>` to start a timer.", ephemeral=True)
+            await interaction.response.send_message(f"Use `/timer start <minutes>` to start a timer.", ephemeral=True)
 
     async def timer_countdown(self, interaction, minutes):
         
         channel = interaction.channel
-        await channel.send(f"Timer is starting, _wait for it..._ **GO!**")
+        await channel.send(f"{interaction.user.mention} has started the timer.\n{minutes} minutes is on the clock, starting... **NOW!**")
         counter =0
         timers =  [5, 4, 3, 2, 1]
         
@@ -46,7 +46,7 @@ class TimerCog(commands.Cog):
         author_id = interaction.user.id
         
         if self.active_timer is not None:
-            await interaction.response.send_message(f"A timer is already running. Use `{self.bot.command_prefix}timer stop` to stop it.", ephemeral=True)
+            await interaction.response.send_message(f"A timer is already running. Use `/timer stop` to stop it.", ephemeral=True)
         else:
             await interaction.response.send_message("Starting the timer.", ephemeral=True)
             self.active_timer = asyncio.create_task(self.timer_countdown(interaction, minutes))
