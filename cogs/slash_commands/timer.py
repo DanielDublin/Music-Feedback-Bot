@@ -28,7 +28,7 @@ class TimerCog(commands.Cog):
         
         await channel.send(f"{interaction.user.mention} has started the timer.\n{self.minutes} minutes is on the clock, starting... **NOW!**")
         counter =0
-        timers =  [5, 4, 3, 2, 1]
+        timers =  [1, 5, 10, 15, 30]
         
         while counter != len(timers):
             if self.minutes in timers:
