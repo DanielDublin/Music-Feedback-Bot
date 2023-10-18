@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 import json
 import logging
 
+
+#for every sql querry - search in error "Lost connection " and restart thing
+
 load_dotenv()
 DATABASE_ERROR = -2
 
@@ -62,19 +65,24 @@ async def update_dict_from_db(user_id):
 
     users_dict[user_id] = {}  # Initializes the parent dict - the user ID
 
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
 
-            # Fetch all the data about the user from DB
-            await cursor.execute("SELECT * FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
-            result = await cursor.fetchone()
+                # Fetch all the data about the user from DB
+                await cursor.execute("SELECT * FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
+                result = await cursor.fetchone()
 
-            if result is not None:  # Adding only points and warnings, not Rank to reduce queries
-                users_dict[user_id]["Points"] = int(result["points"])
-                users_dict[user_id]["Warnings"] = int(result["warnings"])
-            else:
-                del users_dict[user_id]
-                await add_user(user_id)  # User is absent from DB
+                if result is not None:  # Adding only points and warnings, not Rank to reduce queries
+                    users_dict[user_id]["Points"] = int(result["points"])
+                    users_dict[user_id]["Warnings"] = int(result["warnings"])
+                else:
+                    del users_dict[user_id]
+                    await add_user(user_id)  # User is absent from DB
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            update_dict_from_db(user_id)
 
 
 async def fetch_rank_from_db(user_id):
@@ -82,18 +90,22 @@ async def fetch_rank_from_db(user_id):
 
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Fetch rank from the database
+                await cursor.execute("""
+                    SELECT (SELECT COUNT(*) + 1
+                            FROM users AS u
+                            WHERE u.points > (SELECT points FROM users WHERE user_id = %s)) AS Rank_value
+                """, (str(user_id)))  # Convert to str
 
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Fetch rank from the database
-            await cursor.execute("""
-                SELECT (SELECT COUNT(*) + 1
-                        FROM users AS u
-                        WHERE u.points > (SELECT points FROM users WHERE user_id = %s)) AS Rank_value
-            """, (str(user_id)))  # Convert to str
-
-    result = await cursor.fetchone()
-    return result
+        result = await cursor.fetchone()
+        return result
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return fetch_rank_from_db(user_id)
 
 
 # Fetch points for a user
@@ -129,21 +141,26 @@ async def fetch_rank(user_id: str):
 # Fetch the top 5 users with the best point scores
 async def fetch_top_users():
     global pool, users_dict
+    top_users = None
 
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
-
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Fetch top users from the database
-            await cursor.execute("""
-                SELECT user_id, points
-                FROM users
-                ORDER BY points DESC
-                LIMIT 5
-            """)
-
-    top_users = await cursor.fetchall()
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Fetch top users from the database
+                await cursor.execute("""
+                    SELECT user_id, points
+                    FROM users
+                    ORDER BY points DESC
+                    LIMIT 5
+                """)
+    
+                top_users = await cursor.fetchall()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return fetch_top_users()
     top_users_dict = {}
 
     for index, user in enumerate(top_users, start=1):
@@ -166,13 +183,17 @@ async def reduce_points(user_id, points: int):
 
     if user_id in users_dict:
         users_dict[user_id]["Points"] -= points  # Reduce points in the dictionary
-
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Reduce points in the database
-            await cursor.execute("UPDATE users SET points = (points - %s) WHERE user_id = %s",
-                                 (points, str(user_id)))  # Convert to str
-            await conn.commit()
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Reduce points in the database
+                await cursor.execute("UPDATE users SET points = (points - %s) WHERE user_id = %s",
+                                     (points, str(user_id)))  # Convert to str
+                await conn.commit()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            reduce_points(user_id, points)
 
 
 # Add points for a user
@@ -184,13 +205,19 @@ async def add_points(user_id, points: int):
 
     if user_id in users_dict:
         users_dict[user_id]["Points"] += points  # Add points in the dictionary
-
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Add points in the database
-            await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s",
-                                 (points, str(user_id)))  # Convert to str
-            await conn.commit()
+        
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Add points in the database
+                await cursor.execute("UPDATE users SET points = points + %s WHERE user_id = %s",
+                                     (points, str(user_id)))  # Convert to str
+                await conn.commit()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            add_points(user_id, points)
+           
 
 
 # Add a user
@@ -202,13 +229,20 @@ async def add_user(user_id):
 
     if user_id not in users_dict:
         users_dict[user_id] = {}  # Initializes the parent dict - the user ID
-
-        async with pool.acquire() as conn:
-            async with conn.cursor() as cursor:
-                # Add or replace user in the database
-                # (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
-                await cursor.execute("REPLACE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
-                await conn.commit()
+        
+        try:
+            async with pool.acquire() as conn:
+                async with conn.cursor() as cursor:
+                    # Add or replace user in the database
+                    # (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
+                    await cursor.execute("REPLACE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
+                    await conn.commit()
+        except Exception as e:
+            if "lost connection" in str(e).lower():
+                await init_database()
+                add_user(user_id)
+                return
+                
         user_data = {"Points": 0, "Warnings": 0}
         users_dict[user_id] = user_data  # Add user to the dictionary
 
@@ -222,11 +256,17 @@ async def remove_user(user_id):
 
     if user_id in users_dict:
         del users_dict[user_id]  # Remove user from the dictionary
+        
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("DELETE FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
+                await conn.commit()
+    except Exception as e:
+            if "lost connection" in str(e).lower():
+                await init_database()
+                remove_user(user_id)
 
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            await cursor.execute("DELETE FROM users WHERE user_id = %s", (str(user_id)))  # Convert to str
-            await conn.commit()
 
 
 # Add warning to a user
@@ -240,13 +280,18 @@ async def add_warning_to_user(user_id: str):
         await update_dict_from_db(user_id)
 
     users_dict[user_id]["Warnings"] += 1  # Add points in the dictionary
-
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Add points in the database
-            await cursor.execute("UPDATE users SET warnings = warnings + %s WHERE user_id = %s",
-                                 (1, str(user_id)))  # Convert to str
-            await conn.commit()
+    
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Add points in the database
+                await cursor.execute("UPDATE users SET warnings = warnings + %s WHERE user_id = %s",
+                                     (1, str(user_id)))  # Convert to str
+                await conn.commit()
+    except Exception as e:
+            if "lost connection" in str(e).lower():
+                await init_database()
+                return add_warning_to_user(user_id)            
 
     return users_dict[user_id]["Warnings"]
 
@@ -284,11 +329,17 @@ async def reset_points(user_id):
 
     if user_id in users_dict:
         users_dict[user_id]["Points"] = 0  # Reset points in the dictionary
-
-    async with pool.acquire() as conn:
-        async with conn.cursor() as cursor:
-            # Send SQL query to reset points for the user in the database
-            await cursor.execute("UPDATE users SET points = 0 WHERE user_id = %s", (str(user_id)))  # Convert to str
+        
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Send SQL query to reset points for the user in the database
+                await cursor.execute("UPDATE users SET points = 0 WHERE user_id = %s", (str(user_id)))  # Convert to str
+    except Exception as e:
+            if "lost connection" in str(e).lower():
+                await init_database()
+                reset_points(user_id)    
+          
 
 
 async def json_migration(users):

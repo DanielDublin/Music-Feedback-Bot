@@ -18,7 +18,7 @@ class TimerCog(commands.Cog):
     @group.command(name = "status") 
     async def status(self, interaction):
         if self.active_timer is not None:
-            await interaction.response.send_message(f"There are {self.minutes} minutes left.")
+            await interaction.response.send_message(f"# There are {self.minutes} minutes remaining.")
         else:
             await interaction.response.send_message(f"No timers are currently active, use `/timer start <minutes>` to start a timer.", ephemeral=True)
 
@@ -29,26 +29,32 @@ class TimerCog(commands.Cog):
         await channel.send(f"{interaction.user.mention} has started the timer.\n{self.minutes} minutes is on the clock, starting... **NOW!**")
         counter =0
         timers =  [1, 5, 10, 15, 30]
+        starting_time = self.minutes
+        counter_stop = len([item for item in timers if item < starting_time])
         
-        while counter != len(timers):
+        while counter != counter_stop:
             if self.minutes in timers:
                 counter +=1
-                await channel.send(f"{self.minutes} minutes remaining.")
+                await channel.send(f"# {self.minutes} minutes remaining.")
                 
             await asyncio.sleep(60)
             self.minutes -=1
                 
-        await channel.send("Time is up!")
+        await channel.send("# Time is up!")
         self.active_timer = None
         
 
     @group.command(name="start")
     async def start(self, interaction: discord.Interaction, minutes :int) -> None:
         author_id = interaction.user.id
-        
+      
+
         if self.active_timer is not None:
             await interaction.response.send_message(f"A timer is already running. Use `/timer stop` to stop it.", ephemeral=True)
         else:
+            if minutes <=0:
+                await interaction.response.send_message(f"You can start the timer only with positive values", ephemeral=True)
+                return
             await interaction.response.send_message("Starting the timer.", ephemeral=True)
             self.minutes = minutes
             self.active_timer = asyncio.create_task(self.timer_countdown(interaction))

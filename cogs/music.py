@@ -67,7 +67,7 @@ class NotesMenu(menus.Menu):
                 self.current_level += 1
 
         options = self.get_options()  # Fetch updated options
-        await self.send_menu(menu_message, options, update=True)  # Pass the updated options
+        await self.send_menu(menu_message, update=True)  # Pass the updated options
 
     async def send_menu(self, message, update=False):
         if not update:
@@ -184,6 +184,7 @@ class Music(commands.Cog):
         self.bot = bot
 
     @commands.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
     async def notes(self, ctx):
         with open("cogs/options.json", "r") as file:
             json_data = json.load(file)

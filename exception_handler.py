@@ -10,7 +10,6 @@ async def handle_exception(ctx, error):
         if cog_name is None:
             cog_name = "Unknown"
             print("someone tried to use a command that doesnt exist")
-        print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n")
     except Exception as cog_error:
         try:
             await ctx.send(f"No such command exists.")
