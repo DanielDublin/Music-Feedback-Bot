@@ -1,3 +1,4 @@
+from os import makedirs
 import discord
 from discord.ext import commands
 import database.db as db
@@ -21,12 +22,18 @@ class General(commands.Cog):
         points = await db.fetch_points(str(user.id))
         rank = await db.fetch_rank(str(user.id))
         pfp = user.avatar.url
+        
+        msg_out1 = f"You have **{points}** MF point(s)."
+        msg_out2 = f"Your MF Rank is **#{rank}** out of **{guild.member_count}**."
+        if ctx.author.id != user.id:
+            msg_out1 = f"{user.mention} has **{points}** MF point(s)."
+            msg_out2 = f"Their MF Rank is **#{rank}** out of **{guild.member_count}**."
 
         embed = discord.Embed(color=0x7e016f)
-        embed.set_author(name=f"Music Feedback: {user}", icon_url=guild.icon.url)
+        embed.set_author(name=f"Music Feedback: {user.display_name}", icon_url=guild.icon.url)
         embed.set_thumbnail(url=pfp)
-        embed.add_field(name="__MF Points__", value=f"You have **{points}** MF point(s).", inline=False)
-        embed.add_field(name="__MF Rank__", value=f"Your MF Rank is **#{rank}** out of **{guild.member_count}**.",
+        embed.add_field(name="__MF Points__", value=msg_out1, inline=False)
+        embed.add_field(name="__MF Rank__", value=msg_out2,
                         inline=False)
         await ctx.channel.send(embed=embed)
 
