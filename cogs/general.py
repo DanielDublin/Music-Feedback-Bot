@@ -1,6 +1,7 @@
 from os import makedirs
 import discord
 from discord.ext import commands
+from datetime import datetime
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID
 
@@ -35,6 +36,7 @@ class General(commands.Cog):
         embed.add_field(name="__MF Points__", value=msg_out1, inline=False)
         embed.add_field(name="__MF Rank__", value=msg_out2,
                         inline=False)
+        embed.timestamp = datetime.now()
         await ctx.channel.send(embed=embed)
 
     # MF leaderboard

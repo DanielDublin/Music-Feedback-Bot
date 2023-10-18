@@ -1,4 +1,5 @@
 import discord
+import asyncio
 from discord.ext import commands
 import database.db as db
 import modules.soundcloud_promotion_checker as SCP_checker
@@ -7,6 +8,8 @@ from datetime import datetime
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
     MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID
 
+PRIMUS_COOLDOWN = False
+PRIMUS_COOLDOWN_TIME = 10
 
 class User_listener(commands.Cog):
     def __init__(self, bot):
@@ -79,8 +82,16 @@ class User_listener(commands.Cog):
                     embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+                    
         elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID:
-            await ctx.channel.send("🤘 **Primus SUX!** 🤘")
+            global PRIMUS_COOLDOWN
+            
+            if not PRIMUS_COOLDOWN:
+                PRIMUS_COOLDOWN = True
+                await ctx.channel.send("🤘 **Primus SUX!** 🤘")
+                await asyncio.sleep(PRIMUS_COOLDOWN_TIME)
+                PRIMUS_COOLDOWN = False
+                
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):

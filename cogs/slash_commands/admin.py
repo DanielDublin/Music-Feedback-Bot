@@ -21,6 +21,10 @@ class Admin(commands.Cog):
             return
 
 
+        if points <=0:
+            await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
+            return 
+
         await db.add_points(str(user.id), points)
         current_points = int(await db.fetch_points(str(user.id)))
         embed = discord.Embed(color=0x7e016f)
@@ -39,7 +43,10 @@ class Admin(commands.Cog):
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
 
-
+        if points <=0:
+            await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
+            return
+        
         current_points = int(await db.fetch_points(str(user.id)))
 
         if current_points - points >= 0:
