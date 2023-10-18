@@ -75,6 +75,22 @@ class General(commands.Cog):
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
 
+
+
+    async def send_messages_to_user(self, message: discord.Message):
+        out_message = "Hey, you've run into an error when submitting for feedback.\n"\
+                      "Make sure you are using the correct bot commands.\n"\
+                      "> <MFR is for giving feedback\n"\
+                      "> <MFS is for submitting feedback\n"\
+                      "_THIS IS A 1-for-1 SYSTEM AND **__YOU MUST GIVE FEEDBACK FIRST TO GET FEEDBACK__**_\n"\
+                      "\nRe-read the #Feedback-Access (https://discord.com/channels/732355624259813531/953764384495251477/959150439692128277) "\
+                      "for more information or contact the Moderators.\n"\
+                      "\n**Here is a copy of the message that was deleted:**\n"
+
+        await message.author.send(out_message, suppress_embeds=True)
+        await message.author.send(f"```{message.content}```")
+
+
     # Use points
     @commands.command(name="S")
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -100,7 +116,8 @@ class General(commands.Cog):
         else:  # User doesn't have points
 
             try:
-                await ctx.author.send(ctx.message.content)
+                
+                await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
                     f"{mention}, you do not have any MF points."
                     f" Please give feedback first.\nYour request was DMed to you for future"
