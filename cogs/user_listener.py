@@ -91,6 +91,7 @@ class User_listener(commands.Cog):
                 await ctx.channel.send("🤘 **Primus SUX!** 🤘")
                 await asyncio.sleep(PRIMUS_COOLDOWN_TIME)
                 PRIMUS_COOLDOWN = False
+
                 
 
     @commands.Cog.listener()
