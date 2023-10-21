@@ -147,6 +147,12 @@ class General(commands.Cog):
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
             await channel.send(embed=embed)
 
+    
+    @commands.command()
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    async def creator(self, ctx: discord.Member):
+        out_msg = f"Ask FlamingCore / Officer Toast.\nCome on then, Ping him.\n**I dare you**.\n"
+        await ctx.channel.send(out_msg)
 
 async def setup(bot):
     await bot.add_cog(General(bot))
