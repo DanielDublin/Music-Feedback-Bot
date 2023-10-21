@@ -28,7 +28,12 @@ class Owner_Utilities(commands.Cog):
         await ctx.channel.send("starting warning migration process")
         await db.migrate_warnings()
         await ctx.channel.send("finished warning migration process")
-        
+    
+    @commands.command()
+    @commands.is_owner()
+    async def crash(self, ctx: discord.Message):
+
+        exit(1)
         
 async def setup(bot):
     await bot.add_cog(Owner_Utilities(bot))

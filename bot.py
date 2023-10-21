@@ -20,7 +20,7 @@ intents.typing = True
 intents.presences = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix='!', intents=intents, case_insensitive=True, strip_after_prefix=True,
+bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents, case_insensitive=True, strip_after_prefix=True,
                    owner_id=BOT_DEV_ID)
 
 
@@ -35,7 +35,8 @@ async def on_ready():
         await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
         print('Sync-ed slash commands')
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
-        await general_chat.send("Music Feedback is online.")
+        creator_user = await bot.fetch_user(BOT_DEV_ID)
+        await creator_user.send("Music Feedback is now live")
         IS_READY += 1
 
 
