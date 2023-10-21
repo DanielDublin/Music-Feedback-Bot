@@ -2,4 +2,8 @@ discord.py==2.3.2
 discord-py-interactions
  discord-py-slash-command==2.0.0
 python-dotenv
+aiohttp
+urlextract
+yt_dlp
+discord-ext-menus
 aiomysql
