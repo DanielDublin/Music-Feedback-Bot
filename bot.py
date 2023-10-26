@@ -32,7 +32,8 @@ async def on_ready():
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
+        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+        await bot.tree.sync() 
         print('Sync-ed slash commands')
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
