@@ -1,3 +1,4 @@
+from ast import Delete
 import discord
 import asyncio
 from discord.ext import commands
@@ -6,7 +7,7 @@ import modules.soundcloud_promotion_checker as SCP_checker
 import modules.youtube_promotion_checker as YT_checker
 from datetime import datetime
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
-    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID
+    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC
 
 PRIMUS_COOLDOWN = False
 PRIMUS_COOLDOWN_TIME = 10
@@ -21,7 +22,7 @@ class User_listener(commands.Cog):
             return
 
         content = ctx.content
-        if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members:
+        if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members: # warn checker
 
             mentions = ctx.mentions
             if mentions is None:
@@ -44,7 +45,7 @@ class User_listener(commands.Cog):
                 await warning_log_channel.send(embed=embed)
                 await warning_log_channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
-        elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members:
+        elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members: # soundcloud promotion checker
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID\
                     or ctx.channel.id == MUSIC_CHANNEL_ID:
                 is_promoting = await SCP_checker.check_soundcloud(ctx)
@@ -64,7 +65,7 @@ class User_listener(commands.Cog):
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower())\
-                and not ctx.author.guild_permissions.kick_members:
+                and not ctx.author.guild_permissions.kick_members:  # youtube promotion checker
             if ctx.channel.id == GENERAL_CHAT_CHANNEL_ID or ctx.channel.id == MUSIC_RECCOMENDATIONS_CHANNEL_ID \
                     or ctx.channel.id == MUSIC_CHANNEL_ID:
                 is_promoting = await YT_checker.check_youtube(ctx)
@@ -82,8 +83,14 @@ class User_listener(commands.Cog):
                     embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
-                    
-        elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID:
+        elif ctx.channel.id == INTRO_MUSIC and not ctx.author.guild_permissions.administrator: # Music intro delete 24h
+           try:
+               await asyncio.sleep(60*60*24) # 24 hours
+               await ctx.delete()
+           except Exception as e:
+               print(str(e))
+                   
+        elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID: # primus easter egg
             global PRIMUS_COOLDOWN
             
             if not PRIMUS_COOLDOWN:
@@ -91,6 +98,7 @@ class User_listener(commands.Cog):
                 await ctx.channel.send("🤘 **Primus SUX!** 🤘")
                 await asyncio.sleep(PRIMUS_COOLDOWN_TIME)
                 PRIMUS_COOLDOWN = False
+                
 
                 
 
