@@ -88,4 +88,5 @@ print("Processing complete")
 
 
 async def setup(bot):
-    await bot.add_cog(Admin(bot), guild=discord.Object(id=SERVER_ID))
+    # await bot.add_cog(Admin(bot), guild=discord.Object(id=SERVER_ID)) # for debug
+    await bot.add_cog(Admin(bot))

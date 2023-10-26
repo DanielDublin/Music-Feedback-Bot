@@ -10,7 +10,7 @@ class Hello(commands.Cog):
 
     @app_commands.command(name = "hello", description = "Greeting the user") #remove to get all guilds
     async def hello_command(self, interaction):
-        await interaction.response.send_message("Hello!")
+        await interaction.response.send_message("Hello! take 2")
 
 async def setup(bot):
     await bot.add_cog(Hello(bot))
