@@ -6,7 +6,8 @@ from discord.ext import commands
 from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
-from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID
+from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
+from modules.scan_delete_intro_messages import clean_old_messages
 
 IS_READY = 0
 
@@ -35,6 +36,9 @@ async def on_ready():
         #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
         await bot.tree.sync() 
         print('Sync-ed slash commands')
+        
+        channel = bot.get_channel(INTRO_MUSIC)
+        task = asyncio.create_task(clean_old_messages(channel))
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
         await creator_user.send("Music Feedback is now live")
