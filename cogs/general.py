@@ -4,6 +4,7 @@ from discord.ext import commands
 from datetime import datetime
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID
+from modules.genres import fetch_band_genres
 
 
 class General(commands.Cog):
@@ -147,6 +148,21 @@ class General(commands.Cog):
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
             await channel.send(embed=embed)
 
+
+    @commands.command()
+    @commands.cooldown(1, 60, commands.BucketType.user)
+    async def genres(self, ctx: discord.Message, band_name: str):
+        result, pfp_url = await fetch_band_genres(band_name)
+
+        embed = discord.Embed(color=0x7e016f)
+        embed.title = 'Genre Check'
+        embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
+        embed.set_thumbnail(url=pfp_url)
+        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon.url)
+        embed.timestamp = datetime.now()
+        await ctx.channel.send(embed=embed)
+        
+     
     
     @commands.command()
     @commands.cooldown(1, 10, commands.BucketType.user)
