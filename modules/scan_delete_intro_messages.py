@@ -9,6 +9,8 @@ import datetime
 async def clean_old_messages(channel):
    
     print('starting to go over intro-music')
+    if channel is None:
+        return
     
     now = discord.utils.utcnow()
     async for message in channel.history(limit=None, oldest_first=True):
