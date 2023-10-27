@@ -153,6 +153,8 @@ class General(commands.Cog):
     @commands.command()
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def genres(self, ctx: discord.Message, band_name: str):
+        words = ctx.message.content.split()
+        band_name  = " ".join(words[2:])
         result, pfp_url = await fetch_band_genres(band_name)
 
         embed = discord.Embed(color=0x7e016f)
