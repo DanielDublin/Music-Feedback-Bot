@@ -176,5 +176,6 @@ class HelpCog(commands.Cog):
     async def help(self, ctx):
         self.menu = HelpMenu(self.bot)
         await self.menu.start(ctx)
+        
 async def setup(bot):
     await bot.add_cog(HelpCog(bot))

@@ -17,9 +17,6 @@ class NotesMenu(menus.Menu):
 
         self.bot.add_listener(self.on_raw_reaction_add)
 
-    async def on_timeout(self):
-        await self.menu_message.clear_reactions()
-        await self.stop()
 
     async def on_raw_reaction_add(self, payload):
         if payload.user_id == self.bot.user.id:
@@ -79,6 +76,12 @@ class NotesMenu(menus.Menu):
         options = self.get_options()
         self.current_options = options  # Store the current options for pagination
         self.pages = [options[i:i + self.options_per_page] for i in range(0, len(options), self.options_per_page)]
+        if self.page_index < 0:
+            self.page_index = 0  # Ensure page_index is not negative
+            
+        if self.page_index >= len(self.pages):
+            self.page_index = len(self.pages) - 1  # Ensure page_index is within the valid range
+
 
         if len(options) == 3 and "Degree" in options and "Chords" in options and "Notes" in options:
 
@@ -173,9 +176,12 @@ class NotesMenu(menus.Menu):
         embed = discord.Embed(description=data)
         await ctx.send(embed=embed)
 
-    async def start(self, ctx):
+
+    async def send_initial_message(self, ctx, channel):
         options = self.get_options()
         self.current_options = options  # Store the current options for pagination
+        self.user = ctx.author
+        self.guild = ctx.guild
         await self.send_menu(ctx)
 
 
