@@ -23,6 +23,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents, case_insensitive=True, strip_after_prefix=True,
                    owner_id=BOT_DEV_ID)
+bot.remove_command('help')
 
 
 # Define the on_ready event
@@ -52,7 +53,8 @@ initial_extensions = [
     'cogs.user_listener',
     'cogs.guild_events',
     'cogs.music',
-    'cogs.owner_utilities'
+    'cogs.owner_utilities',
+    'cogs.help_command'
     # Add more cogs as needed
 ]
 
