@@ -189,7 +189,7 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(help= "Use to see the chord/notes information menu.\n``<MF Notes``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def notes(self, ctx):
         with open("cogs/options.json", "r") as file:

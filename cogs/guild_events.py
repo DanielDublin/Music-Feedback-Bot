@@ -7,10 +7,9 @@ class Guild_events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    # note: need to add functions in db of fetch_points, fetch_rank, reduce_points, add_points, fetch_top_users
 
-    # MF points - Shows how many points the current user has
-    @commands.command()
+
+    @commands.command(help = "Use to submit entries to events.\n``<MF Submit text/file``")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
 

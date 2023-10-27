@@ -13,7 +13,8 @@ class General(commands.Cog):
         self.bot = bot
 
     # MF points - Shows how many points the current user has
-    @commands.command(aliases=["balance"])
+    @commands.command(aliases=["balance"],
+                      help = f"(Alias: balance) - Use to check how many MF points you have.\n``<MF Points @user (optional)``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def points(self, ctx: discord.Message, user: discord.Member = None):
 
@@ -42,7 +43,8 @@ class General(commands.Cog):
         await ctx.channel.send(embed=embed)
 
     # MF leaderboard
-    @commands.command(aliases=["leaderboard"])
+    @commands.command(aliases=["leaderboard"],
+                      help = f"(Alias: leaderboard) - Use to see the leaderboard.\n``<MF Top``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def top(self, ctx: discord.Member):
 
@@ -69,7 +71,8 @@ class General(commands.Cog):
 
         # Add points
 
-    @commands.command(name="R")
+    @commands.command(name="R",
+                      help = f"Use to submit feedback.\n``<MFR @user (or react to message) feedback``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx: discord.Message):
 
@@ -103,7 +106,8 @@ class General(commands.Cog):
 
 
     # Use points
-    @commands.command(name="S")
+    @commands.command(name="S",
+                      help = f"Use to ask for feedback.\n``<MFS text/file``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
 
@@ -150,7 +154,7 @@ class General(commands.Cog):
             await channel.send(embed=embed)
 
 
-    @commands.command()
+    @commands.command(help = "Use to present the band's genres from Last.FM.\n``<MF Genres band``")
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def genres(self, ctx: discord.Message, band_name: str):
         words = ctx.message.content.split()
@@ -166,7 +170,7 @@ class General(commands.Cog):
         await ctx.channel.send(embed=embed)
         
 
-    @commands.command()
+    @commands.command(help = "Use to present 10 similar bands to a wanted band form Last.FM.\n``<MF Similar band``")
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def similar(self, ctx: discord.Message, band_name: str):
         
@@ -187,7 +191,7 @@ class General(commands.Cog):
         
      
     
-    @commands.command()
+    @commands.command(help = "Use to learn details about the developer.\n``<MF Creator``")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def creator(self, ctx: discord.Member):
         out_msg = f"Ask FlamingCore / Officer Toast.\nCome on then, Ping him.\n**I dare you**.\n"

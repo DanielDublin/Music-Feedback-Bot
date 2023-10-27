@@ -96,7 +96,7 @@ class HelpMenu(menus.Menu):
         embed = discord.Embed(title="No commands available", color=0x7e016f)
         return embed
     def get_no_perms_embed(self):
-        embed = discord.Embed(title="No commands available", color=0x7e016f)
+        embed = discord.Embed(title="You have no power here!", color=0x7e016f)
         embed.set_image(url="https://media.tenor.com/GYeAvy0kg0MAAAAC/gandalf-laughing.gif")
         return embed
 
@@ -172,7 +172,7 @@ class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(help= "Use to see this menu.\n``<MF Help``")
     async def help(self, ctx):
         self.menu = HelpMenu(self.bot)
         await self.menu.start(ctx)
