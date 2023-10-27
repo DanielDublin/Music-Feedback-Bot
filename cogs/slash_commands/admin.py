@@ -14,7 +14,7 @@ class Admin(commands.Cog):
     group = app_commands.Group(name="mfpoints", description="Alter any user's points.", default_permissions=discord.Permissions(administrator=True))
     
     # Mod give points
-    @group.command(name='add')
+    @group.command(name='add', description="Use to add more points to a user.\n```/mfpoints add @user/user_id amount(optional)```")
     async def add(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
@@ -37,7 +37,7 @@ class Admin(commands.Cog):
 
         # Mod remove points
 
-    @group.command(name='remove')
+    @group.command(name='remove', description="Use to remove points from a user.\n```/mfpoints remove @user/user_id amount(optional)```")
     async def remove(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
@@ -69,7 +69,7 @@ class Admin(commands.Cog):
 
             # Mod clear points
 
-    @group.command(name="clear")
+    @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
     async def clear(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
