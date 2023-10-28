@@ -60,7 +60,6 @@ initial_extensions = [
 
 # Load slash command cogs
 slash_extensions = [
-    'cogs.slash_commands.hello',  # Replace with your slash command cogs
     'cogs.slash_commands.timer',
     'cogs.slash_commands.admin'
     # Add more slash command cogs as needed

@@ -8,15 +8,20 @@ from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 
 
+
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.pfp_url =""
 
     # MF points - Shows how many points the current user has
-    @commands.command(aliases=["balance"],
-                      help = f"(Alias: balance) - Use to check how many MF points you have.\n``<MF Points @user (optional)``")
+    @commands.command(help = f"Use to check how many MF points you have.")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def points(self, ctx: discord.Message, user: discord.Member = None):
+
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         # Gathering data
         if user is None:
@@ -40,13 +45,17 @@ class General(commands.Cog):
         embed.add_field(name="__MF Rank__", value=msg_out2,
                         inline=False)
         embed.timestamp = datetime.now()
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
 
     # MF leaderboard
     @commands.command(aliases=["leaderboard"],
-                      help = f"(Alias: leaderboard) - Use to see the leaderboard.\n``<MF Top``")
+                      help = f"(Use to see the leaderboard.")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def top(self, ctx: discord.Member):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         top_users = await db.fetch_top_users()
         guild = ctx.guild
@@ -67,14 +76,18 @@ class General(commands.Cog):
         embed.set_author(name="Top Music Feedbackers", icon_url=guild.icon.url)
         embed.add_field(name="Members", value=names, inline=False)
         embed.set_thumbnail(url=avatar)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
 
         # Add points
 
     @commands.command(name="R",
-                      help = f"Use to submit feedback.\n``<MFR @user (or react to message) feedback``")
+                      help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx: discord.Message):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         await db.add_points(str(ctx.author.id), 1)
         mention = ctx.author.mention
@@ -84,6 +97,7 @@ class General(commands.Cog):
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name="Feedback Notice",
                         value=f"{mention} has **given feedback** and now has **{points}** MF point(s).", inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
 
         await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
                                delete_after=4)
@@ -107,9 +121,12 @@ class General(commands.Cog):
 
     # Use points
     @commands.command(name="S",
-                      help = f"Use to ask for feedback.\n``<MFS text/file``")
+                      help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
@@ -126,6 +143,7 @@ class General(commands.Cog):
                             value=f"{mention} has **submitted** a work for feedback and now"
                                   f" has **{points}** MF point(s).",
                             inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
         else:  # User doesn't have points
@@ -151,12 +169,17 @@ class General(commands.Cog):
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(name="**ALERT**",
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
 
-    @commands.command(help = "Use to present the band's genres from Last.FM.\n``<MF Genres band``")
+    @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def genres(self, ctx: discord.Message, band_name: str):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
+            
         words = ctx.message.content.split()
         band_name  = " ".join(words[2:])
         result, pfp_url = await fetch_band_genres(band_name)
@@ -165,14 +188,17 @@ class General(commands.Cog):
         embed.title = 'Genre Check'
         embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
         embed.set_thumbnail(url=pfp_url)
-        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon.url)
         embed.timestamp = datetime.now()
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
 
-    @commands.command(help = "Use to present 10 similar bands to a wanted band form Last.FM.\n``<MF Similar band``")
+    @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def similar(self, ctx: discord.Message, band_name: str):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
         
         words = ctx.message.content.split()
         band_name  = " ".join(words[2:])
@@ -182,20 +208,15 @@ class General(commands.Cog):
         embed = discord.Embed(color=0x7e016f)
         embed.title = 'Similar bands'
         embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
-        embed.set_footer(text=ctx.guild.name, icon_url=ctx.guild.icon.url)
         embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/1753/1753311.png')
         embed.timestamp = datetime.now()
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
 
         
      
-    
-    @commands.command(help = "Use to learn details about the developer.\n``<MF Creator``")
-    @commands.cooldown(1, 10, commands.BucketType.user)
-    async def creator(self, ctx: discord.Member):
-        out_msg = f"Ask FlamingCore / Officer Toast.\nCome on then, Ping him.\n**I dare you**.\n"
-        await ctx.channel.send(out_msg)
+
 
 async def setup(bot):
     await bot.add_cog(General(bot))

@@ -9,7 +9,7 @@ from data.constants import SERVER_ID
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
+        self.pfp_url = ""
 
     group = app_commands.Group(name="mfpoints", description="Alter any user's points.", default_permissions=discord.Permissions(administrator=True))
     
@@ -20,7 +20,10 @@ class Admin(commands.Cog):
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
 
-
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
+            
         if points <=0:
             await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
             return 
@@ -32,6 +35,7 @@ class Admin(commands.Cog):
                         value=f"{interaction.user.mention} has given {user.mention} {points} MF point."
                               f" They now have **{current_points}** MF point(s).",
                         inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
@@ -42,6 +46,10 @@ class Admin(commands.Cog):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
+        
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         if points <=0:
             await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
@@ -56,6 +64,7 @@ class Admin(commands.Cog):
                             value=f"{interaction.user.mention} has taken {points} MF point from {user.mention}."
                                   f" They now have **{current_points - points}** MF point(s).",
                             inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
@@ -64,6 +73,7 @@ class Admin(commands.Cog):
             embed.add_field(name="Music Feedback",
                             value=f"Can't remove points, This member already has **{current_points}** MF points.",
                             inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await interaction.response.send_message("Nope!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
@@ -75,12 +85,16 @@ class Admin(commands.Cog):
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
 
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         await db.reset_points(str(user.id))
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name="Music Feedback",
                         value=f"{interaction.user.mention} has cleared all of {user.mention}'s MF points. They now have **0** MF points.",
                         inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
