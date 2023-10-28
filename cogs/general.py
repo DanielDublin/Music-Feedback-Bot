@@ -44,7 +44,6 @@ class General(commands.Cog):
         embed.add_field(name="__MF Points__", value=msg_out1, inline=False)
         embed.add_field(name="__MF Rank__", value=msg_out2,
                         inline=False)
-        embed.timestamp = datetime.now()
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
 
@@ -76,7 +75,6 @@ class General(commands.Cog):
         embed.set_author(name="Top Music Feedbackers", icon_url=guild.icon.url)
         embed.add_field(name="Members", value=names, inline=False)
         embed.set_thumbnail(url=avatar)
-        embed.timestamp = datetime.now()
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
 
@@ -189,7 +187,6 @@ class General(commands.Cog):
         embed.title = 'Genre Check'
         embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
         embed.set_thumbnail(url=pfp_url)
-        embed.timestamp = datetime.now()
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
@@ -210,7 +207,6 @@ class General(commands.Cog):
         embed.title = 'Similar bands'
         embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
         embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/1753/1753311.png')
-        embed.timestamp = datetime.now()
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
