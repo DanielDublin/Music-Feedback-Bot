@@ -45,7 +45,6 @@ class User_listener(commands.Cog):
                 embed.add_field(name="__MF Warnings__", value=f"User has **{warnings}** warnings.", inline=False)
                 embed.add_field(name="Use ``.warnings (user id)`` to see infractions:",
                                 value=f"{target_user.mention} | {target_user.id}", inline=False)
-                embed.timestamp = datetime.now()
                 embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                 await warning_log_channel.send(embed=embed)
                 await warning_log_channel.send(f"<@&{MODERATORS_ROLE_ID}>")
@@ -65,7 +64,6 @@ class User_listener(commands.Cog):
                                     value=f"{ctx.author.mention} | {ctx.author.id}"
                                           f" is under suspicion of sending SoundCloud links at {ctx.jump_url}.",
                                     inline=False)
-                    embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
                     embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
@@ -86,7 +84,6 @@ class User_listener(commands.Cog):
                                     value=f"{ctx.author.mention} | {ctx.author.id}"
                                           f" is under suspicion of sending YouTube links at {ctx.jump_url}.",
                                     inline=False)
-                    embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
                     embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
