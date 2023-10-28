@@ -3,8 +3,9 @@ from discord.ext import commands, menus
 import json
 
 
+
 class NotesMenu(menus.Menu):
-    def __init__(self, ctx, bot, json_data):
+    def __init__(self, ctx, bot, json_data, pfp_url):
         super().__init__(timeout=60.0, delete_message_after=True, clear_reactions_after=True)
         self.json_data = json_data
         self.current_level = 0
@@ -14,7 +15,7 @@ class NotesMenu(menus.Menu):
         self.user_id = ctx.author.id
         self.page_index = 0
         self.options_per_page = 7  # Number of options per page
-
+        self.pfp_url =pfp_url
         self.bot.add_listener(self.on_raw_reaction_add)
 
 
@@ -107,7 +108,10 @@ class NotesMenu(menus.Menu):
             if notes_values:
                 degree_values = degree_values.replace('{degree}', '°')
                 embed.add_field(name="Notes", value=f"`{notes_values}`", inline=True)
-
+                
+            
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            
             if self.menu_message is None:
                 self.menu_message = await message.channel.send(embed=embed)
             else:
@@ -127,6 +131,9 @@ class NotesMenu(menus.Menu):
 
             if self.current_level > 0:
                 embed.add_field(name="Go Back", value="↩️", inline=False)
+                
+           
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
 
             if self.menu_message is None:
                 self.menu_message = await message.channel.send(embed=embed)
@@ -174,6 +181,8 @@ class NotesMenu(menus.Menu):
 
     async def send_data(self, ctx, data):
         embed = discord.Embed(description=data)
+     
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.send(embed=embed)
 
 
@@ -189,13 +198,18 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(help= "Use to see the chord/notes information menu.\n``<MF Notes``")
+    @commands.command(help= "Use to see the chord/notes information menu.")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def notes(self, ctx):
+        
+     
+        creator_user = await self.bot.fetch_user(self.bot.owner_id)
+        pfp_url = creator_user.avatar.url
+
         with open("cogs/options.json", "r") as file:
             json_data = json.load(file)
 
-        menu = NotesMenu(ctx, self.bot, json_data)
+        menu = NotesMenu(ctx, self.bot, json_data, pfp_url)
         await menu.start(ctx)
 
 

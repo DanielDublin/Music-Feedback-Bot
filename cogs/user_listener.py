@@ -15,11 +15,15 @@ PRIMUS_COOLDOWN_TIME = 10
 class User_listener(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.pfp_url =""
 
     @commands.Cog.listener()
     async def on_message(self, ctx):
         if ctx.author.bot:
             return
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         content = ctx.content
         if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members: # warn checker
@@ -42,6 +46,7 @@ class User_listener(commands.Cog):
                 embed.add_field(name="Use ``.warnings (user id)`` to see infractions:",
                                 value=f"{target_user.mention} | {target_user.id}", inline=False)
                 embed.timestamp = datetime.now()
+                embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                 await warning_log_channel.send(embed=embed)
                 await warning_log_channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
@@ -62,6 +67,7 @@ class User_listener(commands.Cog):
                                     inline=False)
                     embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
+                    embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower())\
@@ -82,6 +88,7 @@ class User_listener(commands.Cog):
                                     inline=False)
                     embed.timestamp = datetime.now()
                     await channel.send(embed=embed)
+                    embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
         elif ctx.channel.id == INTRO_MUSIC and not ctx.author.guild_permissions.administrator: # Music intro delete 24h
            try:

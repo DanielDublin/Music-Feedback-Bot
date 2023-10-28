@@ -3,8 +3,10 @@ import discord
 from discord import app_commands
 from datetime import datetime
 
+
+
 class HelpMenu(menus.Menu):
-    def __init__(self, bot):
+    def __init__(self, bot, pfp_url):
         super().__init__(timeout=180.0, delete_message_after=True, clear_reactions_after=True)
         self.user = None
         self.main_menu = None
@@ -14,6 +16,7 @@ class HelpMenu(menus.Menu):
         self.page_index =0
         self.guild = None
         self.message = None
+        self.pfp_url = pfp_url
         
     async def on_raw_reaction_add(self, payload):
         if payload.user_id == self.user.id:
@@ -43,10 +46,11 @@ class HelpMenu(menus.Menu):
         return await ctx.send(embed=self.get_main_menu())
 
     def get_main_menu(self):
+    
         embed = discord.Embed(title="Help Menu", color=0x7e016f)
         embed.add_field(name="1️⃣ General", value="Show general commands", inline=False)
         embed.add_field(name="2️⃣ Admin", value="Show admin commands", inline=False)  
-        embed.set_footer(text=f"{self.guild.name}", icon_url=self.guild.icon.url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         embed.set_thumbnail(url=self.bot.user.avatar.url)
         return embed
 
@@ -67,7 +71,21 @@ class HelpMenu(menus.Menu):
         if cmd.cog_name is not None  # Exclude commands with no cog
         and cmd.cog_name != 'Owner_Utilities'  # Exclude commands from the Owner Utilities cog
         ]
-        general_commands = sorted(general_commands, key=lambda cmd: cmd.name.lower())
+        
+        custom_order = {
+        "r": 1,
+        "s": 2,
+        "points": 3,
+        "submit": 4,
+        "top": 5,
+        "notes": 6,
+        "genres": 7,
+        "similar": 8,
+        "help": 9
+        }
+
+        # Sort self.bot.commands based on the custom order
+        general_commands = sorted(general_commands, key=lambda cmd: custom_order.get(cmd.name.lower(), 999))
         
         per_page = 5  # Number of commands to display per page
         pages = [general_commands[i:i + per_page] for i in range(0, len(general_commands), per_page)]
@@ -106,16 +124,16 @@ class HelpMenu(menus.Menu):
             color=0x7e016f
         )
 
-        for command in commands:
-            # Display the command's name in title mode with its help or description
+        for index, command in enumerate(commands, start=page_index * 5):
+            # Display the command's name with its index and description
             embed.add_field(
-                name=command.name.title(),
+                name=f"{chr(ord('A') + index)})  <MF {command.name.title()} {command.brief or ' '}".replace("<MF R ", "<MFR ").replace("<MF S ", "<MFS "),
                 value=command.help or "No description",
                 inline=False
             )
 
         # Set the page number in the footer
-        embed.set_footer(text=f"Page {page_index + 1}/{len(self.pages)}", icon_url=self.message.guild.icon.url)
+        embed.set_footer(text=f"Made by FlamingCore  -  Page {page_index + 1}/{len(self.pages)}", icon_url=self.pfp_url)
         return embed
 
     def get_admin_commands_embed(self, commands, page_index):
@@ -124,17 +142,16 @@ class HelpMenu(menus.Menu):
                 color=0x7e016f
             )
 
-            for command in commands:
-                # Display the command's name in title mode with its help or description
-
+            for index, command in enumerate(commands, start=page_index * 5):
+                # Display the command's name with its index and description
                 embed.add_field(
-                    name=command.qualified_name.title(),
+                    name=f"{chr(ord('A') + index)})  /{command.qualified_name.title()}",
                     value=command.description or "No description",
                     inline=False
                 )
 
             # Set the page number in the footer
-            embed.set_footer(text=f"Page {page_index + 1}/{len(self.pages)}", icon_url=self.message.guild.icon.url)
+            embed.set_footer(text=f"Made by FlamingCore  -  Page {page_index + 1}/{len(self.pages)}", icon_url=self.pfp_url)
             return embed
 
     async def add_page_reactions(self):
@@ -168,13 +185,18 @@ class HelpMenu(menus.Menu):
             await self.show_page(self.page_index, True)
 
 
+
 class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(help= "Use to see this menu.\n``<MF Help``")
+
+    @commands.command(help= "Use to see this menu.")
     async def help(self, ctx):
-        self.menu = HelpMenu(self.bot)
+        
+        creator_user = await self.bot.fetch_user(self.bot.owner_id)
+        pfp_url = creator_user.avatar.url
+        self.menu = HelpMenu(self.bot, pfp_url)
         await self.menu.start(ctx)
         
 async def setup(bot):
