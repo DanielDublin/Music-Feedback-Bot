@@ -19,24 +19,28 @@ class HelpMenu(menus.Menu):
         self.pfp_url = pfp_url
         
     async def on_raw_reaction_add(self, payload):
-        if payload.user_id == self.user.id:
-            if payload.emoji.name == '↩️' and not self.is_main:
-                self.is_main = True
-                self.page_index =0
-                await self.message.clear_reactions()
-                await self.update_main_menu()
+        if payload.user_id != self.user.id:
+            return
+        if payload.message_id != self.message.id:
+            return
+        
+        if payload.emoji.name == '↩️' and not self.is_main:
+            self.is_main = True
+            self.page_index =0
+            await self.message.clear_reactions()
+            await self.update_main_menu()
                 
-            elif payload.emoji.name == "⬅️" and not self.is_main:
-                self.page_index -=1    
-                await self.message.clear_reaction('⬅️') 
-                await self.message.clear_reaction('➡️') 
-                await self.show_page(self.page_index)
+        elif payload.emoji.name == "⬅️" and not self.is_main:
+            self.page_index -=1    
+            await self.message.clear_reaction('⬅️') 
+            await self.message.clear_reaction('➡️') 
+            await self.show_page(self.page_index)
                 
-            elif payload.emoji.name == "➡️" and not self.is_main:
-                self.page_index +=1
-                await self.message.clear_reaction('⬅️') 
-                await self.message.clear_reaction('➡️') 
-                await self.show_page(self.page_index)
+        elif payload.emoji.name == "➡️" and not self.is_main:
+            self.page_index +=1
+            await self.message.clear_reaction('⬅️') 
+            await self.message.clear_reaction('➡️') 
+            await self.show_page(self.page_index)
             
             
 

@@ -76,6 +76,7 @@ class General(commands.Cog):
         embed.set_author(name="Top Music Feedbackers", icon_url=guild.icon.url)
         embed.add_field(name="Members", value=names, inline=False)
         embed.set_thumbnail(url=avatar)
+        embed.timestamp = datetime.now()
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
 
