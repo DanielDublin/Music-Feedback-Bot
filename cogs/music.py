@@ -26,6 +26,8 @@ class NotesMenu(menus.Menu):
             await self.menu_message.channel.send(
                 f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
             return
+        if payload.message_id != self.menu_message.id:
+            return
 
         message_id = payload.message_id
         channel_id = payload.channel_id
