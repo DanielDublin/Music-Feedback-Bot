@@ -15,7 +15,7 @@ class TimerCog(commands.Cog):
     group = app_commands.Group(name="timer", description="Countdown from any time (minutes)", default_permissions=discord.Permissions(administrator=True))
     
 
-    @group.command(name = "status") 
+    @group.command(name = "status",  description="Check how much time is left on the timer.") 
     async def status(self, interaction):
         if self.active_timer is not None:
             await interaction.response.send_message(f"# There are {self.minutes} minutes remaining.")
@@ -44,7 +44,7 @@ class TimerCog(commands.Cog):
         self.active_timer = None
         
 
-    @group.command(name="start")
+    @group.command(name="start",  description="Start the timer.")
     async def start(self, interaction: discord.Interaction, minutes :int) -> None:
         author_id = interaction.user.id
       
@@ -60,7 +60,7 @@ class TimerCog(commands.Cog):
             self.active_timer = asyncio.create_task(self.timer_countdown(interaction))
             
 
-    @group.command(name="stop")
+    @group.command(name="stop",  description="Stop the timer.")
     async def stop(self, interaction: discord.Interaction) -> None:
         author_id = interaction.user.id
         
