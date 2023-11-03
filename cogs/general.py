@@ -13,8 +13,12 @@ class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pfp_url =""
+        
+    def guild_only(ctx):
+        return ctx.guild is not None
 
     # MF points - Shows how many points the current user has
+    @commands.check(guild_only)
     @commands.command(help = f"Use to check how many MF points you have.")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def points(self, ctx: discord.Message, user: discord.Member = None):
@@ -48,6 +52,7 @@ class General(commands.Cog):
         await ctx.channel.send(embed=embed)
 
     # MF leaderboard
+    @commands.check(guild_only)
     @commands.command(aliases=["leaderboard"],
                       help = f"(Use to see the leaderboard.")
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -79,7 +84,7 @@ class General(commands.Cog):
         await ctx.channel.send(embed=embed)
 
         # Add points
-
+    @commands.check(guild_only)
     @commands.command(name="R",
                       help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -87,11 +92,12 @@ class General(commands.Cog):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
+            
 
         await db.add_points(str(ctx.author.id), 1)
         mention = ctx.author.mention
         points = int(await db.fetch_points(str(ctx.author.id)))
-        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel
 
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name="Feedback Notice",
@@ -119,6 +125,7 @@ class General(commands.Cog):
 
 
     # Use points
+    @commands.check(guild_only)
     @commands.command(name="S",
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
@@ -171,7 +178,7 @@ class General(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
-
+    @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def genres(self, ctx: discord.Message, band_name: str):
@@ -190,7 +197,7 @@ class General(commands.Cog):
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
-
+    @commands.check(guild_only)
     @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
     async def similar(self, ctx: discord.Message, band_name: str):

@@ -194,7 +194,10 @@ class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
+    def guild_only(ctx):
+        return ctx.guild is not None
+    
+    @commands.check(guild_only)
     @commands.command(help= "Use to see this menu.")
     async def help(self, ctx):
         

@@ -1,4 +1,5 @@
 from ast import Delete
+from asyncio.windows_events import NULL
 import discord
 import asyncio
 from discord.ext import commands
@@ -21,9 +22,14 @@ class User_listener(commands.Cog):
     async def on_message(self, ctx):
         if ctx.author.bot:
             return
+        
+        if not isinstance(ctx.channel, discord.TextChannel):
+            return
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
+            
 
         content = ctx.content
         if ctx.content.lower().startswith(".warn") and ctx.author.guild_permissions.kick_members: # warn checker
@@ -92,8 +98,7 @@ class User_listener(commands.Cog):
                await asyncio.sleep(60*60*24) # 24 hours
                await ctx.delete()
            except Exception as e:
-               print(str(e))
-                   
+               print(str(e))                  
         elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID: # primus easter egg
             global PRIMUS_COOLDOWN
             
