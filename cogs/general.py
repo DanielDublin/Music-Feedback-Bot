@@ -25,15 +25,15 @@ class General(commands.Cog):
                 
                 await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
-                    f"{mention}, please use the correct channel to give feedback. Your request was DMed to you for future"
-                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    f"{mention}, please use the correct channel to give feedback.\nYour request was DMed to you for future"
+                    f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                     delete_after=60)
                 await ctx.message.delete()
                 return False
             except Exception:
-                await ctx.channel.send(f'{mention}, you did not use the correct channel to give feedback.'
+                await ctx.channel.send(f'{mention}, you did not use the correct channel to use feedback.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\n Please contact Moderators for help or re-read'
+                                       f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)
                 await ctx.message.delete()
@@ -45,15 +45,17 @@ class General(commands.Cog):
                 
                 await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
-                    f"{mention}, <MFR and <MFS are 2 different commands\nPlease repost them separately. Your request was DMed to you for future"
-                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    f'{mention}, you posted the commands in the wrong format, '
+                    f'``<MFR`` and ``<MFS`` are 2 different commands.\nPlease repost them separately. Your request was DMed to you for future'
+                    f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                     delete_after=60)
                 await ctx.message.delete()
                 return False
             except Exception:
-                await ctx.channel.send(f'{mention}, you posted 2 commands in 1 message.'
+                await ctx.channel.send(f'{mention}, you posted the commands in the wrong format, '
+                                       f'``<MFR`` and ``<MFS`` are 2 different commands.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\n Please contact Moderators for help or re-read'
+                                       f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)  
                 await ctx.message.delete()
@@ -139,7 +141,7 @@ class General(commands.Cog):
             
 
         mention = ctx.author.mention    
-        if not self.handle_feedback_command_validity(self, ctx, mention):
+        if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
         await db.add_points(str(ctx.author.id), 1)
@@ -184,7 +186,7 @@ class General(commands.Cog):
             
 
         mention = ctx.author.mention    
-        if not self.handle_feedback_command_validity(self, ctx, mention):
+        if not await self.handle_feedback_command_validity(ctx, mention):
             return
         
 
@@ -214,12 +216,12 @@ class General(commands.Cog):
                 await ctx.channel.send(
                     f"{mention}, you do not have any MF points."
                     f" Please give feedback first.\nYour request was DMed to you for future"
-                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                     delete_after=60)
             except Exception:
                 await ctx.channel.send(f'{mention}, you do not have any MF points. Please give feedback first.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\n Please contact Moderators for help or re-read'
+                                       f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)
 
