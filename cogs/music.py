@@ -199,7 +199,12 @@ class NotesMenu(menus.Menu):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
+    def guild_only(ctx):
+        return ctx.guild is not None
+    
 
+    @commands.check(guild_only)
     @commands.command(help= "Use to see the chord/notes information menu.")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def notes(self, ctx):

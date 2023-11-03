@@ -7,9 +7,11 @@ pfp_url = ""
 class Guild_events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
+    def guild_only(ctx):
+        return ctx.guild is not None
 
-
-
+    @commands.check(guild_only)
     @commands.command(help = "Use to submit entries to events.", brief = "(link, file, text)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
