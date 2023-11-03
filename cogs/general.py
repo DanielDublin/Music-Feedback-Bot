@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import database.db as db
-from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID
+from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 
@@ -16,6 +16,50 @@ class General(commands.Cog):
         
     def guild_only(ctx):
         return ctx.guild is not None
+    
+
+    async def handle_feedback_command_validity(self, ctx, mention):
+        
+        if ctx.channel.category is None or ctx.channel.category_id != FEEDBACK_CATEGORY_ID:  #  checks if its the right channels
+            try:
+                
+                await self.send_messages_to_user(ctx.message)
+                await ctx.channel.send(
+                    f"{mention}, please use the correct channel to give feedback. Your request was DMed to you for future"
+                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    delete_after=60)
+                await ctx.message.delete()
+                return False
+            except Exception:
+                await ctx.channel.send(f'{mention}, you did not use the correct channel to give feedback.'
+                                       f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
+                                       f'\n Please contact Moderators for help or re-read'
+                                       f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
+                                       delete_after=60)
+                await ctx.message.delete()
+                return False
+                
+
+        if '<mfr' in ctx.message.content.lower().replace(' ','') and '<mfs' in ctx.message.content.lower().replace(' ',''):  # checks if no mfs + mfr
+            try:
+                
+                await self.send_messages_to_user(ctx.message)
+                await ctx.channel.send(
+                    f"{mention}, <MFR and <MFS are 2 different commands\nPlease repost them separately. Your request was DMed to you for future"
+                    f" reference. Please re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                    delete_after=60)
+                await ctx.message.delete()
+                return False
+            except Exception:
+                await ctx.channel.send(f'{mention}, you posted 2 commands in 1 message.'
+                                       f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
+                                       f'\n Please contact Moderators for help or re-read'
+                                       f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
+                                       delete_after=60)  
+                await ctx.message.delete()
+                return False
+            
+        return True
 
     # MF points - Shows how many points the current user has
     @commands.check(guild_only)
@@ -94,8 +138,12 @@ class General(commands.Cog):
             self.pfp_url = creator_user.avatar.url
             
 
+        mention = ctx.author.mention    
+        if not self.handle_feedback_command_validity(self, ctx, mention):
+            return
+
         await db.add_points(str(ctx.author.id), 1)
-        mention = ctx.author.mention
+        
         points = int(await db.fetch_points(str(ctx.author.id)))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel
 
@@ -133,10 +181,16 @@ class General(commands.Cog):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
+            
+
+        mention = ctx.author.mention    
+        if not self.handle_feedback_command_validity(self, ctx, mention):
+            return
+        
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
-        mention = ctx.author.mention
+        
 
         if points:  # user have points, reduce them and send message + log
             points -= 1
