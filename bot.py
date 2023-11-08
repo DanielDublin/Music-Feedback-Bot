@@ -98,10 +98,7 @@ async def main():
     task = asyncio.create_task(db.schedule_weekly_task())
 
     # Start the bot
-    try:
-        await bot.start(token)
-    except Exception as e:
-        print(token)
+    await bot.start(token)
 
     # Wait for the database weekly maintenance task to finish
     await task
