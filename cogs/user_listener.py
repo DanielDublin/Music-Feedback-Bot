@@ -1,5 +1,3 @@
-from ast import Delete
-from asyncio.windows_events import NULL
 import discord
 import asyncio
 from discord.ext import commands
