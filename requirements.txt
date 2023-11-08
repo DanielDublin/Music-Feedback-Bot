@@ -6,4 +6,5 @@ aiohttp
 urlextract
 yt_dlp
 discord-ext-menus
+beautifulsoup4
 aiomysql
