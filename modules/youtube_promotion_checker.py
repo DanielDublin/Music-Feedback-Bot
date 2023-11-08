@@ -20,7 +20,7 @@ youtube_url_pattern2 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=
 youtube_url_pattern3 = re.compile(r'(https?://)?youtu\.be/([A-Za-z0-9_-]+)(?:\?.*)?$')
 
 # Define the custom cache directory path
-custom_cache_dir = '/tmp/urlextract_cache/'
+custom_cache_dir = '/tmp/'
 # Initialize the URL extractor with the custom cache directory
 url_extractor = urlextract.URLExtract(cache_dir=custom_cache_dir)
 
