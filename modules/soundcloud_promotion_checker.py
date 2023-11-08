@@ -4,11 +4,8 @@ import discord
 import urlextract
 from bs4 import BeautifulSoup
 
-# Define the custom cache directory path
-custom_cache_dir = '/tmp/'
-
-# Initialize the URL extractor with the custom cache directory
-url_extractor = urlextract.URLExtract(cache_dir=custom_cache_dir)
+# Initialize the URL extractor 
+url_extractor = urlextract.URLExtract()
 
 
 def extract_soundcloud_url(message_content):
