@@ -19,8 +19,10 @@ youtube_url_pattern1 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=
 youtube_url_pattern2 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_-]+)')
 youtube_url_pattern3 = re.compile(r'(https?://)?youtu\.be/([A-Za-z0-9_-]+)(?:\?.*)?$')
 
-# Initialize the URL extractor
-url_extractor = urlextract.URLExtract(cache_dir=None)
+# Define the custom cache directory path
+custom_cache_dir = '/tmp/urlextract_cache/'
+# Initialize the URL extractor with the custom cache directory
+url_extractor = urlextract.URLExtract(cache_dir=custom_cache_dir)
 
 
 # Function to extract the video ID from a YouTube URL
