@@ -5,7 +5,7 @@ import urlextract
 from bs4 import BeautifulSoup
 
 # Initialize the URL extractor
-url_extractor = urlextract.URLExtract()
+url_extractor = urlextract.URLExtract(cache_dir=None)
 
 
 def extract_soundcloud_url(message_content):

@@ -20,7 +20,7 @@ youtube_url_pattern2 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=
 youtube_url_pattern3 = re.compile(r'(https?://)?youtu\.be/([A-Za-z0-9_-]+)(?:\?.*)?$')
 
 # Initialize the URL extractor
-url_extractor = urlextract.URLExtract()
+url_extractor = urlextract.URLExtract(cache_dir=None)
 
 
 # Function to extract the video ID from a YouTube URL
