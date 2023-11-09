@@ -68,8 +68,8 @@ class User_listener(commands.Cog):
                                     value=f"{ctx.author.mention} | {ctx.author.id}"
                                           f" is under suspicion of sending SoundCloud links at {ctx.jump_url}.",
                                     inline=False)
-                    await channel.send(embed=embed)
                     embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+                    await channel.send(embed=embed)
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower())\
@@ -88,8 +88,8 @@ class User_listener(commands.Cog):
                                     value=f"{ctx.author.mention} | {ctx.author.id}"
                                           f" is under suspicion of sending YouTube links at {ctx.jump_url}.",
                                     inline=False)
-                    await channel.send(embed=embed)
                     embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+                    await channel.send(embed=embed)                
                     await channel.send(f"<@&{MODERATORS_ROLE_ID}>")
         elif ctx.channel.id == INTRO_MUSIC and not ctx.author.guild_permissions.administrator: # Music intro delete 24h
            try:
