@@ -20,6 +20,7 @@ class NotesMenu(menus.Menu):
 
 
     async def on_raw_reaction_add(self, payload):
+        
         if payload.message_id != self.menu_message.id:
             return
         if payload.user_id == self.bot.user.id:
