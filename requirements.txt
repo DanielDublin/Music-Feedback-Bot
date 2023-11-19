@@ -7,4 +7,5 @@ urlextract
 yt_dlp
 discord-ext-menus
 beautifulsoup4
+spotipy
 aiomysql
