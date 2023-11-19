@@ -4,7 +4,7 @@ from discord.ext import commands
 import database.db as db
 import modules.promotion_checkers.soundcloud_promotion_checker as SCP_checker
 import modules.promotion_checkers.youtube_promotion_checker as YT_checker
-import modules.promotion_checkers.soundcloud_promotion_checker as Spoti_checker
+import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
 from datetime import datetime
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
     MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC
@@ -84,12 +84,12 @@ class User_listener(commands.Cog):
 
 
     async def handle_warnings(self, ctx):
-        mentions = ctx.mentions
+        mentioned_users = ctx.mentioned_users
         
-        if mentions is None:
+        if mentioned_users is None:
             return
 
-        target_user = mentions[0]
+        target_user = mentioned_users[0]
         warnings = await db.add_warning_to_user(str(target_user.id))
 
         if warnings >= 3:
