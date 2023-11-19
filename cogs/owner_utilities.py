@@ -14,7 +14,7 @@ class Owner_Utilities(commands.Cog):
         await ctx.channel.send("starting migration process")
 
         # Load the JSON file with nested dictionaries
-        with open('MF Points.json', 'r') as json_file:
+        with open('MF_Points.json', 'r') as json_file:
             data = json.load(json_file)
 
         await db.json_migration(data)
