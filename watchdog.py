@@ -12,7 +12,7 @@ def bot_process():
 
     while True:
         print(f"Starting the bot in thread: {current_thread.name}...")
-        bot_process = subprocess.Popen(["python", "bot.py"])
+        bot_process = subprocess.Popen(["python3", "bot.py"])
 
         # Monitor the bot process
         while True:
