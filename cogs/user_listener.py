@@ -27,7 +27,7 @@ class User_listener(commands.Cog):
         if not isinstance(ctx.channel, discord.TextChannel):
             return
 
-        if self.pfp_url == "":
+        if not self.pfp_url :
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
             
