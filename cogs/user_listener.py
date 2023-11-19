@@ -84,7 +84,7 @@ class User_listener(commands.Cog):
 
 
     async def handle_warnings(self, ctx):
-        mentioned_users = ctx.mentioned_users
+        mentioned_users = ctx.mentions
         
         if mentioned_users is None:
             return
@@ -109,13 +109,16 @@ class User_listener(commands.Cog):
 
     async def handle_promotion_check(self, ctx):
         is_promoting = False
-        
+        suspicion = "Nothing"
         if 'soundcloud.com' in ctx.content.lower():
-            is_promoting = await SCP_checker.check_soundcloud(ctx)    
+            is_promoting = await SCP_checker.check_soundcloud(ctx)
+            suspicion = "SoundCloud"
         elif 'youtube.com' in ctx.content.lower() or 'youtu.be' in ctx.content.lower():
             is_promoting = await YT_checker.check_youtube(ctx)
+            suspicion = "YouTube"
         elif 'open.spotify'  in ctx.content.lower():
             is_promoting = await Spoti_checker.check_spotify(ctx)
+            suspicion = "Spotify"
             
         
         if is_promoting:
@@ -127,7 +130,7 @@ class User_listener(commands.Cog):
             embed.set_thumbnail(url=pfp)
             embed.add_field(name="__Possible promotion alert__",
                             value=f"{ctx.author.mention} | {ctx.author.id}"
-                                    f" is under suspicion of sending SoundCloud links at {ctx.jump_url}.",
+                                    f" is under suspicion of sending {suspicion} links at {ctx.jump_url}.",
                             inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
