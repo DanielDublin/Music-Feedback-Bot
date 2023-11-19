@@ -7,15 +7,15 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from dotenv import load_dotenv
 
 load_dotenv()
-SPOTIPY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
-SPOTIPY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
 
+SPOTIFY_CLIENT_ID = os.environ.get('SPOTIPY_CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIPY_CLIENT_SECRET')
 
 
 # Initialize the URL extractor 
 url_extractor = urlextract.URLExtract()
 # Create a Spotify client
-sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
+sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET))
 
 
 def extract_spotify_urls(message_content):
@@ -30,9 +30,11 @@ def extract_spotify_urls(message_content):
 
 def fetch_artist_name(spotify_url):
     global sp
+    
     try:
         # Extract the type and ID from the Spotify link using regex
         match = re.match(r'https://open\.spotify\.com/(track|album|artist)/(\w+)', spotify_url)
+        
         if match:
             link_type, link_id = match.groups()
 
@@ -48,6 +50,8 @@ def fetch_artist_name(spotify_url):
 
             # Extract the artist name
             artist_name = track_info['artists'][0]['name']
+            
+            return artist_name
     except spotipy.SpotifyException:
         print(f"Error processing Spotify link: {spotify_url}")
         return None
