@@ -40,18 +40,22 @@ def fetch_artist_name(spotify_url):
 
             # Fetch information based on the link type
             if link_type == 'track':
-                track_info = sp.track(link_id)
+                link_info = sp.track(link_id)
             elif link_type == 'album':
-                track_info = sp.album(link_id)
+                link_info = sp.album(link_id)
             elif link_type == 'artist':
-                track_info = sp.artist(link_id)
+                link_info = sp.artist(link_id)
+                artist_name = [link_info['name']]
+                return artist_name
+            
             else:
                 return None
 
             # Extract the artist name
-            artist_name = track_info['artists'][0]['name']
+            artists = link_info['artists']
+            artist_names = [artist['name'] for artist in artists]
+            return artist_names
             
-            return artist_name
     except spotipy.SpotifyException:
         print(f"Error processing Spotify link: {spotify_url}")
         return None
@@ -70,19 +74,18 @@ async def check_spotify(message):
     for url in urls:
        
         
-        spotify_user_name = fetch_artist_name(url)
-        if spotify_user_name is None:
+        spotify_artists_names = fetch_artist_name(url)
+        if spotify_artists_names is None:
             continue
         
         
-        spotify_user_name = spotify_user_name.replace(" ", "").lower()
+        spotify_artists_names = [artist_name.replace(" ", "").lower() for artist_name in spotify_artists_names]
         discord_global_name = author.global_name.replace(" ", "").lower()
         discord_display_name = author.display_name.replace(" ", "").lower()
 
         try:
             # Check if the spotify username is in the name, nickname or bio of the discord's user
-            if spotify_user_name == discord_global_name \
-                    or spotify_user_name == discord_display_name:
+            if discord_global_name in spotify_artists_names or discord_display_name in spotify_artists_names:
                 return True
 
         except discord.errors.NotFound:
