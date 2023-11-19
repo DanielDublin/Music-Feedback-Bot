@@ -166,6 +166,7 @@ class HelpMenu(menus.Menu):
 
     @menus.button("2️⃣")
     async def on_admin(self, payload):
+       
         await self.message.clear_reactions()
         await self.message.add_reaction("↩️")
         self.is_main = False

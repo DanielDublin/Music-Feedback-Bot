@@ -1,6 +1,7 @@
 ﻿import discord
 from discord.ext import commands, menus
 import json
+import asyncio
 
 
 
@@ -26,8 +27,11 @@ class NotesMenu(menus.Menu):
         if payload.user_id == self.bot.user.id:
             return
         if payload.user_id != self.user_id:
-            await self.menu_message.channel.send(
+            msg = await self.menu_message.channel.send(
                 f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
+            await asyncio.sleep(3)  
+            await msg.delete()
+            
             return
         
 
