@@ -20,14 +20,15 @@ class NotesMenu(menus.Menu):
 
 
     async def on_raw_reaction_add(self, payload):
+        if payload.message_id != self.menu_message.id:
+            return
         if payload.user_id == self.bot.user.id:
             return
         if payload.user_id != self.user_id:
             await self.menu_message.channel.send(
                 f"{payload.member.mention} Please use your own menu with the ``<MF notes`` command")
             return
-        if payload.message_id != self.menu_message.id:
-            return
+        
 
         message_id = payload.message_id
         channel_id = payload.channel_id
