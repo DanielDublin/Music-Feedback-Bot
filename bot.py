@@ -30,6 +30,7 @@ bot.remove_command('help')
 @bot.event
 async def on_ready():
     global IS_READY
+    global bot
 
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
@@ -38,8 +39,8 @@ async def on_ready():
         await bot.tree.sync() 
         print('Sync-ed slash commands')
         
-        channel = bot.get_channel(INTRO_MUSIC)
-        task = asyncio.create_task(clean_old_messages(channel))
+        
+        task = asyncio.create_task(clean_old_messages(bot))
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
         await creator_user.send("Music Feedback is now live")
