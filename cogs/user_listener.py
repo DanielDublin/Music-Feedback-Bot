@@ -74,7 +74,7 @@ class User_listener(commands.Cog):
         
         kicks = await db.fetch_kicks(str(member.id))
         if kicks:
-            self.handle_kicked_alert(member, kicks)
+            await self.handle_kicked_alert(member, kicks)
             
             
 
@@ -87,7 +87,7 @@ class User_listener(commands.Cog):
         
         async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
             
-            cutoff_time = discord.utils.utcnow() - timedelta(minutes=5)  # Adjust the time window as needed
+            cutoff_time = discord.utils.utcnow() - timedelta(minutes=2)  # Adjust the time window as needed
             if entry.target == member and entry.created_at >= cutoff_time:
                 
                 # Get all matching kicks, filter the newest one if exists
@@ -145,9 +145,9 @@ class User_listener(commands.Cog):
         embed = discord.Embed(color=0x7e016f)
         embed.set_author(name=f"Music Feedback: {member.name}", icon_url=member.guild.icon.url)
         embed.set_thumbnail(url=pfp)
-        embed.add_field(name="__Kicked user rejoined__",
+        embed.add_field(name="__Kicked user re-joined__",
                         value=f"{member.mention} | {member.id}"
-                                f"This user came back after they were kicked {kicks} times.",
+                                f"\nThis user came back after they were kicked {kicks} times.",
                         inline=False)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await channel.send(embed=embed)
