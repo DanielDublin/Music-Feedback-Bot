@@ -78,7 +78,7 @@ async def update_dict_from_db(user_id):
                     users_dict[user_id]["Kicks"] = int(result["kicks"])
                 else:
                     del users_dict[user_id]
-                    await add_user(user_id)  # User is absent from DB
+                    await add_user(user_id, True)  # User is absent from DB
     except Exception as e:
         if "lost connection" in str(e).lower():
             await init_database()
@@ -240,7 +240,7 @@ async def add_kick(user_id):
     
 
 # Add a user
-async def add_user(user_id):
+async def add_user(user_id, called_from_update_func=False):
     global pool, users_dict
 
     if pool is None:
@@ -253,7 +253,7 @@ async def add_user(user_id):
             async with pool.acquire() as conn:
                 async with conn.cursor() as cursor:
                     # Add or replace user in the database
-                    # (use "REPLACE INTO" or "INSERT INTO ON DUPLICATE KEY UPDATE" depending on your database)
+                
                     await cursor.execute("REPLACE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
                     await conn.commit()
         except Exception as e:
@@ -261,9 +261,11 @@ async def add_user(user_id):
                 await init_database()
                 add_user(user_id)
                 return
-                
-        user_data = {"Points": 0, "Warnings": 0, "Kicks": 0}
-        users_dict[user_id] = user_data  # Add user to the dictionary
+            
+        # Update the dict to whatever the db has,
+        #  in case that its a user that just joined after being kicked
+        if not called_from_update_func:
+            await update_dict_from_db(user_id)
 
 
 # Remove a user from DB - User was kicked or banned
