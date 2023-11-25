@@ -263,7 +263,7 @@ async def add_user(user_id, called_from_update_func=False):
         try:
             async with pool.acquire() as conn:
                 async with conn.cursor() as cursor:
-                    # Add or replace user in the database
+                    # Add or insert user in the database if it doesnt exist
                 
                     await cursor.execute("INSERT IGNORE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
                     await conn.commit()
