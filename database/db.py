@@ -279,7 +279,7 @@ async def add_user(user_id, called_from_update_func=False):
             await update_dict_from_db(user_id)
 
 
-# Remove a user from DB - User was kicked or banned
+# Remove a user from DB - User was banned
 async def remove_user(user_id):
     global pool, users_dict
 

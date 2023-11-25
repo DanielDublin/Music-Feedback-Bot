@@ -70,6 +70,13 @@ class User_listener(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         await db.add_user(str(member.id))
+        
+        kicks = await db.fetch_kicks(str(member.id))
+        if kicks:
+            self.handle_kicked_alert(member, kicks)
+            
+            
+
 
     # User left - reset his points
     @commands.Cog.listener()
@@ -83,10 +90,7 @@ class User_listener(commands.Cog):
             # User was kicked
             await db.reset_points(str(member.id), True)
                         
-            
- 
-        
-        
+
 
     # User was banned - remove him from DB
     @commands.Cog.listener()
@@ -117,6 +121,22 @@ class User_listener(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await warning_log_channel.send(embed=embed)
             await warning_log_channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+            
+
+    async def handle_kicked_alert(self, member: discord.Member, kicks: int):
+       
+        channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+        pfp = member.avatar.url
+        embed = discord.Embed(color=0x7e016f)
+        embed.set_author(name=f"Music Feedback: {member.name}", icon_url=member.guild.icon.url)
+        embed.set_thumbnail(url=pfp)
+        embed.add_field(name="__Kicked user rejoined__",
+                        value=f"{member.mention} | {member.id}"
+                                f"This user came back after they were kicked {kicks} times.",
+                        inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        await channel.send(embed=embed)
+    
             
 
     async def handle_promotion_check(self, ctx):
