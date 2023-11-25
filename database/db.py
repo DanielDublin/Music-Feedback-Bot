@@ -217,7 +217,8 @@ async def add_points(user_id, points: int):
         if "lost connection" in str(e).lower():
             await init_database()
             add_points(user_id, points)
-           
+          
+            
 # Add a kick to a user
 async def add_kick(user_id):
     global pool, users_dict
