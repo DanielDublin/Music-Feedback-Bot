@@ -1,3 +1,4 @@
+from re import T
 import discord
 import asyncio
 from discord.ext import commands
@@ -5,7 +6,7 @@ import database.db as db
 import modules.promotion_checkers.soundcloud_promotion_checker as SCP_checker
 import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
-from datetime import datetime
+from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
     MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC
 
@@ -82,13 +83,27 @@ class User_listener(commands.Cog):
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         
-        # Get all matching kicks, filter the newest one if exists
-        audit_log_entry = await member.guild\
-            .audit_logs(action=discord.AuditLogAction.kick, limit=1).flatten()
+        audit_log_entry = None
         
-        if audit_log_entry is not None and audit_log_entry[0].target == member:
+        async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
+            
+            cutoff_time = discord.utils.utcnow() - timedelta(minutes=5)  # Adjust the time window as needed
+            if entry.target == member and entry.created_at >= cutoff_time:
+                
+                # Get all matching kicks, filter the newest one if exists
+                try:
+                    async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
+                        audit_log_entry = entry
+                        break
+                except Exception as e:
+                    print(str(e))
+            
+        if audit_log_entry is not None and audit_log_entry.target == member:
             # User was kicked
             await db.reset_points(str(member.id), True)
+            await db.add_kick(str(member.id))
+        else:
+            await db.reset_points(str(member.id))
                         
 
 
