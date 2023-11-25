@@ -125,7 +125,7 @@ class User_listener(commands.Cog):
 
     async def handle_kicked_alert(self, member: discord.Member, kicks: int):
        
-        channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+        channel = self.bot.get_channel(WARNING_CHANNEL)
         pfp = member.avatar.url
         embed = discord.Embed(color=0x7e016f)
         embed.set_author(name=f"Music Feedback: {member.name}", icon_url=member.guild.icon.url)
