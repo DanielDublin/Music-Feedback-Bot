@@ -138,6 +138,17 @@ async def fetch_rank(user_id: str):
             return DATABASE_ERROR  # database issue
 
 
+# Fetch kicks for a user
+async def fetch_kicks(user_id: str):
+    global users_dict
+
+    if user_id in users_dict:
+        return users_dict[user_id]["Kicks"]  # Return points from the dictionary
+    else:
+        await update_dict_from_db(user_id)
+        return users_dict[user_id]["Kicks"]
+    
+
 # Fetch the top 5 users with the best point scores
 async def fetch_top_users():
     global pool, users_dict
