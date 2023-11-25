@@ -74,7 +74,19 @@ class User_listener(commands.Cog):
     # User left - reset his points
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        await db.reset_points(str(member.id))
+        
+        # Get all matching kicks, filter the newest one if exists
+        audit_log_entry = await member.guild\
+            .audit_logs(action=discord.AuditLogAction.kick, limit=1).flatten()
+        
+        if audit_log_entry is not None and audit_log_entry[0].target == member:
+            # User was kicked
+            await db.reset_points(str(member.id), True)
+                        
+            
+ 
+        
+        
 
     # User was banned - remove him from DB
     @commands.Cog.listener()
