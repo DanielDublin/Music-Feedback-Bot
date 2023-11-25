@@ -16,7 +16,7 @@ WEEK_TIME_IN_SECONDS = 60 * 60 * 24 * 7
 # Your database connection pool (initialize it as needed)
 pool = None
 
-users_dict = {}  # id -> points, rank, warnings
+users_dict = {}  # id -> points, rank, warnings, kicks
 
 
 # Initialize the database connection (async)
@@ -75,6 +75,7 @@ async def update_dict_from_db(user_id):
                 if result is not None:  # Adding only points and warnings, not Rank to reduce queries
                     users_dict[user_id]["Points"] = int(result["points"])
                     users_dict[user_id]["Warnings"] = int(result["warnings"])
+                    users_dict[user_id]["Kicks"] = int(result["kicks"])
                 else:
                     del users_dict[user_id]
                     await add_user(user_id)  # User is absent from DB
@@ -217,7 +218,25 @@ async def add_points(user_id, points: int):
             await init_database()
             add_points(user_id, points)
            
+# Add a kick to a user
+async def add_kick(user_id):
+    global pool, users_dict
 
+    if pool is None:
+        await init_database()  # Reconnect the database if the pool is None
+ 
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Add a kick in the database
+                await cursor.execute("UPDATE users SET kicks = kicks + %s WHERE user_id = %s",
+                                     (1, str(user_id)))  # Convert to str
+                await conn.commit()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            add_kick(user_id)
+    
 
 # Add a user
 async def add_user(user_id):
@@ -242,11 +261,11 @@ async def add_user(user_id):
                 add_user(user_id)
                 return
                 
-        user_data = {"Points": 0, "Warnings": 0}
+        user_data = {"Points": 0, "Warnings": 0, "Kicks": 0}
         users_dict[user_id] = user_data  # Add user to the dictionary
 
 
-# Remove a user from DB - User was banned
+# Remove a user from DB - User was kicked or banned
 async def remove_user(user_id):
     global pool, users_dict
 
@@ -255,6 +274,8 @@ async def remove_user(user_id):
 
     if user_id in users_dict:
         del users_dict[user_id]  # Remove user from the dictionary
+        
+    
         
     try:
         async with pool.acquire() as conn:
@@ -320,12 +341,15 @@ async def migrate_warnings():
 
 
 # Reset points for a user - user left or by command
-async def reset_points(user_id):
+async def reset_points(user_id, is_kicked=False):
     global pool, users_dict
 
     if pool is None:
         await init_database()  # Reconnect the database if the pool is None
 
+    if is_kicked:
+        del users_dict[user_id]
+        
     if user_id in users_dict:
         users_dict[user_id]["Points"] = 0  # Reset points in the dictionary
         
