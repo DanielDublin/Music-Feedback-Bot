@@ -265,7 +265,7 @@ async def add_user(user_id, called_from_update_func=False):
                 async with conn.cursor() as cursor:
                     # Add or replace user in the database
                 
-                    await cursor.execute("REPLACE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
+                    await cursor.execute("INSERT IGNORE INTO users (user_id) VALUES (%s)", (str(user_id)))  # Convert to str
                     await conn.commit()
         except Exception as e:
             if "lost connection" in str(e).lower():
