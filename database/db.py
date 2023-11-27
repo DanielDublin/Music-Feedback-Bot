@@ -407,4 +407,32 @@ async def json_migration(users):
                     batch = []
 
 
-# Add your other functions here, following the same pattern
+
+async def migrate_warnings_extreme(user_warnings):
+
+    global pool
+
+    if pool is None:
+        await init_database()  # Reconnect the database if the pool is None
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                    for user_id, warnings in user_warnings.items():
+                        # Check if the user is in the database
+                        await cur.execute("SELECT * FROM users WHERE user_id = %s;", (user_id))
+                        existing_user = await cur.fetchone()
+
+                        if existing_user is not None:
+                            # Update the existing user's warnings
+                            await cur.execute("UPDATE users SET warnings = %s WHERE user_id = %s;",
+                                              (warnings, user_id))
+                            print(f"Updated warnings for user {user_id}")
+                        else:
+                            # Insert a new row for the user
+                            await cur.execute("INSERT INTO users (user_id, points, warnings, kicks) "
+                                              "VALUES (%s, %s, %s, %s);",
+                                              (user_id, 0, warnings, 0))
+                            print(f"Inserted a new row for user {user_id}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
