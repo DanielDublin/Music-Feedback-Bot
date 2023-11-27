@@ -62,6 +62,7 @@ class Owner_Utilities(commands.Cog):
     @commands.command()
     @commands.is_owner()
     async def crash(self, ctx: discord.Message):
+        await ctx.channel.send("Crashing!")
         exit(1)
         
 
