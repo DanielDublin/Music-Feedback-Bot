@@ -169,17 +169,13 @@
             }
         },
         "Sharp/Flat Minors": {
-            "Cb minor": {
-                "Degree": "`Theoretical key.`"
-            },
+            "Cb minor": "`Theoretical key.`",
             "C# minor": {
                 "Degree": "`i\nii{degree}\nIII\niv\nv\nVI\nVII`",
                 "Chords": "`C# minor\nD# dim\nE major\nF# minor\nG# minor\nA major\nB major`",
                 "Notes": "`C# E G# (B)\nD# F# A (C#)\nE G# B (D#)\nF# A C# (E)\nG# B D# (F#)\nA C# E (G#)\nB D# F# (A)`"
             },
-            "Db minor": {
-                "Degree": "`Most commonly notated as C# minor.`"
-            },
+            "Db minor": "`Most commonly notated as C# minor.`",
             "D# minor": {
                 "Degree": "`i\nii{degree}\nIII\niv\nv\nVI\nVII`",
                 "Chords": "`D# minor\nE# dim\nF# major\nG# minor\nA# minor\nB# major\nC# major`",
@@ -195,9 +191,7 @@
                 "Chords": "`F# minor\nG# dim\nA major\nB minor\nC# minor\nD major\nE major`",
                 "Notes": "`F# A C# (E)\nG# B D (F#)\nA C# E (G#)\nB D F# (A)\nC# E G# (B)\nD F# A (C#)\nE G# B (D)`"
             },
-            "G minor": {
-                "Degree": "`Most commonly notated as F# minor.`"
-            },
+            "G minor": "`Most commonly notated as F# minor.`",
             "G# minor": {
                 "Degree": "`i\nii{degree}\nIII\niv\nv\nVI\nVII`",
                 "Chords": "`G# minor\nA# dim\nB major\nC# minor\nD# minor\nE major\nF# major`",
@@ -208,17 +202,13 @@
                 "Chords": "`Ab minor\nBb dim\nCb major\nDb minor\nEb minor\nFb major\nGb major`",
                 "Notes": "`Ab Cb Eb (Gb)\nBb Db Fb (Ab)\nCb Eb Gb (Bb)\nDb Fb Ab (Cb)\nEb Gb Bb (Db)\nFb Ab Cb (Eb)\nGb Bb Db (Fb)`"
             },
-            "A# minor": {
-                "Degree": "`Most commonly notated as Bb major.`"
-            },
+            "A# minor": "`Most commonly notated as Bb major.`",
             "Bb minor": {
                 "Degree": "`i\nii{degree}\nIII\niv\nv\nVI\nVII`",
                 "Chords": "`Bb minor\nC dim\nDb major\nEb minor\nF minor\nGb major\nAb major`",
                 "Notes": "`Bb Db F (Ab)\nC Eb Gb (Bb)\nDb F Ab (C)\nEb Gb Bb (Db)\nF Ab C (Eb)\nGb Bb Db (F)\nAb C Eb (Gb)`"
             },
-            "B# minor": {
-                "Degree": "`Theoretical key.`"
-            }
+            "B# minor": "`Theoretical key.`"
         }
     }
 }

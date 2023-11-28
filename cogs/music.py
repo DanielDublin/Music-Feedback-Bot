@@ -181,9 +181,6 @@ class NotesMenu(menus.Menu):
         elif isinstance(data, str):
             options.append(data)
 
-        # Check if a chord is selected and return all three options
-        if self.current_level == 1 and options == ["Degree"]:
-            options.extend(["Chords", "Notes"])
 
         return options
 
