@@ -16,6 +16,8 @@ class Guild_events(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
 
+        allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
+        
         if ctx.channel.id in allowed_channels_list:
             await ctx.channel.send(
                     f"{ctx.author.mention}, please use the correct channel to post your submission.", delete_after=60) 
@@ -23,7 +25,7 @@ class Guild_events(commands.Cog):
             return
         
         file = None
-        allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
+        
 
         if len(ctx.message.attachments):  # Checks if the correct channels were used to be sent a file
             file = await ctx.message.attachments[0].to_file()
