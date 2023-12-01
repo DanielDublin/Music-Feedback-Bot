@@ -18,7 +18,7 @@ class Guild_events(commands.Cog):
 
         allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
         
-        if ctx.channel.id in allowed_channels_list:
+        if not ctx.channel.id in allowed_channels_list:
             await ctx.channel.send(
                     f"{ctx.author.mention}, please use the correct channel to post your submission.", delete_after=60) 
             await ctx.message.delete()
