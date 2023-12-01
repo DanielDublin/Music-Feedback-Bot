@@ -386,3 +386,4 @@ FodyWeavers.xsd
 /data/constants1.py
 /data/constants-test.py
 /counter.py
+/output.json
