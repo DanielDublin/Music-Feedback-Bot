@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from data.constants import SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID
+from data.constants import SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
 
 pfp_url = ""
 
@@ -17,9 +17,10 @@ class Guild_events(commands.Cog):
     async def submit(self, ctx):
 
         file = None
+        allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
 
         if len(ctx.message.attachments):  # Checks if the correct channels were used to be sent a file
-            if ctx.channel.id == SUBMISSIONS_CHANNEL_ID or ctx.channel.id == GENERAL_CHAT_CHANNEL_ID:
+            if ctx.channel.id in allowed_channels_list:
                 file = await ctx.message.attachments[0].to_file()
 
         await ctx.message.delete()
