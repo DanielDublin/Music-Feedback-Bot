@@ -51,6 +51,8 @@ def extract_video_urls(content):
         if 'youtu' in url and "channel" not in url and "@" not in url:
             cleaned_url = re.sub(pattern, '', url)
             out_links.append(cleaned_url)
+        else:
+            out_links.append(url)
     return out_links
 
 
