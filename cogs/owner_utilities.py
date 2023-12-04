@@ -55,7 +55,18 @@ class Owner_Utilities(commands.Cog):
         await ctx.channel.send("finished warning migration process")
         
 
-
+    @commands.command()
+    @commands.is_owner()
+    async def say(self, ctx, channel_id: int, message: str):
+        try:
+            target_channel = self.bot.get_channel(channel_id)
+            if target_channel:
+                await target_channel.send(message)
+                await ctx.send(f'Message was sent.')
+            else:
+                await ctx.send(f"Channel with ID {channel_id} not found.")
+        except Exception as e:
+            await ctx.send(f"An error occurred: {str(e)}")
 
 
     
