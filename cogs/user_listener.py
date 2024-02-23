@@ -8,7 +8,7 @@ import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
 from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
-    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC
+    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID
 
 
 
@@ -22,7 +22,7 @@ class User_listener(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, ctx):
-        if ctx.author.bot:
+        if ctx.author.bot and (ctx.author.id != DYNO_ID or (ctx.interaction is not None and ctx.interaction.name != 'warn')):
             return
         
         if not isinstance(ctx.channel, discord.TextChannel):
@@ -34,9 +34,13 @@ class User_listener(commands.Cog):
             
 
         content = ctx.content
-        if (ctx.content.lower().startswith(".warn") or ctx.content.lower().startswith("/warn")) and ctx.author.guild_permissions.kick_members: # warn checker
-           await self.handle_warnings(ctx)
-
+        if ctx.author.id == DYNO_ID:  # is a warning
+            if len(ctx.embeds[0].fields):
+                
+                await self.handle_warnings(ctx, True)
+                
+        elif (ctx.content.lower().startswith(".warn") or ctx.content.lower().startswith("/warn")) and ctx.author.guild_permissions.kick_members: # warn checker
+            await self.handle_warnings(ctx)    
         elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members: # soundcloud promotion checker
             if ctx.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
                 await self.handle_promotion_check(ctx)
@@ -66,7 +70,8 @@ class User_listener(commands.Cog):
                 self.PRIMUS_COOLDOWN = False
                 
 
-                
+
+
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -112,12 +117,68 @@ class User_listener(commands.Cog):
     async def on_member_ban(self, guild, member):
         await db.remove_user(str(member.id))
 
-
-
-    async def handle_warnings(self, ctx):
-        mentioned_users = ctx.mentions
+    async def convert_mention_to_member(self, ctx, mention_string):
         
-        if mentioned_users is None:
+        user_id = mention_string
+        member = None
+        
+        try:
+            if mention_string.startswith('<@!'):
+                user_id = int(mention_string.strip('<@!>'))
+            elif mention_string.startswith('<@'):
+                user_id = int(mention_string.strip('<@>'))
+            else:
+                 user_id = int(mention_string)
+        except Exception as e:
+            return None
+       
+        guild = ctx.channel.guild  # Assuming you have access to the guild instance
+
+        # Attempt to fetch the member from the guild
+     
+        member = guild.get_member(user_id)
+     
+        # If member is None, attempt to fetch the member using fetch_member
+        if member is None:
+            try:
+                member = await guild.fetch_member(user_id)
+            except Exception as e:
+                return None
+            
+        return member        
+        
+    
+    
+
+    async def handle_warnings(self, ctx, is_embed = False):
+        
+        mentioned_users = None
+  
+        if is_embed:
+            embed = ctx.embeds[0]
+            
+            for field in embed.fields:
+                name = field.name  
+                    
+                if name.lower() == "user":
+                    target = await  self.convert_mention_to_member(ctx, field.value)
+                    
+                    if target is not None:
+                        mentioned_users = [target]
+                    break
+        else:
+            mentioned_users = ctx.mentions
+            if not len(mentioned_users):
+                words = ctx.content.split()
+                target_id = words[1]
+                target = await self.convert_mention_to_member(ctx, target_id)
+                if target is not None:
+                    mentioned_users = [target]
+          
+                
+
+
+        if mentioned_users is None or not len(mentioned_users):
             return
 
         target_user = mentioned_users[0]
