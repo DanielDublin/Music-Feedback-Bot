@@ -57,7 +57,7 @@ class Owner_Utilities(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def say(self, ctx, channel_id: int, *, message: str):
+    async def say(self, ctx: discord.Message, channel_id: int, *, message: str):
         try:
             target_channel = self.bot.get_channel(channel_id)
             if target_channel:
