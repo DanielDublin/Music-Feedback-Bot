@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
     MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID
 
-
+# dan
+promotion_whitelist_id = [358631356248489984]
 
 class User_listener(commands.Cog):
     def __init__(self, bot):
@@ -216,6 +217,11 @@ class User_listener(commands.Cog):
             
 
     async def handle_promotion_check(self, ctx):
+        
+        global promotion_whitelist_id
+        if ctx.author.id in promotion_whitelist_id:
+            return
+
         is_promoting = False
         suspicion = "Nothing"
         if 'soundcloud.com' in ctx.content.lower():
