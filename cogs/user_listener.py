@@ -33,8 +33,12 @@ class User_listener(commands.Cog):
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
             
-
         content = ctx.content
+        
+        content_remove_spaces = content.replace(' ', '').lower()
+        if not ctx.author.guild_permissions.kick_members and content_remove_spaces.startswith('>mf'):
+            await self.handle_wrong_prefix(ctx)
+
         if ctx.author.id == DYNO_ID:  # is a warning
             if len(ctx.embeds[0].fields):
                 
@@ -250,6 +254,23 @@ class User_listener(commands.Cog):
             await channel.send(embed=embed)
             await channel.send(f"<@&{MODERATORS_ROLE_ID}>")    
 
+    async def handle_wrong_prefix(self, message):
+        
+        try:
+            await message.channel.send(
+                f"{message.author.mention}, Aw snap,\n Looks like your command input was wrong. Your message was DMed to you for future"
+                f" reference.\nPlease use <MF help for further information.",
+                delete_after=60)
+            await message.delete()
+ 
+        except Exception as e:
+            print(str(e))
+            await message.channel.send(f'{message.author.mention}, Looks like your command input was wrong.'
+                                    f'\n**ATTENTION**: _We could not DM you with a copy of your message.'
+                                    f'\nPlease contact Moderators for help or re-read'
+                                    f' <MF help for more information._',
+                                    delete_after=60)
+            await message.delete()
 
 async def setup(bot):
     await bot.add_cog(User_listener(bot))
