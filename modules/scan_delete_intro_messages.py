@@ -4,9 +4,9 @@ from discord.ext import commands
 from data.constants import INTRO_MUSIC
 import datetime
 
-def is_a_normie(message, bot):
+def is_a_normie(message):
     
-    if not message.author.guild_permissions.administrator:
+    if  message.author.guild_permissions.administrator:
         now = discord.utils.utcnow()
         time_passed = now - message.created_at
         if time_passed >= datetime.timedelta(days=1):
@@ -23,7 +23,7 @@ async def clean_old_messages(bot):
         return
     
     while(True):
-        await channel.purge(bulk = True, check=is_a_normie(bot))
+        await channel.purge(bulk = True, check=is_a_normie)
         await asyncio.sleep(60*60) # 1 hour
              
 
