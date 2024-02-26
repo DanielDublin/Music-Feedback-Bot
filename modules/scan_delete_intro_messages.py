@@ -6,7 +6,7 @@ import datetime
 
 def is_a_normie(message):
     
-    if  message.author.guild_permissions.administrator:
+    if  not message.author.guild_permissions.administrator:
         now = discord.utils.utcnow()
         time_passed = now - message.created_at
         if time_passed >= datetime.timedelta(days=1):
