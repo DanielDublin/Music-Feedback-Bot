@@ -44,7 +44,7 @@ class User_listener(commands.Cog):
                 
                 await self.handle_warnings(ctx, True)
                 
-        elif (ctx.content.lower().startswith(".warn") or ctx.content.lower().startswith("/warn")) and ctx.author.guild_permissions.kick_members: # warn checker
+        elif (ctx.content.lower().startswith(".warn ") or ctx.content.lower().startswith("/warn ")) and ctx.author.guild_permissions.kick_members: # warn checker
             await self.handle_warnings(ctx)    
         elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members: # soundcloud promotion checker
             if ctx.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
