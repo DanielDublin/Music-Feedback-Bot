@@ -11,6 +11,9 @@ class MessageCleaner(commands.Cog):
 
     def cog_unload(self):
         self.clean_old_messages.cancel()
+        
+    def cog_load(self):
+        self.clean_old_messages.start()
 
     @staticmethod
     def is_a_normie(message):
