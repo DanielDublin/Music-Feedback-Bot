@@ -112,9 +112,14 @@ async def fetch_rank_from_db(user_id):
 async def fetch_points(user_id: str):
     global users_dict
 
-    if user_id in users_dict:
+    if user_id in users_dict and users_dict[user_id] is not None:
+ 
         return users_dict[user_id]["Points"]  # Return points from the dictionary
     else:
+
+        if user_id in users_dict:
+            del users_dict[user_id]
+
         await update_dict_from_db(user_id)
         return users_dict[user_id]["Points"]
 
