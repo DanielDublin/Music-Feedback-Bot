@@ -80,7 +80,7 @@ class General(commands.Cog):
         guild = ctx.guild
         points = await db.fetch_points(str(user.id))
         rank = await db.fetch_rank(str(user.id))
-        pfp = user.avatar.url
+        pfp = user.display_avatar.url
         
         msg_out1 = f"You have **{points}** MF point(s)."
         msg_out2 = f"Your MF Rank is **#{rank}** out of **{guild.member_count}**."
@@ -120,7 +120,7 @@ class General(commands.Cog):
             if rank == 1:
                 user = discord.utils.get(guild.members, id=int(user_id))
                 if user is not None:
-                    avatar = user.avatar.url
+                    avatar = user.display_avatar.url
 
         embed = discord.Embed(color=0x7e016f)
         embed.set_author(name="Top Music Feedbackers", icon_url=guild.icon.url)
