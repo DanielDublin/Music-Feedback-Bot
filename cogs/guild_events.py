@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from data.constants import SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
+from data.constants import MFL_INFO, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
 
 pfp_url = ""
 
@@ -15,6 +15,9 @@ class Guild_events(commands.Cog):
     @commands.command(help = "Use to submit entries to events.", brief = "(link, file, text)")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
+
+        # initiate dynamic array to store members and order of submission
+        queue = []
 
         allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
         
@@ -47,6 +50,15 @@ class Guild_events(commands.Cog):
             f" <@!{ctx.author.id}>\n {ctx.message.content}",
             file=file)
 
+        # add author to the queue
+        queue.append(ctx.author.mention)
+        await channel.send(queue)
+        print(queue)
+
+        # send the queue to the MFL_INFO channel
+        mfl_info_channel = self.bot.get_channel(MFL_INFO)
+        if mfl_info_channel:
+            await mfl_info_channel.send(f"Current queue: {queue}")
 
 async def setup(bot):
     await bot.add_cog(Guild_events(bot))
