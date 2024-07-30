@@ -11,12 +11,10 @@ load_dotenv()
 SPOTIFY_CLIENT_ID = os.environ.get('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 
-
 # Initialize the URL extractor 
 url_extractor = urlextract.URLExtract()
 # Create a Spotify client
 sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET))
-
 
 def extract_spotify_urls(message_content):
     # Function to extract URLs from text

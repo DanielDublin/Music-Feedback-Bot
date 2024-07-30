@@ -4,6 +4,7 @@ import discord
 import urlextract
 from bs4 import BeautifulSoup
 
+
 # Initialize the URL extractor 
 url_extractor = urlextract.URLExtract()
 
