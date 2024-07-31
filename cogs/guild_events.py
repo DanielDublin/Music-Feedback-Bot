@@ -17,7 +17,12 @@ class Guild_events(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
 
-        allowed_channels_list = [MFL_INFO, SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
+        allowed_channels_list = [
+            MFL_INFO,
+            SUBMISSIONS_CHANNEL_XMAS_ID,
+            SUBMISSIONS_CHANNEL_ID,
+            GENERAL_CHAT_CHANNEL_ID
+        ]
 
         # add author to the queue
         self.queue.append(ctx.author.mention)
