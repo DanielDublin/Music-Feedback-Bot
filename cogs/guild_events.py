@@ -59,9 +59,18 @@ class Guild_events(commands.Cog):
             await ctx.send("The queue is empty.")
             return
 
-        # Format the queue for display
-        queue_message = "Current submission queue:\n" + "\n".join(self.queue)
-        await ctx.send(queue_message)
+        # embed for queue display
+        embed = discord.Embed(color=0x7e016f)
+        embed.title = "Current submissions:"
+        #initiate queue
+        queue_message = ""
+        # number each member
+        for index, item in enumerate(self.queue, start = 1):
+            queue_message += f"{index}. {item}\n"
+        embed.add_field(name="Submissions", value=queue_message, inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
+
+        await ctx.channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Guild_events(bot))
