@@ -7,6 +7,7 @@ pfp_url = ""
 class Guild_events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.queue = [] # initiate array for queue
         
     def guild_only(ctx):
         return ctx.guild is not None
@@ -16,11 +17,11 @@ class Guild_events(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def submit(self, ctx):
 
-        # initiate dynamic array to store members and order of submission
-        queue = []
+        allowed_channels_list = [MFL_INFO, SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
 
-        allowed_channels_list = [SUBMISSIONS_CHANNEL_XMAS_ID, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
-        
+        # add author to the queue
+        self.queue.append(ctx.author.mention)
+
         if not ctx.channel.id in allowed_channels_list:
             await ctx.channel.send(
                     f"{ctx.author.mention}, please use the correct channel to post your submission.", delete_after=60) 
@@ -49,16 +50,18 @@ class Guild_events(commands.Cog):
             f"-----------\n**Sent from:** <#{ctx.channel.id}>\n**Submitted by:**"
             f" <@!{ctx.author.id}>\n {ctx.message.content}",
             file=file)
+    # queue command
+    @commands.command(help="Displays the queue of submissions.")
+    @commands.check(guild_only)
+    async def queue(self, ctx):
+        # handle if queue empty
+        if not self.queue:
+            await ctx.send("The queue is empty.")
+            return
 
-        # add author to the queue
-        queue.append(ctx.author.mention)
-        await channel.send(queue)
-        print(queue)
-
-        # send the queue to the MFL_INFO channel
-        mfl_info_channel = self.bot.get_channel(MFL_INFO)
-        if mfl_info_channel:
-            await mfl_info_channel.send(f"Current queue: {queue}")
+        # Format the queue for display
+        queue_message = "Current submission queue:\n" + "\n".join(self.queue)
+        await ctx.send(queue_message)
 
 async def setup(bot):
     await bot.add_cog(Guild_events(bot))
