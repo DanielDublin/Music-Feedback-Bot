@@ -50,6 +50,7 @@ class Guild_events(commands.Cog):
             f"-----------\n**Sent from:** <#{ctx.channel.id}>\n**Submitted by:**"
             f" <@!{ctx.author.id}>\n {ctx.message.content}",
             file=file)
+
     # queue command
     @commands.command(help="Displays the queue of submissions.")
     @commands.check(guild_only)
@@ -62,7 +63,7 @@ class Guild_events(commands.Cog):
         # embed for queue display
         embed = discord.Embed(color=0x7e016f)
         embed.title = "Current submissions:"
-        #initiate queue
+        # initiate queue
         queue_message = ""
         # number each member
         for index, item in enumerate(self.queue, start = 1):
@@ -70,7 +71,16 @@ class Guild_events(commands.Cog):
         embed.add_field(name="Submissions", value=queue_message, inline=False)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
 
-        await ctx.channel.send(embed=embed)
+        await ctx.send(embed=embed)
+
+    # only allow members with Event Host role to run clearq command
+    @commands.command(help="Displays the queue of submissions.")
+    @commands.check(guild_only)
+    async def clearq(self, ctx):
+        event_host = discord.utils.get(ctx.guild.roles, name="Event Host")
+        if event_host in ctx.author.roles:
+            self.queue.clear()
+            await ctx.send("The queue has been cleared.")
 
 async def setup(bot):
     await bot.add_cog(Guild_events(bot))
