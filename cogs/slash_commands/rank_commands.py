@@ -46,6 +46,18 @@ class RankCommands(commands.Cog):
                 await user.add_roles(role, atomic=True)
                 await interaction.response.send_message(f"{role.mention} was added to {user.mention} on .")
 
+    # removes role from member
+    @group.command(name="remove", description="Remove role to member")
+    async def remove_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
+        if role in user.guild.roles:
+            # check if member has role first
+            # CHECK TO SEE IF THEY EVER HAD IT?
+            if role not in user.roles:
+                await interaction.response.send_message(f"{user.mention} does not have {role.mention}. This role was added on: .")
+            else:
+                await user.remove_roles(role, atomic=True)
+                await interaction.response.send_message(f"{role.mention} was removed from {user.mention} on .")
+
 
 
 async def setup(bot):
