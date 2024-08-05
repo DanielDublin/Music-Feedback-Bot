@@ -12,7 +12,7 @@ from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUS
 IS_READY = 0
 
 load_dotenv()
-token = os.environ.get('DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TEST_TOKEN')
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -61,7 +61,8 @@ initial_extensions = [
 # Load slash command cogs
 slash_extensions = [
     'cogs.slash_commands.timer',
-    'cogs.slash_commands.admin'
+    'cogs.slash_commands.admin',
+    'cogs.slash_commands.rank_commands'
     # Add more slash command cogs as needed
 ]
 
