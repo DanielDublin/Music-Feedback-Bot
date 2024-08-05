@@ -35,10 +35,18 @@ class RankCommands(commands.Cog):
         else:
             await interaction.response.send_message(f"{top_role.mention}")
 
+    # adds role to member
     @group.command(name="add", description="Add role to member")
     async def add_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
-        role = get(user.guild.roles, name="eventhost")
-        await user.add_roles(role, atomic=True)
+        if role in user.guild.roles:
+            # check if member has role first
+            if role in user.roles:
+                await interaction.response.send_message(f"{user.mention} already has {role.mention}. This role was added on: .")
+            else:
+                await user.add_roles(role, atomic=True)
+                await interaction.response.send_message(f"{role.mention} was added to {user.mention} on .")
+
+
 
 async def setup(bot):
     # await bot.add_cog(RankCommands(bot), guild=discord.Object(id=SERVER_ID)) # for debug
