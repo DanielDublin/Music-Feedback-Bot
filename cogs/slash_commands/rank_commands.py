@@ -23,15 +23,17 @@ class RankCommands(commands.Cog):
         # checks that member has at least 2 roles
         second_role = sorted_roles[1] if len(sorted_roles) > 1 else None
 
+        # get the date the role was added
+        last_updated_date = self.google_sheet.retrieve_time(user.id)
         # If AOTW is top, return second role
         # If no AOTW, return top role
         if top_role.name == "Artist of the Week":
             if second_role:
-                await interaction.response.send_message(f"{second_role.mention}")
+                await interaction.response.send_message(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date}.")
             else:
                 await interaction.response.send_message("This member has only one role.")
         else:
-            await interaction.response.send_message(f"{top_role.mention}")
+            await interaction.response.send_message(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date}.")
 
     # adds role to member
     @group.command(name="add", description="Add role to member")
@@ -45,8 +47,10 @@ class RankCommands(commands.Cog):
         if role in user.guild.roles:
             # check if the member already has the role
             if role in user.roles:
+                # get date role was added
+                last_updated_date = self.google_sheet.retrieve_time(user.id, role.name)
                 await interaction.response.send_message(
-                    f"{user.mention} already has {role.mention}. This role was added on: .")
+                    f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date}.")
             else:
                 # add the new role to the user
                 await user.add_roles(role, atomic=True)

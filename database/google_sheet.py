@@ -65,6 +65,31 @@ class GoogleSheet:
             next_available_col = len(user_row_values) + 2
             self.sheet.update_cell(user_row, next_available_col, self.time())
 
+    def retrieve_time(self, user_id, role_name=None):
+        # find the row with the given user
+        cell_row = self.sheet.find(str(user_id))
+        if cell_row:
+            user_row = cell_row.row
+            user_row_values = self.sheet.row_values(user_row)
+
+            if role_name:
+                # goes to last column of row and reads value (date)
+                last_updated_date_col = len(user_row_values)
+                last_updated_date = self.sheet.cell(user_row, last_updated_date_col).value
+                return last_updated_date
+
+            # if no role name provided, return the last column's value
+            last_updated_date_col = len(user_row_values)
+            if last_updated_date_col > 0:
+                last_updated_date = self.sheet.cell(user_row, last_updated_date_col).value
+                return last_updated_date
+
+    def history(self, user_id):
+        # find the row with the given user
+        cell_row = self.sheet.find(str(user_id))
+        for
+
+
 # Example usage
 key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'
 sheet_name = "MF BOT"
