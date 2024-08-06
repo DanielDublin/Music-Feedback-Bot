@@ -9,3 +9,4 @@ discord-ext-menus
 beautifulsoup4
 spotipy
 aiomysql
+gspread
