@@ -52,7 +52,7 @@ class RankCommands(commands.Cog):
                 await user.add_roles(role, atomic=True)
                 # add role update to spreadsheet
                 self.google_sheet.add_rank_spreadsheet(user.id, role)
-                await interaction.response.send_message(f"{role.mention} was added to {user.mention} on .")
+                await interaction.response.send_message(f"{role.mention} was added to {user.mention}.")
 
                 # remove lower-ranked roles
                 roles_to_remove = [r for r in user.roles if r.name in lower_rank_names]
@@ -77,7 +77,7 @@ class RankCommands(commands.Cog):
                 await interaction.response.send_message(f"{user.mention} does not have {role.mention}. This role was added on: .")
             else:
                 await user.remove_roles(role, atomic=True)
-                await interaction.response.send_message(f"{role.mention} was removed from {user.mention} on .")
+                await interaction.response.send_message(f"{role.mention} was removed from {user.mention}.")
                 # iterate through roles
                 if role.name in higher_rank_names:
                     index = higher_rank_names.index(role.name)
