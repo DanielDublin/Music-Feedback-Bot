@@ -62,7 +62,7 @@ initial_extensions = [
 slash_extensions = [
     'cogs.slash_commands.timer',
     'cogs.slash_commands.admin',
-    'cogs.slash_commands.rank_commands'
+    'cogs.slash_commands.rank_commands',
     # Add more slash command cogs as needed
 ]
 
