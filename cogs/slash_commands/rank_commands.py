@@ -50,7 +50,10 @@ class RankCommands(commands.Cog):
             else:
                 # add the new role to the user
                 await user.add_roles(role, atomic=True)
+                # add role update to spreadsheet
+                self.google_sheet.add_rank_spreadsheet(user.id, role)
                 await interaction.response.send_message(f"{role.mention} was added to {user.mention} on .")
+
                 # remove lower-ranked roles
                 roles_to_remove = [r for r in user.roles if r.name in lower_rank_names]
                 # checks if the roles to remove list is empty, and removes if present
@@ -60,6 +63,9 @@ class RankCommands(commands.Cog):
     # removes role from member
     @group.command(name="remove", description="Remove role from member")
     async def remove_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
+
+        # add to Google Sheet
+        self.google_sheet.add_user_spreadsheet(user.id, user.name)
 
         # define higher ranks
         higher_rank_names = ["groupies", "stagehands", "supporting acts", "headliners", "TRMFRs"]
@@ -81,6 +87,8 @@ class RankCommands(commands.Cog):
                         if new_role:
                             # add -1 from index of role
                             await user.add_roles(new_role)
+                            # update spreadsheet
+                            self.google_sheet.remove_rank_spreadsheet(user.id, new_role)
 
 async def setup(bot):
     key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'

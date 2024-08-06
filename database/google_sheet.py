@@ -1,6 +1,8 @@
 import json
 import gspread
 from google.oauth2.service_account import Credentials
+from gspread import cell
+
 
 class GoogleSheet:
     def __init__(self, key_file_path, sheet_name):
@@ -27,13 +29,27 @@ class GoogleSheet:
         if str(user_id) not in first_column:
             self.sheet.append_row([str(user_id), username])
 
+    # adds updated rank info to spreadsheet for add_role
+    def add_rank_spreadsheet(self, user_id, role):
+        # find the row with the given user
+        cell_row = self.sheet.find(str(user_id))
+        if cell_row:
+            user_row = cell_row.row
+            # find the next available column in the user_row
+            user_row_values = self.sheet.row_values(user_row)
+            next_available_col = len(user_row_values) + 1
+            self.sheet.update_cell(user_row, next_available_col, f"Ranked up to {role}")
 
-
-    # adds user id + username if not in Google Sheet
-    def add_user_spreadsheet(self, user_id, username):
-        first_column = self.sheet.col_values(1)
-        if str(user_id) not in first_column:
-            self.sheet.append_row([str(user_id), username])
+    # adds updated rank info to spreadsheet for remove_role
+    def remove_rank_spreadsheet(self, user_id, new_role):
+        # find the row with the given user
+        cell_row = self.sheet.find(str(user_id))
+        if cell_row:
+            user_row = cell_row.row
+            # find the next available column in the user_row
+            user_row_values = self.sheet.row_values(user_row)
+            next_available_col = len(user_row_values) + 1
+            self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {new_role}")
 
 
 
