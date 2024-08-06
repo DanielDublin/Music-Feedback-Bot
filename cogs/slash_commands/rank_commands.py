@@ -29,11 +29,11 @@ class RankCommands(commands.Cog):
         # If no AOTW, return top role
         if top_role.name == "Artist of the Week":
             if second_role:
-                await interaction.response.send_message(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date}.")
+                await interaction.response.send_message(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
             else:
-                await interaction.response.send_message("This member has only one role.")
+                await interaction.response.send_message("This member has only one role.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date}.")
+            await interaction.response.send_message(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
 
     # adds role to member
     @group.command(name="add", description="Add role to member")
@@ -42,7 +42,8 @@ class RankCommands(commands.Cog):
         self.google_sheet.add_user_spreadsheet(user.id, user.name)
 
         # define lower ranks
-        lower_rank_names = {"groupies", "stagehands", "supporting acts"}
+        # exclude Headliners/UF/Gilded/TRMFRs because they stay along with Headliners
+        lower_rank_names = {"Groupies", "Stagehands", "Supporting Acts"}
 
         if role in user.guild.roles:
             # check if the member already has the role
@@ -50,7 +51,7 @@ class RankCommands(commands.Cog):
                 # get date role was added
                 last_updated_date = self.google_sheet.retrieve_time(user.id, role.name)
                 await interaction.response.send_message(
-                    f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date}.")
+                    f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.")
             else:
                 # add the new role to the user
                 await user.add_roles(role, atomic=True)
@@ -72,16 +73,14 @@ class RankCommands(commands.Cog):
         self.google_sheet.add_user_spreadsheet(user.id, user.name)
 
         # define higher ranks
-        higher_rank_names = ["groupies", "stagehands", "supporting acts", "headliners", "TRMFRs"]
+        higher_rank_names = ["Groupies", "Stagehands", "Supporting Acts", "Headliners", "TRMFRs"]
 
         if role in user.guild.roles:
             # check if member has role first
-            # CHECK TO SEE IF THEY EVER HAD IT?
             if role not in user.roles:
                 await interaction.response.send_message(f"{user.mention} does not have {role.mention}.")
             else:
                 await user.remove_roles(role, atomic=True)
-                await interaction.response.send_message(f"{role.mention} was removed from {user.mention}.")
                 # iterate through roles
                 if role.name in higher_rank_names:
                     index = higher_rank_names.index(role.name)
@@ -93,6 +92,8 @@ class RankCommands(commands.Cog):
                             await user.add_roles(new_role)
                             # update spreadsheet
                             self.google_sheet.remove_rank_spreadsheet(user.id, new_role)
+                            await interaction.response.send_message(
+                                f"{role.mention} was removed from {user.mention}. They are now {new_role.mention}.")
 
     # gets rank history for member
     @group.command(name="history", description="Get rank history for member")
@@ -101,7 +102,10 @@ class RankCommands(commands.Cog):
         if history:
             # format the history into a string
             history_message = '\n'.join(history)
-            await interaction.response.send_message(f"Rank history for {user.mention}:\n{history_message}")
+            # embed formatting
+            embed = discord.Embed(title="Rank History", color=0x7e016f)
+            embed.add_field(name=f"{user.name}", value=f"{history_message}", inline=False)
+            await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message("User not in the database.")
 

@@ -84,13 +84,35 @@ class GoogleSheet:
                 last_updated_date = self.sheet.cell(user_row, last_updated_date_col).value
                 return last_updated_date
 
+    # return the whole row of user data minus the first two columns (id and username)
     def get_history(self, user_id):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
             user_row = cell_row.row
             user_row_values = self.sheet.row_values(user_row)
-            return user_row_values
+            # exclude the first two columns
+            user_row_values = user_row_values[2:]
+
+            # group every two columns together
+            paired_values = [user_row_values[i:i + 2] for i in range(0, len(user_row_values), 2)]
+
+            # convert pairs to strings with bullet points
+            paired_strings = [f"• {' '.join(pair)}" for pair in paired_values]
+
+            return paired_strings
+
+    def calculate_time(self, user_id):
+        # get date previous role was added
+        date_str = self.retrieve_time(user_id)
+        if date_str:
+            previous_date = datetime.strptime(date_str, "%m/%d/%Y")
+            # get the current date
+            current_date = datetime.now()
+            # find difference
+            time_difference = current_date - previous_date
+            return time_difference.days
+
 
 
 # Example usage
