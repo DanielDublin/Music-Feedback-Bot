@@ -78,7 +78,7 @@ class RankCommands(commands.Cog):
             # check if member has role first
             # CHECK TO SEE IF THEY EVER HAD IT?
             if role not in user.roles:
-                await interaction.response.send_message(f"{user.mention} does not have {role.mention}. This role was added on: .")
+                await interaction.response.send_message(f"{user.mention} does not have {role.mention}.")
             else:
                 await user.remove_roles(role, atomic=True)
                 await interaction.response.send_message(f"{role.mention} was removed from {user.mention}.")
@@ -93,6 +93,17 @@ class RankCommands(commands.Cog):
                             await user.add_roles(new_role)
                             # update spreadsheet
                             self.google_sheet.remove_rank_spreadsheet(user.id, new_role)
+
+    # gets rank history for member
+    @group.command(name="history", description="Get rank history for member")
+    async def history(self, interaction: discord.Interaction, user: discord.Member):
+        history = self.google_sheet.get_history(user.id)
+        if history:
+            # format the history into a string
+            history_message = '\n'.join(history)
+            await interaction.response.send_message(f"Rank history for {user.mention}:\n{history_message}")
+        else:
+            await interaction.response.send_message("User not in the database.")
 
 async def setup(bot):
     key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'

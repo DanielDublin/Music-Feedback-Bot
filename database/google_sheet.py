@@ -84,10 +84,13 @@ class GoogleSheet:
                 last_updated_date = self.sheet.cell(user_row, last_updated_date_col).value
                 return last_updated_date
 
-    def history(self, user_id):
+    def get_history(self, user_id):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
-        for
+        if cell_row:
+            user_row = cell_row.row
+            user_row_values = self.sheet.row_values(user_row)
+            return user_row_values
 
 
 # Example usage
