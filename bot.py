@@ -12,7 +12,7 @@ from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUS
 IS_READY = 0
 
 load_dotenv()
-token = os.environ.get('DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TEST_TOKEN')
 
 # Initialize the bot
 intents = discord.Intents.default()
