@@ -9,11 +9,11 @@ class RankCommands(commands.Cog):
         self.pfp_url = ""
         self.google_sheet = google_sheet
 
-    # able to be used by admins + mods ---- UPDATE TO MODS LATER
-    group = app_commands.Group(name="ranks", description="View the rank interface and commands",
-                               default_permissions=discord.Permissions(administrator=True))
+    # able to be used by admins + mods
+    group = app_commands.Group(name="ranks", description="View the rank interface and commands")
 
     # return current rank + when assigned
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="current", description="Return the member's current rank and date given")
     async def current_rank(self, interaction: discord.Interaction, user: discord.Member):
         # sort the roles from highest to lowest
@@ -27,7 +27,7 @@ class RankCommands(commands.Cog):
         last_updated_date = self.google_sheet.retrieve_time(user.id)
         # If AOTW is top, return second role
         # If no AOTW, return top role
-        if top_role.name == "Artist of the Week":
+        if top_role.name == "Artist of the Week" or top_role.name == "Moderators":
             if second_role:
                 await interaction.response.send_message(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
             else:
@@ -36,6 +36,7 @@ class RankCommands(commands.Cog):
             await interaction.response.send_message(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
 
     # adds role to member
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="add", description="Add role to member")
     async def add_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
         # add to Google Sheet
@@ -45,6 +46,7 @@ class RankCommands(commands.Cog):
         # exclude Headliners/UF/Gilded/TRMFRs because they stay along with Headliners
         lower_rank_names = {"Groupies", "Stagehands", "Supporting Acts"}
 
+        rank_options = ["Groupies", "Stagehands", "Supporting Acts", "Ultimate Fans", "Headliners", "MF Gilded", "The Real MFrs"]
         if role in user.guild.roles:
             # check if the member already has the role
             if role in user.roles:
@@ -66,6 +68,7 @@ class RankCommands(commands.Cog):
                     await user.remove_roles(*roles_to_remove)
 
     # removes role from member
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="remove", description="Remove role from member")
     async def remove_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
 
@@ -73,7 +76,7 @@ class RankCommands(commands.Cog):
         self.google_sheet.add_user_spreadsheet(user.id, user.name)
 
         # define higher ranks
-        higher_rank_names = ["Groupies", "Stagehands", "Supporting Acts", "Headliners", "TRMFRs"]
+        higher_rank_names = ["Groupies", "Stagehands", "Supporting Acts", "Headliners", "MF Gilded", "The Real MFrs"]
 
         if role in user.guild.roles:
             # check if member has role first
@@ -96,6 +99,7 @@ class RankCommands(commands.Cog):
                                 f"{role.mention} was removed from {user.mention}. They are now {new_role.mention}.")
 
     # gets rank history for member
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="history", description="Get rank history for member")
     async def history(self, interaction: discord.Interaction, user: discord.Member):
         history = self.google_sheet.get_history(user.id)
@@ -105,6 +109,7 @@ class RankCommands(commands.Cog):
             # embed formatting
             embed = discord.Embed(title="Rank History", color=0x7e016f)
             embed.add_field(name=f"{user.name}", value=f"{history_message}", inline=False)
+            embed.add_field(name=f"Last Role Added: {self.google_sheet.calculate_time(user.id)} days ago.", value="", inline=False)
             await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message("User not in the database.")
