@@ -11,16 +11,8 @@ class GoogleSheet:
         self.sheet = None
         self.initialize_sheet()
 
-    # time for sheet
-    def time(self):
-        now = datetime.now()
-        current_year = now.year
-        current_month = now.month
-        current_day = now.day
-        return f"{current_month}/{current_day}/{current_year}"
-
     # connect to Google Sheet
-    def initialize_sheet(self):
+    async def initialize_sheet(self):
         with open(self.key_file_path, 'r') as key_file:
             key_file_dict = json.load(key_file)
 
@@ -30,14 +22,22 @@ class GoogleSheet:
             self.sheet = self.gc.open(self.sheet_name).sheet1
             print("Successfully connected to the Google Sheet")
 
+    # time for sheet
+    async def time(self):
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        current_day = now.day
+        return f"{current_month}/{current_day}/{current_year}"
+
     # adds user id + username if not in Google Sheet
-    def add_user_spreadsheet(self, user_id, username):
+    async def add_user_spreadsheet(self, user_id, username):
         first_column = self.sheet.col_values(1)
         if str(user_id) not in first_column:
             self.sheet.append_row([str(user_id), username])
 
     # adds updated rank info to spreadsheet for add_role
-    def add_rank_spreadsheet(self, user_id, role):
+    async def add_rank_spreadsheet(self, user_id, role):
 
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
@@ -52,7 +52,7 @@ class GoogleSheet:
             self.sheet.update_cell(user_row, next_available_col, self.time())
 
     # adds updated rank info to spreadsheet for remove_role
-    def remove_rank_spreadsheet(self, user_id, new_role):
+    async def remove_rank_spreadsheet(self, user_id, new_role):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -65,7 +65,8 @@ class GoogleSheet:
             next_available_col = len(user_row_values) + 2
             self.sheet.update_cell(user_row, next_available_col, self.time())
 
-    def retrieve_time(self, user_id, role_name=None):
+    # gets the time of last role update
+    async def retrieve_time(self, user_id, role_name=None):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -85,7 +86,7 @@ class GoogleSheet:
                 return last_updated_date
 
     # return the whole row of user data minus the first two columns (id and username)
-    def get_history(self, user_id):
+    async def get_history(self, user_id):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -102,7 +103,7 @@ class GoogleSheet:
 
             return paired_strings
 
-    def calculate_time(self, user_id):
+    async def calculate_time(self, user_id):
         # get date previous role was added
         date_str = self.retrieve_time(user_id)
         if date_str:
@@ -113,9 +114,7 @@ class GoogleSheet:
             time_difference = current_date - previous_date
             return time_difference.days
 
-
-
-# Example usage
+# JSON path
 key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'
 sheet_name = "MF BOT"
 google_sheet = GoogleSheet(key_file_path, sheet_name)
