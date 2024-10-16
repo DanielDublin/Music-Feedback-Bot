@@ -37,7 +37,7 @@ class GoogleSheet:
             self.sheet.append_row([str(user_id), username])
 
     # adds updated rank info to spreadsheet for add_role
-    def update_rank_spreadsheet(self, user_id, role, is_rankup: bool):
+    def update_rank_spreadsheet(self, user_id, role, is_rankup):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -53,19 +53,6 @@ class GoogleSheet:
             next_available_col = len(user_row_values) + 2
             self.sheet.update_cell(user_row, next_available_col, self.time())
 
-    # # adds updated rank info to spreadsheet for remove_role
-    # def remove_rank_spreadsheet(self, user_id, new_role):
-    #     # find the row with the given user
-    #     cell_row = self.sheet.find(str(user_id))
-    #     if cell_row:
-    #         user_row = cell_row.row
-    #         # find the next available column in the user_row
-    #         user_row_values = self.sheet.row_values(user_row)
-    #         next_available_col = len(user_row_values) + 1
-    #         self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {new_role}")
-    #         # fill in date
-    #         next_available_col = len(user_row_values) + 2
-    #         self.sheet.update_cell(user_row, next_available_col, self.time())
 
     # gets the time of last role update
     def retrieve_time(self, user_id, role_name=None):
@@ -115,9 +102,4 @@ class GoogleSheet:
             # find difference
             time_difference = current_date - previous_date
             return time_difference.days
-
-# JSON path
-key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'
-sheet_name = "MF BOT"
-google_sheet = GoogleSheet(key_file_path, sheet_name)
 

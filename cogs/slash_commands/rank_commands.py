@@ -16,7 +16,10 @@ class RankCommands(commands.Cog):
     @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="current", description="Return the member's current rank and date given")
     async def current_rank(self, interaction: discord.Interaction, user: discord.Member):
+        
+        await interaction.response.defer(thinking=True)
         # sort the roles from highest to lowest
+
         sorted_roles = sorted(user.roles, key=lambda role: role.position, reverse=True)
 
         top_role = sorted_roles[0]
@@ -29,16 +32,19 @@ class RankCommands(commands.Cog):
         # If no AOTW, return top role
         if top_role.name == "Artist of the Week" or top_role.name == "Moderators":
             if second_role:
-                await interaction.response.send_message(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
+                await interaction.followup.send(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
             else:
-                await interaction.response.send_message("This member has only one role.", ephemeral=True)
+                await interaction.followup.send("This member has only one role.", ephemeral=True)
         else:
-            await interaction.response.send_message(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
+            await interaction.followup.send(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
 
     # adds role to member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="add", description="Add role to member")
     async def add_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
+        
+        await interaction.response.defer(thinking=True)
+        
         # add to Google Sheet
         self.google_sheet.add_user_spreadsheet(user.id, user.name)
 
@@ -52,14 +58,14 @@ class RankCommands(commands.Cog):
             if role in user.roles:
                 # get date role was added
                 last_updated_date = self.google_sheet.retrieve_time(user.id, role.name)
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.")
             else:
                 # add the new role to the user
                 await user.add_roles(role, atomic=True)
                 # add role update to spreadsheet
-                self.google_sheet.update_rank_spreadsheet(user.id, role.name, True)
-                await interaction.response.send_message(f"{role.mention} was added to {user.mention}.")
+                self.google_sheet.update_rank_spreadsheet(user.id, role.name, is_rankup = True)
+                await interaction.followup.send(f"{role.mention} was added to {user.mention}.")
 
                 # remove lower-ranked roles
                 roles_to_remove = [r for r in user.roles if r.name in lower_rank_names]
@@ -71,6 +77,7 @@ class RankCommands(commands.Cog):
     @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="remove", description="Remove role from member")
     async def remove_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
+        await interaction.response.defer(thinking=True)
 
         # add to Google Sheet
         self.google_sheet.add_user_spreadsheet(user.id, user.name)
@@ -81,7 +88,7 @@ class RankCommands(commands.Cog):
         if role in user.guild.roles:
             # check if member has role first
             if role not in user.roles:
-                await interaction.response.send_message(f"{user.mention} does not have {role.mention}.")
+                await interaction.followup.send(f"{user.mention} does not have {role.mention}.")
             else:
                 await user.remove_roles(role, atomic=True)
                 # iterate through roles
@@ -94,14 +101,15 @@ class RankCommands(commands.Cog):
                             # add -1 from index of role
                             await user.add_roles(new_role)
                             # update spreadsheet
-                            self.google_sheet.update_rank_spreadsheet(user.id, new_role, False)
-                            await interaction.response.send_message(
+                            self.google_sheet.update_rank_spreadsheet(user.id, new_role, is_rankup = False)
+                            await interaction.followup.send(
                                 f"{role.mention} was removed from {user.mention}. They are now {new_role.mention}.")
 
     # gets rank history for member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
     @group.command(name="history", description="Get rank history for member")
     async def history(self, interaction: discord.Interaction, user: discord.Member):
+        await interaction.response.defer(thinking=True)
         history = self.google_sheet.get_history(user.id)
         if history:
             # format the history into a string
@@ -110,12 +118,12 @@ class RankCommands(commands.Cog):
             embed = discord.Embed(title="Rank History", color=0x7e016f)
             embed.add_field(name=f"{user.name}", value=f"{history_message}", inline=False)
             embed.add_field(name=f"Last Role Added: {self.google_sheet.calculate_time(user.id)} days ago.", value="", inline=False)
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
         else:
-            await interaction.response.send_message("User not in the database.")
+            await interaction.followup.send("User not in the database.")
 
 async def setup(bot):
-    key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'
+    key_file_path = 'mf-bot-402714-b394f37c96dc.json'
     sheet_name = "MF BOT"
     google_sheet = GoogleSheet(key_file_path, sheet_name)
     await bot.add_cog(RankCommands(bot, google_sheet))
