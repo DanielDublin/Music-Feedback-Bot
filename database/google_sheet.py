@@ -37,8 +37,7 @@ class GoogleSheet:
             self.sheet.append_row([str(user_id), username])
 
     # adds updated rank info to spreadsheet for add_role
-    def add_rank_spreadsheet(self, user_id, role):
-
+    def update_rank_spreadsheet(self, user_id, role, is_rankup: bool):
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -46,24 +45,27 @@ class GoogleSheet:
             # find the next available column in the user_row
             user_row_values = self.sheet.row_values(user_row)
             next_available_col = len(user_row_values) + 1
-            self.sheet.update_cell(user_row, next_available_col, f"Ranked up to {role}")
+            if is_rankup:
+                self.sheet.update_cell(user_row, next_available_col, f"Ranked up to {role}")
+            else:
+                self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {role}")
             # fill in date
             next_available_col = len(user_row_values) + 2
             self.sheet.update_cell(user_row, next_available_col, self.time())
 
-    # adds updated rank info to spreadsheet for remove_role
-    def remove_rank_spreadsheet(self, user_id, new_role):
-        # find the row with the given user
-        cell_row = self.sheet.find(str(user_id))
-        if cell_row:
-            user_row = cell_row.row
-            # find the next available column in the user_row
-            user_row_values = self.sheet.row_values(user_row)
-            next_available_col = len(user_row_values) + 1
-            self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {new_role}")
-            # fill in date
-            next_available_col = len(user_row_values) + 2
-            self.sheet.update_cell(user_row, next_available_col, self.time())
+    # # adds updated rank info to spreadsheet for remove_role
+    # def remove_rank_spreadsheet(self, user_id, new_role):
+    #     # find the row with the given user
+    #     cell_row = self.sheet.find(str(user_id))
+    #     if cell_row:
+    #         user_row = cell_row.row
+    #         # find the next available column in the user_row
+    #         user_row_values = self.sheet.row_values(user_row)
+    #         next_available_col = len(user_row_values) + 1
+    #         self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {new_role}")
+    #         # fill in date
+    #         next_available_col = len(user_row_values) + 2
+    #         self.sheet.update_cell(user_row, next_available_col, self.time())
 
     # gets the time of last role update
     def retrieve_time(self, user_id, role_name=None):
