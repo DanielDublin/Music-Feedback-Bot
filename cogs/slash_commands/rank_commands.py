@@ -123,7 +123,7 @@ class RankCommands(commands.Cog):
             await interaction.followup.send("User not in the database.")
 
 async def setup(bot):
-    key_file_path = 'mf-bot-402714-b394f37c96dc.json'
+    key_file_path = '../Music-Feedback-Bot/mf-bot-402714-b394f37c96dc.json'
     sheet_name = "MF BOT"
     google_sheet = GoogleSheet(key_file_path, sheet_name)
     await bot.add_cog(RankCommands(bot, google_sheet))
