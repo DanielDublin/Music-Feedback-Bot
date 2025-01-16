@@ -1,3 +1,4 @@
+from ast import Delete
 import discord
 import database.db as db
 from discord.ext import commands
@@ -70,13 +71,22 @@ class Owner_Utilities(commands.Cog):
     @is_owners()
     async def say(self, ctx: discord.Message, channel_id: int, *, message: str):
         try:
+            
             target_channel = self.bot.get_channel(channel_id)
             files = None
             if target_channel:
                 
                 if (ctx.message.attachments):
-                    files = [await attachment.to_file() for attachment in ctx.message.attachments]
-                    
+                    files = []
+                    for attachment in ctx.message.attachments:
+                 
+                        try:
+                             file = await attachment.to_file()
+                        except Exception as e:
+                            await ctx.send(f"An error occurred: {str(e)}")
+                         
+                        files.append(file)
+                await ctx.message.delete()
                 await target_channel.send(content=message, files=files)
                 await ctx.send(f'Message was sent.')
             else:
