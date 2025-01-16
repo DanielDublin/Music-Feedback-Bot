@@ -3,14 +3,21 @@ import database.db as db
 from discord.ext import commands
 from data.constants import BOT_DEV_ID, SERVER_ID, CO_DEV_ID
 import json
+from functools import wraps
 
 class Owner_Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         
-    def is_owners(self, ctx: discord.Message):
-        if ctx.author.id == BOT_DEV_ID or ctx.author.id == CO_DEV_ID:
-            return True
+    def is_owners():
+        def decorator(func):
+            @wraps(func)
+            async def wrapper(self, ctx, *args, **kwargs):
+                if ctx.author.id in {BOT_DEV_ID, CO_DEV_ID}:
+                    return await func(self, ctx, *args, **kwargs)
+                await ctx.send("You do not have permission to use this command.")
+            return wrapper
+        return decorator
 
     @commands.command()
     @commands.is_owner()
