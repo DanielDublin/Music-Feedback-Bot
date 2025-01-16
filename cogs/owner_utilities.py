@@ -86,7 +86,10 @@ class Owner_Utilities(commands.Cog):
                             await ctx.send(f"An error occurred: {str(e)}")
                          
                         files.append(file)
-                await ctx.message.delete()
+                try:
+                    await ctx.message.delete()
+                except Exception as e:
+                    await ctx.send(f"Cant delete Message in a DM")
                 await target_channel.send(content=message, files=files)
                 await ctx.send(f'Message was sent.')
             else:
