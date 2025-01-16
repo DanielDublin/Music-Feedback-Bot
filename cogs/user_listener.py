@@ -25,9 +25,10 @@ class User_listener(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, ctx):
         if ctx.author.bot and (ctx.author.id != DYNO_ID or (ctx.interaction is not None and ctx.interaction.name != 'warn')):
-            return
-        elif ctx.author.bot and ctx.author.id == VLADHOG_ID:
-            await self.handle_vladhog(ctx)
+            if ctx.author.id == VLADHOG_ID:
+                await self.handle_vladhog(ctx)
+            else:
+                return
         
         if not isinstance(ctx.channel, discord.TextChannel):
             return
@@ -279,6 +280,8 @@ class User_listener(commands.Cog):
         
         if ctx.channel.id != QUARANTINE_LOG_CHANNEL_ID or not ctx.embeds:
             return
+        
+       
         embed = ctx.embeds[0]
         
         if not embed.description or not embed.fields:
@@ -294,9 +297,9 @@ class User_listener(commands.Cog):
                 if user is None:
                     user = await self.bot.fetch_user(int(user_id))
 
-                if not user.is_bot:
+                if user.bot:
                     return
-                await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+                #await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
         except Exception as e:
             print(str(e))
             return
@@ -304,7 +307,7 @@ class User_listener(commands.Cog):
 
         try:
             if user is not None:
-                await self.bot.add_roles(user, ctx.guild.get_role(QUARANTINE_ROLE_ID))
+                await user.add_roles(ctx.guild.get_role(QUARANTINE_ROLE_ID))
         except Exception as e:
             print(str(e))
             return
