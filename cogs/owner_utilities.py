@@ -1,7 +1,7 @@
 import discord
 import database.db as db
 from discord.ext import commands
-from data.constants import SERVER_ID, CO_DEV_ID
+from data.constants import BOT_DEV_ID, SERVER_ID, CO_DEV_ID
 import json
 
 class Owner_Utilities(commands.Cog):
@@ -9,7 +9,7 @@ class Owner_Utilities(commands.Cog):
         self.bot = bot
         
     def is_owners(self, ctx: discord.Message):
-        if commands.is_owner() or ctx.author.id == CO_DEV_ID:
+        if ctx.author.id == BOT_DEV_ID or ctx.author.id == CO_DEV_ID:
             return True
 
     @commands.command()
