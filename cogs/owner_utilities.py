@@ -1,12 +1,16 @@
 import discord
 import database.db as db
 from discord.ext import commands
-from data.constants import SERVER_ID
+from data.constants import SERVER_ID, CO_DEV_ID
 import json
 
 class Owner_Utilities(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
+    def is_owners(self, ctx: discord.Message):
+        if commands.is_owner() or ctx.author.id == CO_DEV_ID:
+            return True
 
     @commands.command()
     @commands.is_owner()
@@ -56,7 +60,7 @@ class Owner_Utilities(commands.Cog):
         
 
     @commands.command()
-    @commands.is_owner()
+    @is_owners()
     async def say(self, ctx: discord.Message, channel_id: int, *, message: str):
         try:
             target_channel = self.bot.get_channel(channel_id)
@@ -71,7 +75,7 @@ class Owner_Utilities(commands.Cog):
 
     
     @commands.command()
-    @commands.is_owner()
+    @is_owners()
     async def crash(self, ctx: discord.Message):
         await ctx.channel.send("Crashing!")
         exit(1)
