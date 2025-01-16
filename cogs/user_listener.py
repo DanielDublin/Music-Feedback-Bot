@@ -299,7 +299,7 @@ class User_listener(commands.Cog):
 
                 if user.bot:
                     return
-                #await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+                await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
         except Exception as e:
             print(str(e))
             return
