@@ -1,4 +1,5 @@
 from re import T
+from tarfile import NUL
 import discord
 import asyncio
 from discord.ext import commands
@@ -8,7 +9,7 @@ import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
 from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
-    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID
+    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID, VLADHOG_ID, QUARANTINE_CHANNEL_ID
 
 # dan
 promotion_whitelist_id = [358631356248489984]
@@ -25,6 +26,8 @@ class User_listener(commands.Cog):
     async def on_message(self, ctx):
         if ctx.author.bot and (ctx.author.id != DYNO_ID or (ctx.interaction is not None and ctx.interaction.name != 'warn')):
             return
+        elif ctx.author.bot and ctx.author.id == VLADHOG_ID:
+            await self.handle_vladhog(ctx)
         
         if not isinstance(ctx.channel, discord.TextChannel):
             return
@@ -271,6 +274,30 @@ class User_listener(commands.Cog):
                                     f' ``<MF help`` for more information._',
                                     delete_after=60)
             await message.delete()
+            
+    async def handle_vladhog(self, ctx: discord.Message):
+        
+        if ctx.channel.id != QUARANTINE_CHANNEL_ID or not ctx.embeds:
+            return
+        embed = ctx.embeds[0]
+        
+        if not embed.description or not embed.fields:
+            return
+
+        try:
+            if "and is malicious" in embed.description:
+                user_id = embed.fields[1].value
+                user = ctx.guild.get_member(int(user_id))
+                
+                if user is None:
+                    user = await self.bot.fetch_user(int(user_id))
+
+                if not user.is_bot:
+                    return
+                await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+        except Exception as e:
+            print(str(e))
+            return
 
 async def setup(bot):
     await bot.add_cog(User_listener(bot))
