@@ -71,8 +71,13 @@ class Owner_Utilities(commands.Cog):
     async def say(self, ctx: discord.Message, channel_id: int, *, message: str):
         try:
             target_channel = self.bot.get_channel(channel_id)
+            files = None
             if target_channel:
-                await target_channel.send(message)
+                
+                if (ctx.message.attachments):
+                    files = [await attachment.to_file() for attachment in ctx.message.attachments]
+                    
+                await target_channel.send(content=message, files=files)
                 await ctx.send(f'Message was sent.')
             else:
                 await ctx.send(f"Channel with ID {channel_id} not found.")
