@@ -9,7 +9,7 @@ import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
 from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
-    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID, VLADHOG_ID, QUARANTINE_CHANNEL_ID
+    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID, VLADHOG_ID, QUARANTINE_LOG_CHANNEL_ID, QUARANTINE_ROLE_ID
 
 # dan
 promotion_whitelist_id = [358631356248489984]
@@ -277,12 +277,14 @@ class User_listener(commands.Cog):
             
     async def handle_vladhog(self, ctx: discord.Message):
         
-        if ctx.channel.id != QUARANTINE_CHANNEL_ID or not ctx.embeds:
+        if ctx.channel.id != QUARANTINE_LOG_CHANNEL_ID or not ctx.embeds:
             return
         embed = ctx.embeds[0]
         
         if not embed.description or not embed.fields:
             return
+        
+        user = None;
 
         try:
             if "and is malicious" in embed.description:
@@ -295,6 +297,14 @@ class User_listener(commands.Cog):
                 if not user.is_bot:
                     return
                 await ctx.channel.send(f"<@&{MODERATORS_ROLE_ID}>")
+        except Exception as e:
+            print(str(e))
+            return
+        
+
+        try:
+            if user is not None:
+                await self.bot.add_roles(user, ctx.guild.get_role(QUARANTINE_ROLE_ID))
         except Exception as e:
             print(str(e))
             return
