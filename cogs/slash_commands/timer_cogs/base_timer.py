@@ -48,7 +48,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
                 self.active_timer[event] = asyncio.create_task(self._double_points_logic)
 
             if self.minutes[event] in intervals:
-                await self._double_points_logic()
+                await channel.send(f"{event} has {self.minutes[event]} minutes remaining!")
 
         await channel.send(f"Time is up! {event} is now over.")
         self._stop_timer(event)
