@@ -144,7 +144,13 @@ class General(commands.Cog):
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
-        await db.add_points(str(ctx.author.id), 1)
+        # Check if Double Points Timer is active
+        if "Double Points" in self.active_timer:
+            MF_points = 2
+        else:
+            MF_points = 1
+
+        await db.add_points(str(ctx.author.id), MF_points)
         
         points = int(await db.fetch_points(str(ctx.author.id)))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel

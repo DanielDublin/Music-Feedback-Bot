@@ -7,7 +7,7 @@ from .base_timer import BaseTimer
 
 class TimerCog(BaseTimer):
     def __init__(self, bot):
-        super().__init__(bot, "Timer")
+        super().__init__(bot, "timer")
 
     # start timer
     @app_commands.command(name="start", description="Start a timer for a specific event.")

@@ -3,15 +3,15 @@ import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 from data.constants import SERVER_ID
+import database.db as db
+from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 
-
-class BaseTimer(commands.Cog):
+class BaseTimer(commands.GroupCog, group_name='timer'):
     def __init__(self, bot, name):
         self.bot = bot
         self.name = name
         self.active_timer = {}
         self.minutes = {}
-
 
     # used to create an object for other events
 
@@ -33,7 +33,7 @@ class BaseTimer(commands.Cog):
         await interaction.response.send_message(f"Starting the {event} Timer for {minutes} minutes.", ephemeral=True)
 
     # run_timer will start the countdown and provide time updates
-    async def _run_timer(self, interaction: discord.Interaction, event: str, minutes: int):
+    async def _run_timer(self, interaction: discord.Interaction, event: str):
         channel = interaction.channel
         await channel.send(f"{interaction.user.mention} has started the {event} Timer for {self.minutes[event]} minutes.")
 
@@ -44,23 +44,52 @@ class BaseTimer(commands.Cog):
             await asyncio.sleep(60)
             self.minutes[event] -= 1
 
+            if self.active_timer[event] == "Double Points":
+                self.active_timer[event] = asyncio.create_task(self._double_points_logic)
+
             if self.minutes[event] in intervals:
-                await channel.send(f"There are {self.minutes[event]} remaining in the {event} event!")
+                await self._double_points_logic()
 
         await channel.send(f"Time is up! {event} is now over.")
         self._stop_timer(event)
 
+    async def _double_points_logic(self, ctx: discord.Message, event: str):
+        mention = ctx.author.mention
+        if not await self.handle_feedback_command_validity(ctx, mention):
+            return
+
+        await db.add_points(str(ctx.author.id), 1)
+
+        points = int(await db.fetch_points(str(ctx.author.id)))
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel
+
+        embed = discord.Embed(color=0x7e016f)
+        embed.add_field(name="Feedback Notice",
+                        value=f"{mention} has **given feedback** and now has **{points}** MF point(s).", inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+
+        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
+                               delete_after=4)
+        await channel.send(embed=embed)  # Logs channel
+
+
+
+
+
+
+
+
     # internal stop helper function used above to stop the event in list
     async def _stop_timer(self, event: str):
         if event in self.active_timer:
-            self.active_timer[event].pop()
+            del self.active_timer[event]
         if event in self.minutes:
-            self.minutes[event].pop()
+            del self.minutes[event]
 
     # get status of timer
     async def timer_status(self, interaction: discord.Interaction, event: str):
         if event in self.active_timer:
-            await interaction.response.send_message(f"{event} has {self.minutes} left.")
+            await interaction.response.send_message(f"{event} has {self.minutes[event]} minutes left.")
         else:
             await interaction.response.send_message("There are no active timers.")
 
@@ -68,7 +97,7 @@ class BaseTimer(commands.Cog):
     async def stop_timer(self, interaction: discord.Interaction, event: str):
 
         if event in self.active_timer:
-            await self.active_timers[event].cancel()
+            self.active_timer[event].cancel()
             await self._stop_timer(event)
             await interaction.response.send_message(f"{event} Timer stopped.", ephemeral=True)
         else:
