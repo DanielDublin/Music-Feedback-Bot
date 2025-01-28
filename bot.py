@@ -8,7 +8,6 @@ import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
 
-
 IS_READY = 0
 
 load_dotenv()
@@ -21,7 +20,8 @@ intents.typing = True
 intents.presences = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents, case_insensitive=True, strip_after_prefix=True,
+bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents, case_insensitive=True,
+                   strip_after_prefix=True,
                    owner_id=BOT_DEV_ID)
 bot.remove_command('help')
 
@@ -35,10 +35,10 @@ async def on_ready():
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
-        await bot.tree.sync() 
+        # await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+        await bot.tree.sync()
         print('Sync-ed slash commands')
- 
+
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
         await creator_user.send("Music Feedback is now live")
@@ -60,10 +60,9 @@ initial_extensions = [
 
 # Load slash command cogs
 slash_extensions = [
+    'cogs.slash_commands.timer_cogs.timer',
     'cogs.slash_commands.admin',
     'cogs.slash_commands.rank_commands',
-    # 'cogs.slash_commands.timer_cogs.double_points_timer',
-    'cogs.slash_commands.timer_cogs.timer'
     # Add more slash command cogs as needed
 ]
 
@@ -72,7 +71,8 @@ slash_extensions = [
 @bot.event
 async def on_command_error(ctx, error):
     await exception_handler.handle_exception(ctx, error)  # Call the exception handling function
-    
+
+
 @bot.tree.error
 async def on_app_command_error(interaction, error):
     await interaction.channel.send(str(error))
@@ -80,7 +80,7 @@ async def on_app_command_error(interaction, error):
 
 async def load_extensions():
     global initial_extensions, slash_extensions
-    
+
     for extension in initial_extensions:
         await bot.load_extension(extension)
 

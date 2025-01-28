@@ -30,6 +30,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
 
         self.minutes[event] = minutes
         self.active_timer[event] = asyncio.create_task(self._run_timer(interaction, event))
+        print(f"Timer started: {self.active_timer}")  # Print active_timer for debugging
         await interaction.response.send_message(f"Starting the {event} Timer for {minutes} minutes.", ephemeral=True)
 
     # run_timer will start the countdown and provide time updates
@@ -43,9 +44,6 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
             # staggers while loop for every minute and reduces minutes of event
             await asyncio.sleep(60)
             self.minutes[event] -= 1
-
-            if self.active_timer[event] == "Double Points":
-                self.active_timer[event] = asyncio.create_task(self._double_points_logic)
 
             if self.minutes[event] in intervals:
                 await channel.send(f"{event} has {self.minutes[event]} minutes remaining!")
