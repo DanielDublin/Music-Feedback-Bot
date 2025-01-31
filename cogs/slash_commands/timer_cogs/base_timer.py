@@ -33,7 +33,6 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
         await interaction.response.send_message(f"Starting the {event} Timer for {minutes} minutes.", ephemeral=True)
 
         if event == "Double Points":
-            # Upload the image as an attachment
             file = discord.File(
                 "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/images/2x_MF_POINTS.gif",  # Use a relative path
                 filename="2x_MF_POINTS.gif"
@@ -44,10 +43,8 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
             embed.add_field(name="**2X MF POINTS**", value="", inline=False)
             embed.add_field(name="", value=f"For the next {minutes} minutes, every feedback given with **<MFR** in the feedback channels will reward 2 MF Points. \n\n For help using the feedback system, please read <#{FEEDBACK_ACCESS_CHANNEL_ID}>", inline=False)
 
-            # Attach the image to the embed
             embed.set_image(url="attachment://2x_MF_POINTS.gif")
 
-            # Send everything (Markdown text, embed, and image) in a single message
             await interaction.followup.send(content="__# DOUBLE POINTS NOW ACTIVE__", embed=embed, file=file)
 
     # run_timer will start the countdown and provide time updates
@@ -55,7 +52,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
         channel = interaction.channel
         await channel.send(f"{interaction.user.mention} has started the {event} Timer for {self.minutes[event]} minutes.")
 
-        intervals = [1, 15, 30, 45]
+        intervals = [1, 5, 10, 15, 30, 45]
 
         while self.minutes[event] > 0:
             # staggers while loop for every minute and reduces minutes of event
@@ -63,7 +60,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
             self.minutes[event] -= 1
 
             if self.minutes[event] in intervals:
-                await channel.send(f"{event} has {self.minutes[event]} minutes remaining!")
+                await channel.send(f"{event} Timer has {self.minutes[event]} minutes remaining!")
 
         await channel.send(f"Time is up! {event} is now over.")
         # stop event
