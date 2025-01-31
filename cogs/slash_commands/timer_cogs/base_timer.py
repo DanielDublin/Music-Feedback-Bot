@@ -66,7 +66,8 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
                 await channel.send(f"{event} has {self.minutes[event]} minutes remaining!")
 
         await channel.send(f"Time is up! {event} is now over.")
-        self._stop_timer(event)
+        # stop event
+        await self._stop_timer(event)
 
     async def _double_points_logic(self, ctx: discord.Message, event: str):
         mention = ctx.author.mention
@@ -87,16 +88,10 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
 
-
-
-
-
-
-
-
     # internal stop helper function used above to stop the event in list
     async def _stop_timer(self, event: str):
         if event in self.active_timer:
+            self.active_timer[event].cancel()
             del self.active_timer[event]
         if event in self.minutes:
             del self.minutes[event]
