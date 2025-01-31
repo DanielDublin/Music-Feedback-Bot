@@ -30,8 +30,25 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
 
         self.minutes[event] = minutes
         self.active_timer[event] = asyncio.create_task(self._run_timer(interaction, event))
-        print(f"Timer started: {self.active_timer}")  # Print active_timer for debugging
         await interaction.response.send_message(f"Starting the {event} Timer for {minutes} minutes.", ephemeral=True)
+
+        if event == "Double Points":
+            # Upload the image as an attachment
+            file = discord.File(
+                "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/images/2x_MF_POINTS.gif",  # Use a relative path
+                filename="2x_MF_POINTS.gif"
+            )
+
+            # Create the embed
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(name="**2X MF POINTS**", value="", inline=False)
+            embed.add_field(name="", value=f"For the next {minutes} minutes, every feedback given with **<MFR** in the feedback channels will reward 2 MF Points. \n\n For help using the feedback system, please read <#{FEEDBACK_ACCESS_CHANNEL_ID}>", inline=False)
+
+            # Attach the image to the embed
+            embed.set_image(url="attachment://2x_MF_POINTS.gif")
+
+            # Send everything (Markdown text, embed, and image) in a single message
+            await interaction.followup.send(content="__# DOUBLE POINTS NOW ACTIVE__", embed=embed, file=file)
 
     # run_timer will start the countdown and provide time updates
     async def _run_timer(self, interaction: discord.Interaction, event: str):
