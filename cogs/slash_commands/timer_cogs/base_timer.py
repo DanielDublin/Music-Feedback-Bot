@@ -12,11 +12,16 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
         self.name = name
         self.active_timer = {}
         self.minutes = {}
+        self.pfp_url = ""
 
     # used to create an object for other events
 
     # start timer will check if other timers are running/input is valid and call the run_timer function
     async def start_timer(self, interaction: discord.Interaction, event: str, minutes: int):
+
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
 
         if event in self.active_timer:
             await interaction.response.send_message(f"A {event} Timer is already running.",
@@ -44,6 +49,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
             embed.add_field(name="", value=f"For the next {minutes} minutes, every feedback given with **<MFR** in the feedback channels will reward 2 MF Points. \n\n For help using the feedback system, please read <#{FEEDBACK_ACCESS_CHANNEL_ID}>", inline=False)
 
             embed.set_image(url="attachment://2x_MF_POINTS.gif")
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
 
             await interaction.followup.send(content="__# DOUBLE POINTS NOW ACTIVE__", embed=embed, file=file)
 
