@@ -153,22 +153,35 @@ class General(commands.Cog):
         if "Double Points" in base_timer_cog.active_timer:
             print("Double Points Timer is active.")
             mfr_points = 2
+            await db.add_points(str(ctx.author.id), mfr_points)
+            points = int(await db.fetch_points(str(ctx.author.id)))
+            channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(name="Feedback Notice",
+                            value=f"{mention} has **given feedback** and now has **{points}** MF point(s).",
+                            inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+
+            await ctx.channel.send(f"{mention} has gained 2 MF points during the **Double Points** event! You now have **{points}** MF point(s).",
+                                   delete_after=4)
+            await channel.send(embed=embed)  # Logs channel
         else:
             print("No active Double Points timer.")
             mfr_points = 1
-        await db.add_points(str(ctx.author.id), mfr_points)
+            await db.add_points(str(ctx.author.id), mfr_points)
+            points = int(await db.fetch_points(str(ctx.author.id)))
+            channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel
 
-        points = int(await db.fetch_points(str(ctx.author.id)))
-        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(name="Feedback Notice",
+                            value=f"{mention} has **given feedback** and now has **{points}** MF point(s).",
+                            inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
 
-        embed = discord.Embed(color=0x7e016f)
-        embed.add_field(name="Feedback Notice",
-                        value=f"{mention} has **given feedback** and now has **{points}** MF point(s).", inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-
-        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
-                               delete_after=4)
-        await channel.send(embed=embed)  # Logs channel
+            await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
+                                   delete_after=4)
+            await channel.send(embed=embed)
 
     async def send_messages_to_user(self, message: discord.Message):
         out_message = "Hey, you've run into an error when submitting for feedback.\n" \
@@ -203,7 +216,7 @@ class General(commands.Cog):
         if points:  # user have points, reduce them and send message + log
             points -= 1
             await db.reduce_points(str(ctx.author.id), 1)
-            await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
+            await ctx.channel.send(f"{mention} has used 1 MF point. You now have **{points}** MF point(s).",
                                    delete_after=4)
 
             embed = discord.Embed(color=0x7e016f)
