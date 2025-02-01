@@ -13,20 +13,23 @@ class FeedbackThreads(commands.Cog):
 
         # Attempt to get the feedback channel
         thread_channel = self.bot.get_channel(1103427357781528597)
-        print(f"Channel: {thread_channel}")  # Debugging: Check if channel is found
-        
 
         if thread_channel:
-            print(f"Attempting to create thread in channel {thread_channel.id}")
-            # Create a new thread with the user's feedback message as the starting message
-            thread = await thread_channel.create_text_thread(
+            # Send a new message in the channel (this is the message that will start the thread)
+            message = await ctx.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
+
+            # Create the thread from the newly sent message
+            thread = await thread_channel.create_thread(
                 name=f"Feedback from {ctx.author.name}",  # Thread name will be the user's name
-                message=ctx.message,  # Reference the message that triggered the thread
+                message=message,  # Use the message sent by `ctx.send()`
                 reason="Creating a feedback thread"
             )
+
+            # Send a confirmation message inside the thread
             await thread.send(f"Feedback submitted by {ctx.author.mention}!")  # Optional message in the thread
         else:
             print("Feedback channel not found.")
+
 
 async def setup(bot):
     await bot.add_cog(FeedbackThreads(bot))
