@@ -54,7 +54,8 @@ initial_extensions = [
     'cogs.music',
     'cogs.owner_utilities',
     'cogs.help_command',
-    'modules.scan_delete_intro_messages'
+    'modules.scan_delete_intro_messages',
+    'cogs.feedback_threads'
     # Add more cogs as needed
 ]
 

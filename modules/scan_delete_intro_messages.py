@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 from data.constants import INTRO_MUSIC
 import datetime
 
+
 class MessageCleaner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -12,7 +13,7 @@ class MessageCleaner(commands.Cog):
     def cog_unload(self):
         if self.clean_old_messages.is_running():
             self.clean_old_messages.cancel()
-        
+
     def cog_load(self):
         if not self.clean_old_messages.is_running():
             self.clean_old_messages.start()
@@ -25,7 +26,6 @@ class MessageCleaner(commands.Cog):
             if time_passed >= datetime.timedelta(days=1):
                 return True
         return False
-    
 
     @tasks.loop(hours=1)  # Runs every hour
     async def clean_old_messages(self):
@@ -39,7 +39,7 @@ class MessageCleaner(commands.Cog):
         await self.bot.wait_until_ready()
         print('ready')
         self.channel = self.bot.get_channel(INTRO_MUSIC)
-        
+
 
 async def setup(bot):
     await bot.add_cog(MessageCleaner(bot))

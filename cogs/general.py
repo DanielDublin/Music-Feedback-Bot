@@ -144,6 +144,13 @@ class General(commands.Cog):
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
+        # initiate feedback threads instance
+        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+        print("reached")
+        if feedback_threads_cog:
+            print("in if")
+            await feedback_threads_cog.create_feedback_thread(ctx)
+
         base_timer_cog = self.bot.get_cog("TimerCog")
 
         if base_timer_cog is None:
