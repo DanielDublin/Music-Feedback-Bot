@@ -32,7 +32,6 @@ class FeedbackThreads(commands.Cog):
         if ctx.author.id in self.user_thread:
             # Access the thread ID stored for the user
             existing_thread_id = self.user_thread[ctx.author.id]
-            print(f"Existing thread ID: {existing_thread_id}")
 
             try:
                 # Ensure the thread ID is an integer (it should be, but we check it here)
@@ -64,8 +63,25 @@ class FeedbackThreads(commands.Cog):
 
         if ctx.command.name == 'R':
             # Send a confirmation message inside the thread
-            await thread.send(f"{log_id} ```{formatted_time}: Used <MFR -```{message_link}")
-            log_id += 1
+            embed = await self.MFR_embed(formatted_time, message_link)
+            await thread.send(embed=embed)
+
+    async def MFR_embed(self,formatted_time, message_link):
+        embed = discord.Embed(
+            title="Ticket #",
+            description=f"{formatted_time}",
+            color=discord.Color.blue()  # You can use any color, like `discord.Color.red()`, or hex code.
+        )
+
+        # Add a field to the embed
+        embed.add_field(name="<MFR used", value=f"{message_link}",
+                        inline=True)  # inline=True if you want fields in the same row
+
+
+        # Optionally, add a footer or timestamp
+        embed.set_footer(text="Some Footer Text")
+        return embed
+
 
 async def setup(bot):
     await bot.add_cog(FeedbackThreads(bot))
