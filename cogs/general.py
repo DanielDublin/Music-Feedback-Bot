@@ -144,11 +144,6 @@ class General(commands.Cog):
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
-        # initiate feedback threads instance
-        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-        if feedback_threads_cog:
-            await feedback_threads_cog.create_feedback_thread(ctx)
-
         base_timer_cog = self.bot.get_cog("TimerCog")
 
         if base_timer_cog is None:
@@ -178,6 +173,7 @@ class General(commands.Cog):
             points = int(await db.fetch_points(str(ctx.author.id)))
             channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel
 
+
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(name="Feedback Notice",
                             value=f"{mention} has **given feedback** and now has **{points}** MF point(s).",
@@ -187,6 +183,12 @@ class General(commands.Cog):
             await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
                                    delete_after=4)
             await channel.send(embed=embed)
+
+        # initiate feedback threads instance
+        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+        if feedback_threads_cog:
+            await feedback_threads_cog.create_feedback_thread(ctx, mfr_points, points)
+
 
     async def send_messages_to_user(self, message: discord.Message):
         out_message = "Hey, you've run into an error when submitting for feedback.\n" \
