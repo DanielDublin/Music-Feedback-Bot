@@ -146,9 +146,7 @@ class General(commands.Cog):
 
         # initiate feedback threads instance
         feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-        print("reached")
         if feedback_threads_cog:
-            print("in if")
             await feedback_threads_cog.create_feedback_thread(ctx)
 
         base_timer_cog = self.bot.get_cog("TimerCog")
@@ -219,6 +217,11 @@ class General(commands.Cog):
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
+
+        # initiate feedback threads instance
+        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+        if feedback_threads_cog:
+            await feedback_threads_cog.create_feedback_thread(ctx)
 
         if points:  # user have points, reduce them and send message + log
             points -= 1

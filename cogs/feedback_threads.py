@@ -2,7 +2,16 @@ import discord
 from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from datetime import datetime
+import traceback
 
+
+"""
+- handle if bot is crashed and user_thread deleted
+- handle double points hour - make purple
+- handle mfs
+- handle if edited
+- make slash command to find user id in channel
+"""
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -35,6 +44,12 @@ class FeedbackThreads(commands.Cog):
             new_thread = self.bot.get_channel(int(self.user_thread[ctx.author.id]['thread_id']))
             await new_thread.send(embed=embed)
 
+        # handles <MFS
+        if ctx.command.name == 'S':
+            embed = await self.MFS_embed(ctx, formatted_time, message_link)
+            new_thread = self.bot.get_channel(int(self.user_thread[ctx.author.id]['thread_id']))
+            await new_thread.send(embed=embed)
+
     async def MFR_embed(self, ctx, formatted_time, message_link):
         log_id = self.user_thread[ctx.author.id]['log_id']
         embed = discord.Embed(
@@ -43,6 +58,17 @@ class FeedbackThreads(commands.Cog):
             color=discord.Color.green()
         )
         embed.add_field(name="<MFR used", value=f"{message_link}", inline=True)
+        embed.set_footer(text="Some Footer Text")
+        return embed
+
+    async def MFS_embed(self, ctx, formatted_time, message_link):
+        log_id = self.user_thread[ctx.author.id]['log_id']
+        embed = discord.Embed(
+            title=f"Ticket # {log_id}",
+            description=f"{formatted_time}",
+            color=discord.Color.red()
+        )
+        embed.add_field(name="<MFS used", value=f"{message_link}", inline=True)
         embed.set_footer(text="Some Footer Text")
         return embed
 
@@ -71,9 +97,14 @@ class FeedbackThreads(commands.Cog):
             # Increment log_id and send a message to the existing thread
             self.user_thread[ctx.author.id]['log_id'] += 1
             log_id = self.user_thread[ctx.author.id]['log_id']
-            embed = await self.MFR_embed(ctx, formatted_time, message_link)
-            embed.title = f"Ticket #{log_id}"  # Update embed with the correct log_id
-            return embed
+            if ctx.command.name == 'R':
+                embed = await self.MFR_embed(ctx, formatted_time, message_link)
+                embed.title = f"Ticket #{log_id}"  # Update embed with the correct log_id
+                return embed
+            if ctx.command.name == 'S':
+                embed = await self.MFS_embed(ctx, formatted_time, message_link)
+                embed.title = f"Ticket #{log_id}"  # Update embed with the correct log_id
+                return embed
         except Exception as e:
             print(f"An error occurred while fetching/sending to the thread: {e}")
         return
