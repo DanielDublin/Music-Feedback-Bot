@@ -264,9 +264,9 @@ class General(commands.Cog):
         # initiate feedback threads instance
         feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
         if feedback_threads_cog:
-            # hardcode this in case we want to use dynamic mfs points in future
+            # hardcode 1 in case we want to use dynamic mfs points in future
             mfs_points = 1
-            await feedback_threads_cog.create_feedback_thread(ctx, mf_points, points)
+            await feedback_threads_cog.create_feedback_thread(ctx, mfs_points, points)
 
     @commands.check(guild_only)
     @commands.command(help="Use to present the band's genres.", brief='(Band Name)')
