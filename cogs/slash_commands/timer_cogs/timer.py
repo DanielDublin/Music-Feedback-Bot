@@ -41,5 +41,5 @@ class TimerCog(BaseTimer):
 
 
 async def setup(bot):
-    #await bot.add_cog(TimerCog(bot), guild=discord.Object(id=SERVER_ID))
     await bot.add_cog(TimerCog(bot))
+

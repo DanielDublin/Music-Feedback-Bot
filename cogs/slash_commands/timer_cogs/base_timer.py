@@ -6,7 +6,7 @@ from data.constants import SERVER_ID
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 
-class BaseTimer(commands.GroupCog, group_name='timer'):
+class BaseTimer(commands.GroupCog, group_name = "timer"):
     def __init__(self, bot, name):
         self.bot = bot
         self.name = name
