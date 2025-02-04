@@ -43,7 +43,8 @@ class FeedbackThreads(commands.Cog):
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
         # handles <MFS
         elif ctx.command.name == 'S':
-            embed = await self.MFS_embed(ctx, formatted_time, message_link)
+            print("in create, trying to send <MFS")
+            embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
         new_thread = self.bot.get_channel(int(self.user_thread[ctx.author.id]['thread_id']))
         await new_thread.send(embed=embed)
 
@@ -73,24 +74,26 @@ class FeedbackThreads(commands.Cog):
             embed.set_footer(text="Some Footer Text")
             return embed
 
-
-    async def MFS_embed(self, ctx, formatted_time, message_link):
+    async def MFS_embed(self, ctx, formatted_time, message_link, points):
         log_id = self.user_thread[ctx.author.id]['log_id']
         embed = discord.Embed(
             title=f"Ticket # {log_id}",
             description=f"{formatted_time}",
             color=discord.Color.red()
         )
-        embed.add_field(name="<MFS used", value=f"{message_link}", inline=True)
+        embed.add_field(name="<MFS",
+                        value=f"Used **1** point and now has **{points}** MF points.", inline=True)
+        embed.add_field(name=f"{message_link}",
+                        value="", inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
 
     async def new_thread(self, ctx, formatted_time, message_link, thread_channel):
         message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
         thread = await thread_channel.create_thread(
-            name=f"Feedback from {ctx.author.name}",
+            name=f"Feedback log for {ctx.author.name}",
             message=message,
-            reason="Creating a feedback thread"
+            reason="Creating a feedback log thread"
         )
         # Add the thread_id and log_id to the user dict
         self.user_thread[ctx.author.id] = {
@@ -107,15 +110,18 @@ class FeedbackThreads(commands.Cog):
             if existing_thread is None:
                 print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
                 return
+
             # Increment log_id and send a message to the existing thread
             self.user_thread[ctx.author.id]['log_id'] += 1
             log_id = self.user_thread[ctx.author.id]['log_id']
+
             if ctx.command.name == 'R':
                 embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
                 embed.title = f"Ticket #{log_id}"  # Update embed with the correct log_id
                 return embed
-            if ctx.command.name == 'S':
-                embed = await self.MFS_embed(ctx, formatted_time, message_link)
+            elif ctx.command.name == 'S':
+                print("in existing thread, trying to send mfs embed")
+                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
                 embed.title = f"Ticket #{log_id}"  # Update embed with the correct log_id
                 return embed
         except Exception as e:

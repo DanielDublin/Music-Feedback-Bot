@@ -220,11 +220,6 @@ class General(commands.Cog):
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
 
-        # initiate feedback threads instance
-        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-        if feedback_threads_cog:
-            await feedback_threads_cog.create_feedback_thread(ctx)
-
         if points:  # user have points, reduce them and send message + log
             points -= 1
             await db.reduce_points(str(ctx.author.id), 1)
@@ -264,6 +259,14 @@ class General(commands.Cog):
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
+
+
+        # initiate feedback threads instance
+        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+        if feedback_threads_cog:
+            # hardcode this in case we want to use dynamic mfs points in future
+            mfs_points = 1
+            await feedback_threads_cog.create_feedback_thread(ctx, mf_points, points)
 
     @commands.check(guild_only)
     @commands.command(help="Use to present the band's genres.", brief='(Band Name)')
