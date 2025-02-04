@@ -7,18 +7,17 @@ class ScanFeedbackEdits(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    print("entering")
+        """
+        handle mispellings, capitalizations, switches, additions
+        """
+
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        print("entered")
-        """
-        This listener triggers when a message is edited. If <MFR> is changed to <MFS>, it will call the
-        function to handle the edit and send a log.
-        """
+
+
         # check for <MFR to <MFS
         if before.content != after.content:
-            if "<MFR" in before.content and "<MFS" in after.content:
-                print("Detected <MFR> to <MFS> change.")
+            if ctx.command.name == 'R': in before.content and "<MFS" in after.content:
                 await self.MFR_to_MFS(before, after)
 
     async def MFR_to_MFS(self, before: discord.Message, after: discord.Message):
