@@ -43,10 +43,12 @@ class FeedbackThreads(commands.Cog):
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
         # handles <MFS
         elif ctx.command.name == 'S':
-            print("in create, trying to send <MFS")
             embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
         new_thread = self.bot.get_channel(int(self.user_thread[ctx.author.id]['thread_id']))
         await new_thread.send(embed=embed)
+
+        # check if edit
+
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
         log_id = self.user_thread[ctx.author.id]['log_id']
@@ -127,6 +129,9 @@ class FeedbackThreads(commands.Cog):
         except Exception as e:
             print(f"An error occurred while fetching/sending to the thread: {e}")
         return
+
+
+
 
 
 async def setup(bot):
