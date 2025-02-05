@@ -130,15 +130,24 @@ class General(commands.Cog):
         await ctx.channel.send(embed=embed)
 
         # Add points
+
     @commands.check(guild_only)
-    @commands.command(name="R",
-                      help = f"Use to submit feedback.", brief = "@username")
+    @commands.hybrid_command(
+        name="r",
+        help="Use to submit feedback.",
+        description="Submit feedback and gain points.",
+        with_app_commands=True,
+        brief="@username"
+    )
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx: discord.Message):
+
+        if isinstance(ctx, discord.Interaction):
+            await ctx.response.defer()
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
-            
 
         mention = ctx.author.mention    
         if not await self.handle_feedback_command_validity(ctx, mention):
@@ -157,7 +166,6 @@ class General(commands.Cog):
         await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
-
 
 
     async def send_messages_to_user(self, message: discord.Message):

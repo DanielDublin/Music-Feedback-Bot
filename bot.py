@@ -3,16 +3,14 @@ import os
 import asyncio
 import database.db as db
 from discord.ext import commands
-from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
-from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
-
+from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID
 
 IS_READY = 0
 
 load_dotenv()
-token = os.environ.get('DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TEST_TOKEN')
 
 # Initialize the bot
 intents = discord.Intents.default()
