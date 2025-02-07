@@ -150,7 +150,7 @@ class General(commands.Cog):
             print("BaseTimer cog not found.")
             return
 
-        if "Double Points" in base_timer_cog.active_timer:
+        if "Double Points" in base_timer_cog.timer_handler.active_timer:
             print("Double Points Timer is active.")
             mfr_points = 2
             await db.add_points(str(ctx.author.id), mfr_points)

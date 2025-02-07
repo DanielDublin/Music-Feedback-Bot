@@ -2,16 +2,8 @@ import discord
 from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from datetime import datetime
-import traceback
 
 
-"""
-- handle if bot is crashed and user_thread deleted
-- handle double points hour - make purple - COMPLETED
-- handle mfs
-- handle if edited
-- make slash command to find user id in channel
-"""
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -129,10 +121,6 @@ class FeedbackThreads(commands.Cog):
         except Exception as e:
             print(f"An error occurred while fetching/sending to the thread: {e}")
         return
-
-
-
-
 
 async def setup(bot):
     await bot.add_cog(FeedbackThreads(bot))

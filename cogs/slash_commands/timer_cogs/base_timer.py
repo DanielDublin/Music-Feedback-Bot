@@ -5,11 +5,18 @@ from discord import app_commands
 from data.constants import SERVER_ID
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
+import os
 
-class BaseTimer(commands.GroupCog, group_name='timer'):
-    def __init__(self, bot, name):
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Gets directory of base_timer.py
+IMAGE_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "..", "images", "2x_MF_POINTS.gif"))
+
+class BaseTimer:
+    """
+    Handles core timer logic without being a GroupCog.
+    """
+    def __init__(self, bot):
         self.bot = bot
-        self.name = name
         self.active_timer = {}
         self.minutes = {}
         self.pfp_url = ""
@@ -38,10 +45,7 @@ class BaseTimer(commands.GroupCog, group_name='timer'):
         await interaction.response.send_message(f"Starting the {event} Timer for {minutes} minutes.", ephemeral=True)
 
         if event == "Double Points":
-            file = discord.File(
-                "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/images/2x_MF_POINTS.gif",  # Use a relative path
-                filename="2x_MF_POINTS.gif"
-            )
+            file = discord.File(IMAGE_PATH, filename="2x_MF_POINTS.gif")
 
             # Create the embed
             embed = discord.Embed(color=0x7e016f)
