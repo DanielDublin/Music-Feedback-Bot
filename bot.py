@@ -55,7 +55,7 @@ initial_extensions = [
     'cogs.owner_utilities',
     'cogs.help_command',
     'modules.scan_delete_intro_messages',
-    'modules.scan_feedback_edits',
+    # 'modules.scan_feedback_edits',
     'cogs.feedback_threads'
     # Add more cogs as needed
 ]
