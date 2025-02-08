@@ -116,61 +116,56 @@ class FeedbackThreads(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        # Check if MFR is in the before message and MFS is in the after message
+        if "MFR" in before.content and "MFS" in after.content:
+            # Generate time and message link, pass them along with points to MFR_to_MFS_edit
+            formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
+            message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
 
-        if before.channel.id != FEEDBACK_CHANNEL_ID:
-            return
+            # You may calculate or fetch points here if needed, example:
+            points = await db.fetch_points(str(after.author.id))
 
-        # Check if MFR before and MFS after
-        ctx = await self.bot.get_context(after)
+            # Call the function with the necessary arguments
+            await self.MFR_to_MFS_edit(before, after, formatted_time, message_link, points)
+
+    async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link, points):
 
         # Check if existing thread
-        if ctx.author.id in self.user_thread:
-            existing_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])
+        if after.author.id in self.user_thread:
+            existing_thread = self.bot.get_channel(self.user_thread[after.author.id][0])
             if existing_thread:
                 self.user_thread[after.author.id][1] += 1
-                ticket_counter = self.user_thread[after.author.id][1] # get and increment ticket counter
+                ticket_counter = self.user_thread[after.author.id][1]  # get and increment ticket counter
 
-                # decorate doesn't allow custom parameters
-                formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
-                message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
-
-                print("checking cog")
-                # Access TimerCog to check for double points
+                # access TimerCog to check for double points
                 base_timer_cog = self.bot.get_cog("TimerCog")
-                print("cog checked")
-
-                # Check if TimerCog is available
-                print(f"Base Timer Cog: {base_timer_cog}")
                 if base_timer_cog is None:
                     print("BaseTimer cog not found.")
                     return
 
-                # Check if "Double Points" is in active_timer
+                # Check if double points is active + deduct points
                 if "Double Points" in base_timer_cog.timer_handler.active_timer:
                     points_deducted = 3
-                    print("Double Points active, deducting 3 points.")
                 else:
                     points_deducted = 2
-                    print("No Double Points, deducting 2 points.")
 
-                print("trying to deduct")
-                # Deduct points
-                try:
-                    await db.reduce_points(str(after.author.id), points_deducted)
-                except Exception as error:
-                    print(f"Error reducing points: {error}")
+                await db.reduce_points(str(after.author.id), points_deducted)
 
-                # Edit embed to thread
                 embed = discord.Embed(
                     title=f"Ticket #{ticket_counter}",
-                    description=f"{formatted_time}\nMessage edited.\n[Click to view message]({message_link})",
+                    description=f"{formatted_time}",
                     color=discord.Color.yellow()
                 )
+                embed.add_field(name="<MFR edited to <MFS",
+                                value=f"Used **{points_deducted}** points and now has **{points}** MF points.",
+                                inline=True)
                 embed.add_field(name="Before", value=before.content, inline=False)
                 embed.add_field(name="After", value=after.content, inline=False)
-                embed.set_footer(text="Message edited")
+                embed.add_field(name=f"{message_link}", value="", inline=False)
+                embed.set_footer(text="Footer")
 
                 await existing_thread.send(embed=embed)
+
 
 
 async def setup(bot):
