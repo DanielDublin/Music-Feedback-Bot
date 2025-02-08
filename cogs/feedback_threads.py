@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from datetime import datetime
-
+import database.db as db
 
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
@@ -40,11 +40,10 @@ class FeedbackThreads(commands.Cog):
         new_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
         await new_thread.send(embed=embed)
 
-        # check if edit
-
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
         ticket_counter = self.user_thread[ctx.author.id][1]  # Access ticket_counter from the nested array
 
+        # MFR points logic
         if mfr_points == 1:
             embed = discord.Embed(
                 title=f"Ticket #{ticket_counter}",
@@ -87,11 +86,11 @@ class FeedbackThreads(commands.Cog):
             reason="Creating a feedback log thread"
         )
         # Add the thread_id and ticket_counter (initialized to 1) to the user dict
-        self.user_thread[ctx.author.id] = [thread.id, 1]  # thread_id and ticket_counter
+        self.user_thread[ctx.author.id] = [thread.id, 1]  # Ticket counter initialized to 1 for new threads
 
     async def existing_thread(self, ctx, formatted_time, message_link, mfr_points, points):
-        existing_thread_id = self.user_thread[ctx.author.id][0]  # Access thread_id from the nested array
-        ticket_counter = self.user_thread[ctx.author.id][1]  # Access ticket_counter from the nested array
+        existing_thread_id = self.user_thread[ctx.author.id][0]
+        ticket_counter = self.user_thread[ctx.author.id][1]
 
         try:
             existing_thread = self.bot.get_channel(existing_thread_id)
@@ -99,12 +98,12 @@ class FeedbackThreads(commands.Cog):
                 print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
                 return
 
-            # Increment the ticket_counter and update it in the dictionary
-            self.user_thread[ctx.author.id][1] += 1  # Increment ticket_counter
+            # increment ticket_counter
+            self.user_thread[ctx.author.id][1] += 1
 
             if ctx.command.name == 'R':
                 embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
-                embed.title = f"Ticket #{ticket_counter}"  # Update embed with the correct ticket_counter
+                embed.title = f"Ticket #{ticket_counter}"
                 return embed
             elif ctx.command.name == 'S':
                 print("in existing thread, trying to send mfs embed")
@@ -117,27 +116,55 @@ class FeedbackThreads(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        """Handles message edits and updates the existing feedback thread if applicable."""
+
         if before.channel.id != FEEDBACK_CHANNEL_ID:
             return
 
-        # check if MFR before and MFS after
+        # Check if MFR before and MFS after
         ctx = await self.bot.get_context(after)
 
-        # check if existing thread
+        # Check if existing thread
         if ctx.author.id in self.user_thread:
-            existing_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
+            existing_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])
             if existing_thread:
+                self.user_thread[after.author.id][1] += 1
+                ticket_counter = self.user_thread[after.author.id][1] # get and increment ticket counter
+
+                # decorate doesn't allow custom parameters
                 formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
                 message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
 
-                # Points deduction and other logic...
+                print("checking cog")
+                # Access TimerCog to check for double points
+                base_timer_cog = self.bot.get_cog("TimerCog")
+                print("cog checked")
+
+                # Check if TimerCog is available
+                print(f"Base Timer Cog: {base_timer_cog}")
+                if base_timer_cog is None:
+                    print("BaseTimer cog not found.")
+                    return
+
+                # Check if "Double Points" is in active_timer
+                if "Double Points" in base_timer_cog.timer_handler.active_timer:
+                    points_deducted = 3
+                    print("Double Points active, deducting 3 points.")
+                else:
+                    points_deducted = 2
+                    print("No Double Points, deducting 2 points.")
+
+                print("trying to deduct")
+                # Deduct points
+                try:
+                    await db.reduce_points(str(after.author.id), points_deducted)
+                except Exception as error:
+                    print(f"Error reducing points: {error}")
 
                 # Edit embed to thread
                 embed = discord.Embed(
-                    title=f"Edited Feedback for {ctx.author.name}",
+                    title=f"Ticket #{ticket_counter}",
                     description=f"{formatted_time}\nMessage edited.\n[Click to view message]({message_link})",
-                    color=discord.Color.orange()
+                    color=discord.Color.yellow()
                 )
                 embed.add_field(name="Before", value=before.content, inline=False)
                 embed.add_field(name="After", value=after.content, inline=False)
