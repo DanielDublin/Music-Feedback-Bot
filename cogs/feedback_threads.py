@@ -116,17 +116,29 @@ class FeedbackThreads(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        # Check if MFR is in the before message and MFS is in the after message
-        if "MFR" in before.content and "MFS" in after.content:
-            # Generate time and message link, pass them along with points to MFR_to_MFS_edit
+
+        mfr_variations = ["mfr", "mrf", "MFR", "MRF"]
+        mfs_variations = ["mfs", "mfs", "MFS", "MSF"]
+
+        # HANDLES MFR TO MFS EDIT
+        if any(variation in before.content.lower() for variation in mfr_variations) and \
+                any(variation in after.content.lower() for variation in mfs_variations):
+
             formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
             message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
-
-            # You may calculate or fetch points here if needed, example:
             points = await db.fetch_points(str(after.author.id))
 
-            # Call the function with the necessary arguments
             await self.MFR_to_MFS_edit(before, after, formatted_time, message_link, points)
+
+        # if "MFS" in before.content and "MFR" in after.content:
+        #
+        # if MFS OR MFR in content and deleted:
+        #
+        # if mfs or mfr not in content and added in:
+
+
+
+
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link, points):
 
