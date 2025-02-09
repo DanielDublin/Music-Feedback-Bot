@@ -41,7 +41,8 @@ class FeedbackThreads(commands.Cog):
         await new_thread.send(embed=embed)
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
-        ticket_counter = self.user_thread[ctx.author.id][1]  # Access ticket_counter from the nested array
+
+        ticket_counter = self.user_thread[ctx.author.id][1]
 
         # MFR points logic
         if mfr_points == 1:
@@ -66,7 +67,7 @@ class FeedbackThreads(commands.Cog):
             return embed
 
     async def MFS_embed(self, ctx, formatted_time, message_link, points):
-        ticket_counter = self.user_thread[ctx.author.id][1]  # Access ticket_counter from the nested array
+        ticket_counter = self.user_thread[ctx.author.id][1]
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
@@ -90,7 +91,6 @@ class FeedbackThreads(commands.Cog):
 
     async def existing_thread(self, ctx, formatted_time, message_link, mfr_points, points):
         existing_thread_id = self.user_thread[ctx.author.id][0]
-        ticket_counter = self.user_thread[ctx.author.id][1]
 
         try:
             existing_thread = self.bot.get_channel(existing_thread_id)
@@ -98,15 +98,14 @@ class FeedbackThreads(commands.Cog):
                 print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
                 return
 
-            # increment ticket_counter
             self.user_thread[ctx.author.id][1] += 1
+            ticket_counter = self.user_thread[ctx.author.id][1]
 
             if ctx.command.name == 'R':
                 embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
                 embed.title = f"Ticket #{ticket_counter}"
                 return embed
             elif ctx.command.name == 'S':
-                print("in existing thread, trying to send mfs embed")
                 embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
                 embed.title = f"Ticket #{ticket_counter}"  # Update embed with the correct ticket_counter
                 return embed
@@ -119,17 +118,30 @@ class FeedbackThreads(commands.Cog):
 
         mf_variations = ["mfr", "mrf", "MFR", "MRF", "mfs", "mfs", "MFS", "MSF"]
 
-        # HANDLES MFR TO MFS EDIT
-        # commandprefix.lower() == "mfr"
-        if any(variation in before.content.lower() for variation in mf_variations):
+        formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
+        message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
 
-            print("Detected <MFR> to <MFS> edit!")
-            formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
-            message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
-            points = await db.fetch_points(str(after.author.id))
+        # FIRST IF - HANDLES MFR TO NOTHING
+        # SECOND IF - HANDLES MFR TO MFS
+        if "MFR" in before.content and "MFR" not in after.content:
+            if "MFS" in after.content:
+                print("Detected <MFR> to nothing edit!")
+                await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
+            else:
+                await self.MF_to_nothing(before, after, formatted_time, message_link)
+                return
 
-            await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
-            return
+
+        # # HANDLES MFR TO MFS EDIT
+        # # # commandprefix.lower() == "mfr"
+        # if any(variation in before.content.lower() for variation in mf_variations):
+        #
+        #     print("Detected <MFR> to <MFS> edit!")
+        #     formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
+        #     message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
+        #
+        #     await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
+        #     return
 
         # if "MFS" in before.content and "MFR" in after.content:
         #
@@ -144,10 +156,7 @@ class FeedbackThreads(commands.Cog):
         # Check if existing thread
         if after.author.id in self.user_thread:
             existing_thread = self.bot.get_channel(self.user_thread[after.author.id][0])
-            if existing_thread:
-                self.user_thread[after.author.id][1] += 1
-                ticket_counter = self.user_thread[after.author.id][1]  # get and increment ticket counter
-                return existing_thread, ticket_counter
+            return existing_thread
         # add logic for new thread?
         elif after.author.id not in self.user_thread:
             print("creating thread")
@@ -156,7 +165,9 @@ class FeedbackThreads(commands.Cog):
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
-        existing_thread, ticket_counter = await self.check_existing_thread_edit(after)
+        existing_thread = await self.check_existing_thread_edit(after)
+        self.user_thread[after.author.id][1] += 1
+        ticket_counter = self.user_thread[after.author.id][1]
 
         # Access TimerCog to check for double points
         base_timer_cog = self.bot.get_cog("TimerCog")
@@ -212,6 +223,68 @@ class FeedbackThreads(commands.Cog):
 
         # Send the embed to the existing thread
         await existing_thread.send(embed=embed)
+
+    async def MF_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+        # Get the existing thread and ticket_counter
+        existing_thread = await self.check_existing_thread_edit(after)
+        self.user_thread[after.author.id][1] += 1
+        ticket_counter = self.user_thread[after.author.id][1]
+
+        # Access TimerCog to check for double points
+        base_timer_cog = self.bot.get_cog("TimerCog")
+        if base_timer_cog is None:
+            print("BaseTimer cog not found.")
+            return
+
+        # HANDLES MFR to NOTHING (Deduct points)
+        if "MFR" in before.content and "MFR" not in after.content:
+            print("entering MFR deleted")
+            if "Double Points" in base_timer_cog.timer_handler.active_timer:
+                points_deducted = 3
+            else:
+                points_deducted = 2
+
+            # Deduct points
+            await db.reduce_points(str(after.author.id), points_deducted)
+
+            # Update points after deduction
+            updated_points = await db.fetch_points(str(after.author.id))
+
+            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
+            embed_title = "<MFR removed from message"
+
+        # HANDLES MFS TO MFR EDIT (Add points)
+        # elif "MFS" in before.content and "MFR" in after.content:
+        #     print("Processing MFS to MFR edit: Adding points.")
+        #     if "Double Points" in base_timer_cog.timer_handler.active_timer:
+        #         points_added = 3
+        #     else:
+        #         points_added = 2
+        #
+        #     # Add points
+        #     await db.add_points(str(after.author.id), points_added)
+        #
+        #     # Update points after addition
+        #     updated_points = await db.fetch_points(str(after.author.id))
+        #
+        #     embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
+        #     embed_title = "<MFS edited to <MFR"
+
+        # Create the embed
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter}",
+            description=f"{formatted_time}",
+            color=discord.Color.yellow()
+        )
+        embed.add_field(name=embed_title, value=embed_description, inline=True)
+        embed.add_field(name="Before", value=before.content, inline=False)
+        embed.add_field(name="After", value=after.content, inline=False)
+        embed.add_field(name=f"{message_link}", value="", inline=False)
+        embed.set_footer(text="Footer")
+
+        # Send the embed to the existing thread
+        await existing_thread.send(embed=embed)
+
 
 
 async def setup(bot):
