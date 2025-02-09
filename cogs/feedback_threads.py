@@ -124,13 +124,19 @@ class FeedbackThreads(commands.Cog):
         # FIRST IF - HANDLES MFR TO NOTHING
         # SECOND IF - HANDLES MFR TO MFS
         if "MFR" in before.content and "MFR" not in after.content:
+            print("Detected <MFR> to nothing edit!")
             if "MFS" in after.content:
-                print("Detected <MFR> to nothing edit!")
+                print("Detected <MFR> to <MFS> edit!")
                 await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
             else:
                 await self.MF_to_nothing(before, after, formatted_time, message_link)
-                return
+            return
 
+        # Check for MFS to MFR edit
+        if "MFS" in before.content and "MFR" in after.content:
+            print("Detected <MFS> to <MFR> edit!")
+            await self.MFS_to_MFR_edit(before, after, formatted_time, message_link)
+            return
 
         # # HANDLES MFR TO MFS EDIT
         # # # commandprefix.lower() == "mfr"
@@ -153,21 +159,30 @@ class FeedbackThreads(commands.Cog):
 
     # checks if existing thread exists
     async def check_existing_thread_edit(self, after: discord.Message):
-        # Check if existing thread
+        # Check if existing thread exists for the user
         if after.author.id in self.user_thread:
+            # Retrieve existing thread using the channel ID from the user_thread dictionary
             existing_thread = self.bot.get_channel(self.user_thread[after.author.id][0])
-            return existing_thread
-        # add logic for new thread?
-        elif after.author.id not in self.user_thread:
-            print("creating thread")
 
-        return None, 1
+            # Increment the ticket counter for the user
+            self.user_thread[after.author.id][1] += 1
+            ticket_counter = self.user_thread[after.author.id][1]
+
+            # Access TimerCog to check for double points
+            base_timer_cog = self.bot.get_cog("TimerCog")
+            if base_timer_cog is None:
+                print("BaseTimer cog not found.")
+                return existing_thread, ticket_counter, None
+
+            return existing_thread, ticket_counter, base_timer_cog
+        else:
+            # Create a new thread for this user if no thread exists
+            print("Creating new thread for user")
+            return None, 1, None  # Returning None for the thread, 1 for ticket_counter, and None for TimerCog
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
-        existing_thread = await self.check_existing_thread_edit(after)
-        self.user_thread[after.author.id][1] += 1
-        ticket_counter = self.user_thread[after.author.id][1]
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
         # Access TimerCog to check for double points
         base_timer_cog = self.bot.get_cog("TimerCog")
@@ -192,8 +207,16 @@ class FeedbackThreads(commands.Cog):
             embed_title = "<MFR edited to <MFS"
             embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
 
-        # HANDLES MFS TO MFR EDIT (Add points)
-        elif "MFS" in before.content and "MFR" in after.content:
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                         message_link)
+        await existing_thread.send(embed=embed)
+
+
+    async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+        # Get the existing thread and ticket_counter
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+
+        if "MFS" in before.content and "MFR" in after.content:
             print("Processing MFS to MFR edit: Adding points.")
             if "Double Points" in base_timer_cog.timer_handler.active_timer:
                 points_added = 3
@@ -207,24 +230,17 @@ class FeedbackThreads(commands.Cog):
             updated_points = await db.fetch_points(str(after.author.id))
 
             # Create the embed
-            embed_title = "<MFR edited to <MFS>"
-            embed_description = f"Used **{points_added}** points and now has **{updated_points}** MF points."
+            embed_title = "<MFS edited to <MFR"
+            embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
 
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         await existing_thread.send(embed=embed)
 
+
     async def MF_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
-        existing_thread = await self.check_existing_thread_edit(after)
-        self.user_thread[after.author.id][1] += 1
-        ticket_counter = self.user_thread[after.author.id][1]
-
-        # Access TimerCog to check for double points
-        base_timer_cog = self.bot.get_cog("TimerCog")
-        if base_timer_cog is None:
-            print("BaseTimer cog not found.")
-            return
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
         # HANDLES MFR to NOTHING (Deduct points)
         if "MFR" in before.content and "MFR" not in after.content:
@@ -242,24 +258,6 @@ class FeedbackThreads(commands.Cog):
 
             embed_title = "<MFR removed from message"
             embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
-
-
-        # HANDLES MFS TO MFR EDIT (Add points)
-        # elif "MFS" in before.content and "MFR" in after.content:
-        #     print("Processing MFS to MFR edit: Adding points.")
-        #     if "Double Points" in base_timer_cog.timer_handler.active_timer:
-        #         points_added = 3
-        #     else:
-        #         points_added = 2
-        #
-        #     # Add points
-        #     await db.add_points(str(after.author.id), points_added)
-        #
-        #     # Update points after addition
-        #     updated_points = await db.fetch_points(str(after.author.id))
-        #
-        #     embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
-        #     embed_title = "<MFS edited to <MFR"
 
         # Create the embed
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
