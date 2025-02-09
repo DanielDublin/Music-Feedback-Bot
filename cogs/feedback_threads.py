@@ -189,8 +189,8 @@ class FeedbackThreads(commands.Cog):
             # Update points after deduction
             updated_points = await db.fetch_points(str(after.author.id))
 
-            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
             embed_title = "<MFR edited to <MFS"
+            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
 
         # HANDLES MFS TO MFR EDIT (Add points)
         elif "MFS" in before.content and "MFR" in after.content:
@@ -206,22 +206,12 @@ class FeedbackThreads(commands.Cog):
             # Update points after addition
             updated_points = await db.fetch_points(str(after.author.id))
 
-            embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
-            embed_title = "<MFS edited to <MFR"
+            # Create the embed
+            embed_title = "<MFR edited to <MFS>"
+            embed_description = f"Used **{points_added}** points and now has **{updated_points}** MF points."
 
-        # Create the embed
-        embed = discord.Embed(
-            title=f"Ticket #{ticket_counter}",
-            description=f"{formatted_time}",
-            color=discord.Color.yellow()
-        )
-        embed.add_field(name=embed_title, value=embed_description, inline=True)
-        embed.add_field(name="Before", value=before.content, inline=False)
-        embed.add_field(name="After", value=after.content, inline=False)
-        embed.add_field(name=f"{message_link}", value="", inline=False)
-        embed.set_footer(text="Footer")
-
-        # Send the embed to the existing thread
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                         message_link)
         await existing_thread.send(embed=embed)
 
     async def MF_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
@@ -250,8 +240,9 @@ class FeedbackThreads(commands.Cog):
             # Update points after deduction
             updated_points = await db.fetch_points(str(after.author.id))
 
-            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
             embed_title = "<MFR removed from message"
+            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
+
 
         # HANDLES MFS TO MFR EDIT (Add points)
         # elif "MFS" in before.content and "MFR" in after.content:
@@ -271,6 +262,13 @@ class FeedbackThreads(commands.Cog):
         #     embed_title = "<MFS edited to <MFR"
 
         # Create the embed
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                         message_link)
+        await existing_thread.send(embed=embed)
+
+    # embed when edits made
+    async def edit_embed(self, embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                         message_link):
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
             description=f"{formatted_time}",
@@ -279,12 +277,9 @@ class FeedbackThreads(commands.Cog):
         embed.add_field(name=embed_title, value=embed_description, inline=True)
         embed.add_field(name="Before", value=before.content, inline=False)
         embed.add_field(name="After", value=after.content, inline=False)
-        embed.add_field(name=f"{message_link}", value="", inline=False)
-        embed.set_footer(text="Footer")
-
-        # Send the embed to the existing thread
-        await existing_thread.send(embed=embed)
-
+        embed.add_field(name="Message Link", value=message_link, inline=False)
+        embed.set_footer(text="Some Footer Text")
+        return embed
 
 
 async def setup(bot):
