@@ -129,14 +129,17 @@ class FeedbackThreads(commands.Cog):
                 print("Detected <MFR> to <MFS> edit!")
                 await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
             else:
-                await self.MF_to_nothing(before, after, formatted_time, message_link)
+                await self.MFR_to_nothing(before, after, formatted_time, message_link)
             return
 
         # Check for MFS to MFR edit
-        if "MFS" in before.content and "MFR" in after.content:
-            print("Detected <MFS> to <MFR> edit!")
-            await self.MFS_to_MFR_edit(before, after, formatted_time, message_link)
-            return
+        if "MFS" in before.content and "MFS" not in after.content:
+            if "MFR" in after.content:
+                print("Detected <MFS> to <MFR> edit!")
+                await self.MFS_to_MFR_edit(before, after, formatted_time, message_link)
+                return
+            else:
+                await self.MFS_to_nothing(before, after, formatted_time, message_link)
 
         # # HANDLES MFR TO MFS EDIT
         # # # commandprefix.lower() == "mfr"
@@ -238,7 +241,7 @@ class FeedbackThreads(commands.Cog):
         await existing_thread.send(embed=embed)
 
 
-    async def MF_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+    async def MFR_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
@@ -263,6 +266,23 @@ class FeedbackThreads(commands.Cog):
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         await existing_thread.send(embed=embed)
+
+    async def MFS_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+
+        if "MFS" in before.content and "MFS" not in after.content:
+            await after.channel.send("🦗")
+
+            embed_title = "<MFS removed from message"
+            embed_description = f"Not action taken"
+
+        # Create the embed
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                                      message_link)
+        await existing_thread.send(embed=embed)
+
+
+
 
     # embed when edits made
     async def edit_embed(self, embed_title, formatted_time, embed_description, before, after, ticket_counter,
