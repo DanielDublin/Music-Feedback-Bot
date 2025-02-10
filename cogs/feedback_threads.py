@@ -21,31 +21,40 @@ class FeedbackThreads(commands.Cog):
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
 
-        # Check if the mentioned user has a stored thread in the dict
+        # Check if a thread exists
         if ctx.author.id in self.user_thread:
-            embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
-            existing_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
-            await existing_thread.send(embed=embed)
-            await asyncio.sleep(2)
-            await existing_thread.edit(archived=True)
-            return
+            thread_id = self.user_thread[ctx.author.id][0]  # Get stored thread ID
+            try:
+                existing_thread = await self.bot.fetch_channel(thread_id)  # Fetch thread by ID
+                print(f"Thread fetched successfully: {existing_thread}")
 
-        print("trying to make new thread")
-        # If no existing thread, create a new one
-        new = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
-        print("new thread")
+                # Ensure it's unarchived
+                if existing_thread.archived:
+                    print("Unarchiving thread")
+                    await existing_thread.edit(archived=False)
+                embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
+                if embed:
+                    await existing_thread.send(embed=embed)
+                    await asyncio.sleep(2)
+                    await existing_thread.edit(archived=True)
+                return
 
-        # handles <MFR
-        # if ctx.command.name == 'R':
-        #     embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
-        # # handles <MFS
-        # elif ctx.command.name == 'S':
-        #     embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+            except discord.NotFound:
+                print(f"Thread with ID {thread_id} was not found, creating a new one.")
+            except discord.Forbidden:
+                print(f"Bot lacks permission to access thread {thread_id}, creating a new one.")
+            except discord.HTTPException as e:
+                print(f"Error fetching thread: {e}, creating a new one.")
 
-        # new_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
-        # await new_thread.send(embed=embed)
+        # If no thread exists, create a new one
+        print("Creating a new thread for user")
+        new_thread = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
+
+        # Store the thread ID so future messages update the correct thread
+        self.user_thread[ctx.author.id] = [new_thread.id, 1]  # Reset ticket counter for new thread
+
         await asyncio.sleep(2)
-        await new.edit(archived=True)
+        await new_thread.edit(archived=True)
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
 
@@ -132,6 +141,10 @@ class FeedbackThreads(commands.Cog):
         if existing_thread is None:
             print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
             return
+
+        # Check if the thread is archived
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
 
         self.user_thread[ctx.author.id][1] += 1
         ticket_counter = self.user_thread[ctx.author.id][1]
@@ -246,6 +259,8 @@ class FeedbackThreads(commands.Cog):
 
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
         await existing_thread.edit(archived=True)
 
@@ -273,6 +288,8 @@ class FeedbackThreads(commands.Cog):
 
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
         await existing_thread.edit(archived=True)
 
@@ -301,6 +318,8 @@ class FeedbackThreads(commands.Cog):
         # Create the embed
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
         await existing_thread.edit(archived=True)
 
@@ -316,6 +335,8 @@ class FeedbackThreads(commands.Cog):
         # Create the embed
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                                       message_link)
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
         await existing_thread.edit(archived=True)
 
