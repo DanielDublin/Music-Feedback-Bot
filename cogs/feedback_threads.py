@@ -23,31 +23,23 @@ class FeedbackThreads(commands.Cog):
 
         # Check if a thread exists
         if ctx.author.id in self.user_thread:
-            thread_id = self.user_thread[ctx.author.id][0]  # Get stored thread ID
-            try:
-                existing_thread = await self.bot.fetch_channel(thread_id)  # Fetch thread by ID
-                print(f"Thread fetched successfully: {existing_thread}")
+            thread_id = self.user_thread[ctx.author.id][0]  # get stored thread ID
 
-                # Ensure it's unarchived
-                if existing_thread.archived:
-                    print("Unarchiving thread")
-                    await existing_thread.edit(archived=False)
-                embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
-                if embed:
-                    await existing_thread.send(embed=embed)
-                    await asyncio.sleep(2)
-                    await existing_thread.edit(archived=True)
-                return
+            existing_thread = await self.bot.fetch_channel(thread_id)  # fetch thread by ID
 
-            except discord.NotFound:
-                print(f"Thread with ID {thread_id} was not found, creating a new one.")
-            except discord.Forbidden:
-                print(f"Bot lacks permission to access thread {thread_id}, creating a new one.")
-            except discord.HTTPException as e:
-                print(f"Error fetching thread: {e}, creating a new one.")
+            # UNARCHIVE BEFORE SENDING ANOTHER MESSAGE TO THREAD
+            if existing_thread.archived:
+                await existing_thread.edit(archived=False)
+                # call existing thread logic
+            embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
+            if embed:
+                await existing_thread.send(embed=embed)
+                await asyncio.sleep(2)
+                await existing_thread.edit(archived=True)
+            return
 
         # If no thread exists, create a new one
-        print("Creating a new thread for user")
+
         new_thread = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
 
         # Store the thread ID so future messages update the correct thread
@@ -211,8 +203,11 @@ class FeedbackThreads(commands.Cog):
     async def check_existing_thread_edit(self, after: discord.Message):
         # Check if existing thread exists for the user
         if after.author.id in self.user_thread:
-            # Retrieve existing thread using the channel ID from the user_thread dictionary
-            existing_thread = self.bot.get_channel(self.user_thread[after.author.id][0])
+
+            existing_thread = await self.bot.fetch_channel(self.user_thread[after.author.id][0])
+
+            if existing_thread.archived:
+                await existing_thread.edit(archived=False)
 
             # Increment the ticket counter for the user
             self.user_thread[after.author.id][1] += 1
