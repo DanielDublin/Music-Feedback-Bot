@@ -343,9 +343,8 @@ class FeedbackThreads(commands.Cog):
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
         if "MFS" in before.content and "MFS" not in after.content:
-            await after.channel.send("🦗")
             channel_message = await after.channel.send(
-                f"{after.author.mention} removed <MFS from their post. No points were awarded back."
+                f"🦗 {after.author.mention} removed <MFS from their post. No points were awarded back."
                 f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
             await asyncio.sleep(15)
             await channel_message.delete()
