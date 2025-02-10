@@ -3,6 +3,7 @@ from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from datetime import datetime
 import database.db as db
+import asyncio
 
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
@@ -25,20 +26,26 @@ class FeedbackThreads(commands.Cog):
             embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
             existing_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
             await existing_thread.send(embed=embed)
+            await asyncio.sleep(2)
+            await existing_thread.edit(archived=True)
             return
 
+        print("trying to make new thread")
         # If no existing thread, create a new one
-        await self.new_thread(ctx, formatted_time, message_link, thread_channel)
+        new = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
+        print("new thread")
 
         # handles <MFR
-        if ctx.command.name == 'R':
-            embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
-        # handles <MFS
-        elif ctx.command.name == 'S':
-            embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+        # if ctx.command.name == 'R':
+        #     embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
+        # # handles <MFS
+        # elif ctx.command.name == 'S':
+        #     embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
 
-        new_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
-        await new_thread.send(embed=embed)
+        # new_thread = self.bot.get_channel(self.user_thread[ctx.author.id][0])  # Access thread_id
+        # await new_thread.send(embed=embed)
+        await asyncio.sleep(2)
+        await new.edit(archived=True)
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
 
@@ -79,38 +86,65 @@ class FeedbackThreads(commands.Cog):
         embed.set_footer(text="Some Footer Text")
         return embed
 
-    async def new_thread(self, ctx, formatted_time, message_link, thread_channel):
-        message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
-        thread = await thread_channel.create_thread(
-            name=f"Feedback log for {ctx.author.name}",
-            message=message,
-            reason="Creating a feedback log thread"
-        )
-        # Add the thread_id and ticket_counter (initialized to 1) to the user dict
-        self.user_thread[ctx.author.id] = [thread.id, 1]  # Ticket counter initialized to 1 for new threads
+    import asyncio
+
+    async def new_thread(self, ctx, formatted_time, message_link, thread_channel, mfr_points, points):
+        """Creates a new thread, sends the correct embed, and archives it."""
+
+        try:
+            # Send a starter message
+            message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
+
+            # Create the thread
+            thread = await thread_channel.create_thread(
+                name=f"Feedback log for {ctx.author.name}",
+                message=message,
+                reason="Creating a feedback log thread",
+                auto_archive_duration=60  # Auto-archive after 1 hour of inactivity
+            )
+
+            print(f"Thread {thread.name} created successfully.")
+
+            # Add the thread_id and ticket_counter to the user dict
+            self.user_thread[ctx.author.id] = [thread.id, 1]  # Initialize ticket counter
+
+            # Determine the correct embed based on the command
+            embed = None
+            if ctx.command.name == 'R':
+                embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
+            elif ctx.command.name == 'S':
+                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+
+            # Send the embed to the thread if available
+            if embed:
+                await thread.send(embed=embed)
+
+            return thread  # Return the thread object for further editing
+
+        except Exception as e:
+            print(f"Error while creating thread: {e}")
+            return None  # If thread creation fails, return None
 
     async def existing_thread(self, ctx, formatted_time, message_link, mfr_points, points):
         existing_thread_id = self.user_thread[ctx.author.id][0]
 
-        try:
-            existing_thread = self.bot.get_channel(existing_thread_id)
-            if existing_thread is None:
-                print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
-                return
+        existing_thread = self.bot.get_channel(existing_thread_id)
+        if existing_thread is None:
+            print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
+            return
 
-            self.user_thread[ctx.author.id][1] += 1
-            ticket_counter = self.user_thread[ctx.author.id][1]
+        self.user_thread[ctx.author.id][1] += 1
+        ticket_counter = self.user_thread[ctx.author.id][1]
 
-            if ctx.command.name == 'R':
-                embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
-                embed.title = f"Ticket #{ticket_counter}"
-                return embed
-            elif ctx.command.name == 'S':
-                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
-                embed.title = f"Ticket #{ticket_counter}"  # Update embed with the correct ticket_counter
-                return embed
-        except Exception as e:
-            print(f"An error occurred while fetching/sending to the thread: {e}")
+        if ctx.command.name == 'R':
+            embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
+            embed.title = f"Ticket #{ticket_counter}"
+            return embed
+
+        elif ctx.command.name == 'S':
+            embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+            embed.title = f"Ticket #{ticket_counter}"  # Update embed with the correct ticket_counter
+            return embed
         return
 
     @commands.Cog.listener()
@@ -213,6 +247,7 @@ class FeedbackThreads(commands.Cog):
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         await existing_thread.send(embed=embed)
+        await existing_thread.edit(archived=True)
 
 
     async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
@@ -239,6 +274,7 @@ class FeedbackThreads(commands.Cog):
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         await existing_thread.send(embed=embed)
+        await existing_thread.edit(archived=True)
 
 
     async def MFR_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
@@ -266,6 +302,7 @@ class FeedbackThreads(commands.Cog):
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         await existing_thread.send(embed=embed)
+        await existing_thread.edit(archived=True)
 
     async def MFS_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
@@ -280,6 +317,7 @@ class FeedbackThreads(commands.Cog):
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                                       message_link)
         await existing_thread.send(embed=embed)
+        await existing_thread.edit(archived=True)
 
 
 
