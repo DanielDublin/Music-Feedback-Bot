@@ -3,12 +3,22 @@ from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from datetime import datetime
 import database.db as db
+from database.feedback_threads_db import SQLiteDatabase
 import asyncio
 
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.sqlitedatabase = SQLiteDatabase()
         self.user_thread = {}  # Nested user: list[thread_id, ticket_counter]
+
+    @commands.command()
+    async def create_fake_data(self, ctx, num_entries: int = 10):
+        await self.bot.wait_until_ready()
+        """Command to insert fake data entries into the users table."""
+        self.sqlitedatabase.insert_fake_data(num_entries)  # Insert fake data
+        await ctx.send(f"{num_entries} fake data entries inserted into the database!")
+
 
     async def create_feedback_thread(self, ctx, mfr_points, points):
         await self.bot.wait_until_ready()
