@@ -12,14 +12,6 @@ class FeedbackThreads(commands.Cog):
         self.sqlitedatabase = SQLiteDatabase()
         self.user_thread = {}  # Nested user: list[thread_id, ticket_counter]
 
-    @commands.command()
-    async def create_fake_data(self, ctx, num_entries: int = 10):
-        await self.bot.wait_until_ready()
-        """Command to insert fake data entries into the users table."""
-        self.sqlitedatabase.insert_fake_data(num_entries)  # Insert fake data
-        await ctx.send(f"{num_entries} fake data entries inserted into the database!")
-
-
     async def create_feedback_thread(self, ctx, mfr_points, points):
         await self.bot.wait_until_ready()
         thread_channel = self.bot.get_channel(1103427357781528597)  # Replace with your actual thread channel ID
@@ -30,6 +22,26 @@ class FeedbackThreads(commands.Cog):
 
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
+
+        # check if dict is empty
+        # if it is, need to check if there are entries in db (if not, then the bot is entirely new)
+        # this only runs if a command is user -- maybe it call on bot restart?
+        if not self.user_thread:
+            # select all data in the db (0 if there is none)
+            self.sqlitedatabase.cursor.execute("SELECT user_id, thread_id, ticket_counter FROM users")
+            data = self.sqlitedatabase.cursor.fetchall()
+            print(data)
+            print("before repopulation", self.user_thread)
+
+            # if data is in db, repopulate the dict
+            # data returns as tuple (user id, thread id, ticket counter)
+            if data:
+                self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in
+                                    data}
+                print("repopulated thread", self.user_thread)
+            else:
+                print("no data")
+
 
         # Check if a thread exists
         if ctx.author.id in self.user_thread:
@@ -118,6 +130,35 @@ class FeedbackThreads(commands.Cog):
 
             # Add the thread_id and ticket_counter to the user dict
             self.user_thread[ctx.author.id] = [thread.id, 1]  # Initialize ticket counter
+
+            # add member to db
+            print("checking")
+            self.sqlitedatabase.cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (ctx.message.author.id,))
+
+            print("checked")
+            user_check = self.sqlitedatabase.cursor.fetchone()
+            print(user_check)
+            if not user_check:
+                print("in here")
+
+                self.sqlitedatabase.cursor.execute(
+                    "INSERT INTO users (user_id, thread_id, ticket_counter) VALUES (?, ?, ?)",
+                    (ctx.author.id, thread.id, self.user_thread[ctx.author.id][1])
+                )
+                print("added to db")
+
+                # Commit the transaction to save the changes
+                self.sqlitedatabase.connection.commit()
+
+                # Retrieve and print the data from the users table
+                self.sqlitedatabase.cursor.execute("SELECT * FROM users")
+                rows = self.sqlitedatabase.cursor.fetchall()
+
+                # Print the rows
+                for row in rows:
+                    print(row)
+                    break
+
 
             # Determine the correct embed based on the command
             embed = None

@@ -3,7 +3,7 @@ import random
 
 class SQLiteDatabase:
     def __init__(self):
-        self.connection = sqlite3.connect('feedback_threads.db')
+        self.connection = sqlite3.connect('feedback_threads.sqlite')
         self.cursor = self.connection.cursor()
         self.create_table()
 
@@ -19,24 +19,31 @@ class SQLiteDatabase:
         self.connection.commit()
         print("SQLite database created if not already")
 
-    def insert_fake_data(self, num_entries=10):
-        # Insert fake data into the users table
-        for _ in range(num_entries):
-            user_id = random.randint(1, 1000)  # Random user ID between 1 and 1000
-            thread_id = random.randint(1, 100)  # Random thread ID between 1 and 100
-            ticket_counter = random.randint(1, 10)  # Random ticket counter between 1 and 10
+        # Query and print existing users in the database
+        self.cursor.execute("SELECT * FROM users")
+        rows = self.cursor.fetchall()
+        print("Users in database before drop:")
+        for row in rows:
+            print(row)
 
-            # Insert the generated values into the users table
-            self.cursor.execute('''
-            INSERT OR IGNORE INTO users (user_id, thread_id, ticket_counter)
-            VALUES (?, ?, ?)
-            ''', (user_id, thread_id, ticket_counter))
-
-        # Commit the changes and print a message
-        self.connection.commit()
-        print(f"Inserted {num_entries} fake data entries into the users table.")
-
-
-# Example usage
-db = SQLiteDatabase()
-db.insert_fake_data()  # Insert 10 fake entries
+#         # Drop the users table
+#         self.cursor.execute("DROP TABLE IF EXISTS users")
+#         self.connection.commit()
+#
+#         # Confirm that the table has been dropped and print tables left
+#         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+#         tables = self.cursor.fetchall()
+#         print("Remaining tables after drop:", tables)
+#
+#         # Attempt to query the users table again, will result in an error
+#         try:
+#             self.cursor.execute("SELECT * FROM users")
+#             rows = self.cursor.fetchall()
+#             print("Users in database after drop (should be empty):")
+#             for row in rows:
+#                 print(row)
+#         except sqlite3.OperationalError as e:
+#             print(f"Error after dropping table: {e}")
+#
+# # Example usage:
+# db = SQLiteDatabase()

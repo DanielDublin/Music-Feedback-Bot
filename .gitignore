@@ -386,5 +386,6 @@ FodyWeavers.xsd
 /data/‏‏constants-test.py
 /data/constants.py
 /data/constants-test.py
+/database/feedback_threads.db
 /counter.py
 /output.json
