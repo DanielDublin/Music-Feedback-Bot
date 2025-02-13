@@ -408,29 +408,42 @@ class FeedbackThreads(commands.Cog):
         await channel_message.delete()
 
     async def MFS_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
-        if "MFS" in before.content and "MFS" not in after.content:
-            channel_message = await after.channel.send(
-                f"🦗 {after.author.mention} removed <MFS from their post. No points were awarded back."
-                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
-            await asyncio.sleep(15)
-            await channel_message.delete()
+        print("shortening")
+        try:
+            before_truncated, after_truncated = await self.shorten_before_and_after_messages(before, after)
+            print("SUCCESS")
+        except Exception as e:
+            print(f"Error during shortening: {e}")
+            return
 
+        if "MFS" in before_truncated and "MFS" not in after_truncated:
+            points = await db.fetch_points(str(after.author.id))
+            print("trying to send ")
             embed_title = "<MFS removed from message"
-            embed_description = f"No action taken"
+            embed_description = f"No action taken. Member still lost a point and has **{points}** MF points."
 
-        # Create the embed
-        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
-                                      message_link)
+
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before_truncated,
+                                      after_truncated, ticket_counter, message_link)
+
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
         await existing_thread.edit(archived=True)
 
+        channel_message = await after.channel.send(
+            f"🦗 {after.author.mention} removed <MFS from their post. No points were awarded back."
+            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>."
+        )
+
+        await asyncio.sleep(15)
+        await channel_message.delete()
 
     # embed when edits made
-    async def edit_embed(self, embed_title, formatted_time, embed_description, before, after, ticket_counter,
+    async def edit_embed(self, embed_title, formatted_time, embed_description, before_truncated, after_truncated, ticket_counter,
                          message_link):
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
@@ -438,11 +451,28 @@ class FeedbackThreads(commands.Cog):
             color=discord.Color.yellow()
         )
         embed.add_field(name=embed_title, value=embed_description, inline=True)
-        embed.add_field(name="Before", value=before.content, inline=False)
-        embed.add_field(name="After", value=after.content, inline=False)
+        embed.add_field(name="Before", value=before_truncated, inline=False)
+        embed.add_field(name="After", value=after_truncated, inline=False)
         embed.add_field(name="Message Link", value=message_link, inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
+
+    async def shorten_before_and_after_messages(self, before, after):
+        max_length = 500
+        if len(before.content) > max_length:
+            before_content_truncated = before.content[:max_length] + "..."
+        else:
+            before_content_truncated = before.content
+
+        if len(after.content) > max_length:
+            after_content_truncated = after.content[:max_length] + "..."
+        else:
+            after_content_truncated = after.content
+
+        print(f"Truncated before message: {before_content_truncated}")
+        print(f"Truncated after message: {after_content_truncated}")
+
+        return before_content_truncated, after_content_truncated
 
     def commit_changes(self):
         try:
