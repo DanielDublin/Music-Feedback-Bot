@@ -148,7 +148,7 @@ class FeedbackThreads(commands.Cog):
                 print("added to db")
 
                 # Commit the transaction to save the changes
-                self.sqlitedatabase.connection.commit()
+                self.commit_changes()
 
                 # Retrieve and print the data from the users table
                 self.sqlitedatabase.cursor.execute("SELECT * FROM users")
@@ -191,6 +191,15 @@ class FeedbackThreads(commands.Cog):
 
         self.user_thread[ctx.author.id][1] += 1
         ticket_counter = self.user_thread[ctx.author.id][1]
+
+        # update ticket number in db
+        self.sqlitedatabase.cursor.execute('''
+            UPDATE users 
+            SET ticket_counter = ? 
+            WHERE user_id = ?
+        ''', (ticket_counter, ctx.author.id))
+
+        self.commit_changes()
 
         if ctx.command.name == 'R':
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
@@ -263,6 +272,14 @@ class FeedbackThreads(commands.Cog):
             # Increment the ticket counter for the user
             self.user_thread[after.author.id][1] += 1
             ticket_counter = self.user_thread[after.author.id][1]
+            # update ticket count in db
+            self.sqlitedatabase.cursor.execute('''
+                UPDATE users 
+                SET ticket_counter = ? 
+                WHERE user_id = ?
+            ''', (ticket_counter, after.author.id))
+
+            self.commit_changes()
 
             # Access TimerCog to check for double points
             base_timer_cog = self.bot.get_cog("TimerCog")
@@ -412,8 +429,6 @@ class FeedbackThreads(commands.Cog):
         await existing_thread.edit(archived=True)
 
 
-
-
     # embed when edits made
     async def edit_embed(self, embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link):
@@ -428,6 +443,12 @@ class FeedbackThreads(commands.Cog):
         embed.add_field(name="Message Link", value=message_link, inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
+
+    def commit_changes(self):
+        try:
+            self.sqlitedatabase.connection.commit()
+        except Exception as e:
+            print(f"Database commit error: {e}")
 
 
 async def setup(bot):
