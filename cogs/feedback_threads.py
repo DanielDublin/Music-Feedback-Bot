@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from data.constants import FEEDBACK_CHANNEL_ID
+from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID
 from datetime import datetime
 import database.db as db
 from database.feedback_threads_db import SQLiteDatabase
@@ -40,7 +40,7 @@ class FeedbackThreads(commands.Cog):
                                     data}
                 print("repopulated thread", self.user_thread)
             else:
-                print("no data")
+                print("no data in sqlite db")
 
 
         # Check if a thread exists
@@ -61,7 +61,6 @@ class FeedbackThreads(commands.Cog):
             return
 
         # If no thread exists, create a new one
-
         new_thread = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
 
         # Store the thread ID so future messages update the correct thread
@@ -74,7 +73,7 @@ class FeedbackThreads(commands.Cog):
 
         ticket_counter = self.user_thread[ctx.author.id][1]
 
-        # MFR points logic
+        # MFR points logic for double points
         if mfr_points == 1:
             embed = discord.Embed(
                 title=f"Ticket #{ticket_counter}",
@@ -109,10 +108,7 @@ class FeedbackThreads(commands.Cog):
         embed.set_footer(text="Some Footer Text")
         return embed
 
-    import asyncio
-
     async def new_thread(self, ctx, formatted_time, message_link, thread_channel, mfr_points, points):
-        """Creates a new thread, sends the correct embed, and archives it."""
 
         try:
             # Send a starter message
@@ -159,13 +155,18 @@ class FeedbackThreads(commands.Cog):
                     print(row)
                     break
 
-
             # Determine the correct embed based on the command
             embed = None
             if ctx.command.name == 'R':
                 embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
             elif ctx.command.name == 'S':
-                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+                print("checking points")
+                if points == 0:
+                    print("points 0")
+                    await thread.send(f"<@{ADMINS_ROLE_ID}>")
+                    embed = await self.handle_zero_points(ctx, formatted_time)
+                else:
+                    embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
 
             # Send the embed to the thread if available
             if embed:
@@ -207,8 +208,14 @@ class FeedbackThreads(commands.Cog):
             return embed
 
         elif ctx.command.name == 'S':
-            embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
-            embed.title = f"Ticket #{ticket_counter}"  # Update embed with the correct ticket_counter
+            if points == 0:
+                print("points 0")
+                await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                embed = await self.handle_zero_points(ctx, formatted_time)
+                embed.title = f"Ticket #{ticket_counter}"
+            else:
+                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+                embed.title = f"Ticket #{ticket_counter}"
             return embed
         return
 
@@ -335,7 +342,6 @@ class FeedbackThreads(commands.Cog):
         await asyncio.sleep(15)
         await channel_message.delete()
 
-
     async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
@@ -457,6 +463,21 @@ class FeedbackThreads(commands.Cog):
         embed.set_footer(text="Some Footer Text")
         return embed
 
+    # handles if <MFS is used and user has no points - sends embed to thread or makes
+    async def handle_zero_points(self, ctx, formatted_time):
+        ticket_counter = self.user_thread[ctx.author.id][1]
+
+        # Create the embed
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter}",
+            description=f"{formatted_time}",
+            color=discord.Color.yellow()
+        )
+        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+        embed.set_footer(text="Some Footer Text")
+
+        return embed
+
     async def shorten_before_and_after_messages(self, before, after):
         max_length = 500
         if len(before.content) > max_length:
@@ -492,3 +513,7 @@ async def setup(bot):
 #         include excerpt of before and after
 #           fix that each edit causes the ticket counter to increase no matter if its mfr or not
 #         """
+
+"""
+fix MFS to MFR
+"""

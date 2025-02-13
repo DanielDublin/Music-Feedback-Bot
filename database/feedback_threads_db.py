@@ -26,24 +26,24 @@ class SQLiteDatabase:
         for row in rows:
             print(row)
 
-        # # Drop the users table
-        # self.cursor.execute("DROP TABLE IF EXISTS users")
-        # self.connection.commit()
-        #
-        # # Confirm that the table has been dropped and print tables left
-        # self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        # tables = self.cursor.fetchall()
-        # print("Remaining tables after drop:", tables)
-        #
-        # # Attempt to query the users table again, will result in an error
-        # try:
-        #     self.cursor.execute("SELECT * FROM users")
-        #     rows = self.cursor.fetchall()
-        #     print("Users in database after drop (should be empty):")
-        #     for row in rows:
-        #         print(row)
-        # except sqlite3.OperationalError as e:
-        #     print(f"Error after dropping table: {e}")
-
-# Example usage:
-db = SQLiteDatabase()
+#         # Drop the users table
+#         self.cursor.execute("DROP TABLE IF EXISTS users")
+#         self.connection.commit()
+#
+#         # Confirm that the table has been dropped and print tables left
+#         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+#         tables = self.cursor.fetchall()
+#         print("Remaining tables after drop:", tables)
+#
+#         # Attempt to query the users table again, will result in an error
+#         try:
+#             self.cursor.execute("SELECT * FROM users")
+#             rows = self.cursor.fetchall()
+#             print("Users in database after drop (should be empty):")
+#             for row in rows:
+#                 print(row)
+#         except sqlite3.OperationalError as e:
+#             print(f"Error after dropping table: {e}")
+#
+# # Example usage:
+# db = SQLiteDatabase()
