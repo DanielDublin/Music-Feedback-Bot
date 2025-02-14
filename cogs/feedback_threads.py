@@ -501,6 +501,10 @@ class FeedbackThreads(commands.Cog):
         except Exception as e:
             print(f"Database commit error: {e}")
 
+    # used to call dict in general cog
+    async def get_user_thread(self):
+        return self.user_thread
+
 
 async def setup(bot):
     await bot.add_cog(FeedbackThreads(bot))

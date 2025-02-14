@@ -209,6 +209,7 @@ class General(commands.Cog):
                       help=f"Use to ask for feedback.", brief="(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -237,6 +238,25 @@ class General(commands.Cog):
         else:  # User doesn't have points
 
             try:
+                current_time = datetime.now()
+                formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
+                feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+                if feedback_threads_cog:
+                    user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+                    thread_id = user_thread[1]  # Assuming thread_id is at index 0
+                    ticket_counter = user_thread[2]  # Assuming ticket_counter is at index 1
+
+                    # Create the embed
+                    embed = discord.Embed(
+                        title=f"Ticket #{ticket_counter}",
+                        description=f"{formatted_time}",
+                        color=discord.Color.yellow()
+                    )
+                    embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+                    embed.set_footer(text="Some Footer Text")
+
+                    thread_id.send(embed=embed)
+
 
                 await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
