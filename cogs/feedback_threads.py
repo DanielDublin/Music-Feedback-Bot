@@ -144,7 +144,7 @@ class FeedbackThreads(commands.Cog):
                 print("added to db")
 
                 # Commit the transaction to save the changes
-                self.commit_changes()
+                await self.commit_changes()
 
                 # Retrieve and print the data from the users table
                 self.sqlitedatabase.cursor.execute("SELECT * FROM users")
@@ -163,7 +163,7 @@ class FeedbackThreads(commands.Cog):
                 print("checking points")
                 if points == 0:
                     print("points 0")
-                    await thread.send(f"<@{ADMINS_ROLE_ID}>")
+                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
                     embed = await self.handle_zero_points(ctx, formatted_time)
                 else:
                     embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
@@ -200,7 +200,7 @@ class FeedbackThreads(commands.Cog):
             WHERE user_id = ?
         ''', (ticket_counter, ctx.author.id))
 
-        self.commit_changes()
+        await self.commit_changes()
 
         if ctx.command.name == 'R':
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
@@ -495,7 +495,7 @@ class FeedbackThreads(commands.Cog):
 
         return before_content_truncated, after_content_truncated
 
-    def commit_changes(self):
+    async def commit_changes(self):
         try:
             self.sqlitedatabase.connection.commit()
         except Exception as e:

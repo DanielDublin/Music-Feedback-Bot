@@ -238,13 +238,15 @@ class General(commands.Cog):
         else:  # User doesn't have points
 
             try:
+
+                # this logic is to send <MFS embed to thread if it exists
                 current_time = datetime.now()
                 formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
                 feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
                 if feedback_threads_cog:
                     user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-                    thread_id = user_thread[1]  # Assuming thread_id is at index 0
-                    ticket_counter = user_thread[2]  # Assuming ticket_counter is at index 1
+                    thread_id = user_thread[1]
+                    ticket_counter = user_thread[2]
 
                     # Create the embed
                     embed = discord.Embed(
@@ -255,7 +257,9 @@ class General(commands.Cog):
                     embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
                     embed.set_footer(text="Some Footer Text")
 
-                    thread_id.send(embed=embed)
+                    thread = await self.bot.fetch_channel(thread_id)
+
+                    thread.send(embed=embed)
 
 
                 await self.send_messages_to_user(ctx.message)
