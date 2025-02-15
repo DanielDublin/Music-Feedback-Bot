@@ -95,7 +95,8 @@ class FeedbackThreads(commands.Cog):
             embed.set_footer(text="Some Footer Text")
             return embed
 
-    async def MFS_embed(self, ctx, formatted_time, message_link, points):
+    async def MFS_embed(self, ctx, formatted_time, message_link):
+        points = int(await db.fetch_points(str(ctx.author.id)))
         ticket_counter = self.user_thread[ctx.author.id][1]
 
         embed = discord.Embed(
@@ -160,13 +161,12 @@ class FeedbackThreads(commands.Cog):
             if ctx.command.name == 'R':
                 embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
             elif ctx.command.name == 'S':
-                print("checking points")
                 if points == 0:
-                    print("points 0")
                     await thread.send(f"<@&{ADMINS_ROLE_ID}>")
                     embed = await self.handle_zero_points(ctx, formatted_time)
                 else:
-                    embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+                    print("trying to send mfs")
+                    embed = await self.MFS_embed(ctx, formatted_time, message_link)
 
             # Send the embed to the thread if available
             if embed:
@@ -207,17 +207,14 @@ class FeedbackThreads(commands.Cog):
             embed.title = f"Ticket #{ticket_counter}"
             return embed
 
-        elif ctx.command.name == 'S':
-            if points == 0:
-                print("points 0")
-                await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                embed = await self.handle_zero_points(ctx, formatted_time)
-                embed.title = f"Ticket #{ticket_counter}"
-            else:
-                embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
-                embed.title = f"Ticket #{ticket_counter}"
-            return embed
-        return
+        # Check if points are greater than 0 for 'S' command
+        # elif ctx.command.name == 'S' and current_points > 0:
+        #     print(current_points)
+        #     print("entering mfs")
+        #     embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
+        #     print("embed sent")
+        #     embed.title = f"Ticket #{ticket_counter}"
+        #     return embed
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
@@ -502,8 +499,8 @@ class FeedbackThreads(commands.Cog):
             print(f"Database commit error: {e}")
 
     # used to call dict in general cog
-    async def get_user_thread(self):
-        return self.user_thread
+    async def get_user_thread(self, user_id):
+        return self.user_thread[user_id]
 
 
 async def setup(bot):
@@ -520,4 +517,6 @@ async def setup(bot):
 
 """
 fix MFS to MFR
+handle trying to remove points when points = 0
+
 """

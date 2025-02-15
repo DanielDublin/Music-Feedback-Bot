@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import database.db as db
-from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
+from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID, ADMINS_ROLE_ID
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 from cogs.slash_commands.timer_cogs.timer import TimerCog
@@ -210,6 +210,15 @@ class General(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
 
+        thread_channel = self.bot.get_channel(1103427357781528597)  # Replace with your actual thread channel ID
+        channel_id = ctx.message.channel.id
+        message_id = ctx.message.id
+        guild_id = ctx.guild.id
+        message_link = f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
+
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -220,33 +229,38 @@ class General(commands.Cog):
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
+        print(points)
 
-        if points:  # user have points, reduce them and send message + log
-            points -= 1
-            await db.reduce_points(str(ctx.author.id), 1)
-            await ctx.channel.send(f"{mention} has used 1 MF point. You now have **{points}** MF point(s).",
-                                   delete_after=4)
+        if points == 1:
+            await self.mfs_deduct_point(ctx, points)
+            # Check if the FeedbackThreads cog is loaded
+            feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+            if feedback_threads_cog:
+                # Attempt to get the user thread
+                user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+                thread_id = user_thread[0]
+                thread = await self.bot.fetch_channel(thread_id)
+                print(user_thread)
 
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="Feedback Notice",
-                            value=f"{mention} has **submitted** a work for feedback and now"
-                                  f" has **{points}** MF point(s).",
-                            inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
+                # If thread exists, send the appropriate feedback embed
+                if user_thread:
+                    print("trying to embed")
+                    mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link)
+                    await thread.send(embed=mfs_embed)
 
-        else:  # User doesn't have points
+        if points > 1:  # user have points, reduce them and send message + log
+            await self.mfs_deduct_point(ctx, points)
 
+        elif points == 0:  # User doesn't have points
+            print("entering 0 points")
             try:
 
                 # this logic is to send <MFS embed to thread if it exists
-                current_time = datetime.now()
-                formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
                 feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
                 if feedback_threads_cog:
                     user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-                    thread_id = user_thread[1]
-                    ticket_counter = user_thread[2]
+                    thread_id = user_thread[0]
+                    ticket_counter = user_thread[1]
 
                     # Create the embed
                     embed = discord.Embed(
@@ -258,8 +272,8 @@ class General(commands.Cog):
                     embed.set_footer(text="Some Footer Text")
 
                     thread = await self.bot.fetch_channel(thread_id)
-
-                    thread.send(embed=embed)
+                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                    await thread.send(embed=embed)
 
 
                 await self.send_messages_to_user(ctx.message)
@@ -291,6 +305,22 @@ class General(commands.Cog):
             # hardcode 1 in case we want to use dynamic mfs points in future
             mfs_points = 1
             await feedback_threads_cog.create_feedback_thread(ctx, mfs_points, points)
+
+    async def mfs_deduct_point(self, ctx, points):
+        if points:  # user have points, reduce them and send message + log
+            points -= 1
+            await db.reduce_points(str(ctx.author.id), 1)
+            points = int(await db.fetch_points(str(ctx.author.id)))
+            await ctx.channel.send(f"{ctx.author.mention} has used 1 MF point. You now have **{points}** MF point(s).",
+                                   delete_after=4)
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(name="Feedback Notice",
+                            value=f"{ctx.author.mention} has **submitted** a work for feedback and now"
+                                  f" has **{points}** MF point(s).",
+                            inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await ctx.channel.send(embed=embed)
 
     @commands.check(guild_only)
     @commands.command(help="Use to present the band's genres.", brief='(Band Name)')
