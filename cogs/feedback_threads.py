@@ -60,7 +60,7 @@ class FeedbackThreads(commands.Cog):
             embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
             if embed:
                 await existing_thread.send(embed=embed)
-                await asyncio.sleep(2)
+                await asyncio.sleep(5)
                 await existing_thread.edit(archived=True)
             return
 
@@ -70,7 +70,7 @@ class FeedbackThreads(commands.Cog):
         # Store the thread ID so future messages update the correct thread
         self.user_thread[ctx.author.id] = [new_thread.id, 1]  # Reset ticket counter for new thread
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
         await new_thread.edit(archived=True)
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
@@ -289,7 +289,7 @@ class FeedbackThreads(commands.Cog):
                 WHERE user_id = ?
             ''', (ticket_counter, after.author.id))
 
-            self.commit_changes()
+            await self.commit_changes()
 
             # Access TimerCog to check for double points
             base_timer_cog = self.bot.get_cog("TimerCog")
@@ -336,6 +336,7 @@ class FeedbackThreads(commands.Cog):
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
         await existing_thread.edit(archived=True)
 
         # send information to user
@@ -371,6 +372,7 @@ class FeedbackThreads(commands.Cog):
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
         await existing_thread.edit(archived=True)
 
         # send information to user
@@ -408,6 +410,7 @@ class FeedbackThreads(commands.Cog):
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
         await existing_thread.edit(archived=True)
 
         channel_message = await after.channel.send(
@@ -422,25 +425,26 @@ class FeedbackThreads(commands.Cog):
 
         print("shortening")
         try:
-            before_truncated, after_truncated = await self.shorten_before_and_after_messages(before, after)
+            before_content_truncated, after_content_truncated = await self.shorten_before_and_after_messages(before, after)
             print("SUCCESS")
         except Exception as e:
             print(f"Error during shortening: {e}")
             return
 
-        if "MFS" in before_truncated and "MFS" not in after_truncated:
+        if "MFS" in before_content_truncated and "MFS" not in after_content_truncated:
             points = await db.fetch_points(str(after.author.id))
             print("trying to send ")
             embed_title = "<MFS removed from message"
             embed_description = f"No action taken. Member still lost a point and has **{points}** MF points."
 
 
-        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before_truncated,
-                                      after_truncated, ticket_counter, message_link)
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before_content_truncated,
+                                      after_content_truncated, ticket_counter, message_link)
 
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
         await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
         await existing_thread.edit(archived=True)
 
         channel_message = await after.channel.send(
@@ -452,16 +456,18 @@ class FeedbackThreads(commands.Cog):
         await channel_message.delete()
 
     # embed when edits made
-    async def edit_embed(self, embed_title, formatted_time, embed_description, before_truncated, after_truncated, ticket_counter,
+    async def edit_embed(self, embed_title, formatted_time, embed_description, before_content_truncated, after_content_truncated, ticket_counter,
                          message_link):
+        before_content_truncated, after_content_truncated = await self.shorten_before_and_after_messages(before_content_truncated, after_content_truncated)
+
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
             description=f"{formatted_time}",
             color=discord.Color.yellow()
         )
         embed.add_field(name=embed_title, value=embed_description, inline=True)
-        embed.add_field(name="Before", value=before_truncated, inline=False)
-        embed.add_field(name="After", value=after_truncated, inline=False)
+        embed.add_field(name="Before", value=before_content_truncated, inline=False)
+        embed.add_field(name="After", value=after_content_truncated, inline=False)
         embed.add_field(name="Message Link", value=message_link, inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
@@ -482,6 +488,7 @@ class FeedbackThreads(commands.Cog):
         return embed
 
     async def shorten_before_and_after_messages(self, before, after):
+        print("entering shorten)")
         max_length = 500
         if len(before.content) > max_length:
             before_content_truncated = before.content[:max_length] + "..."
@@ -531,5 +538,5 @@ async def setup(bot):
 """
 fix MFS to MFR
 handle trying to remove points when points = 0
-
+handle points going to negative
 """
