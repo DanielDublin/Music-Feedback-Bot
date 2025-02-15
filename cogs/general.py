@@ -210,7 +210,8 @@ class General(commands.Cog):
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
 
-        thread_channel = self.bot.get_channel(1103427357781528597)  # Replace with your actual thread channel ID
+        thread_channel = self.bot.get_channel(1103427357781528597)
+
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
@@ -231,22 +232,37 @@ class General(commands.Cog):
         points = int(await db.fetch_points(str(ctx.author.id)))
         print(points)
 
+        # handles <MFS when 1 point is used and current points is 1
         if points == 1:
+            print("entering points 1")
             await self.mfs_deduct_point(ctx, points)
-            # Check if the FeedbackThreads cog is loaded
-            feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-            if feedback_threads_cog:
-                # Attempt to get the user thread
-                user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-                thread_id = user_thread[0]
-                thread = await self.bot.fetch_channel(thread_id)
-                print(user_thread)
+            print("points deducated")
 
-                # If thread exists, send the appropriate feedback embed
+            feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+            print(feedback_threads_cog)
+
+            if feedback_threads_cog:
+                user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+
+                # handle if user in user_thread dict (if theres an existing thread)
                 if user_thread:
-                    print("trying to embed")
+                    thread_id = user_thread[0]
+                    thread = await self.bot.fetch_channel(thread_id)
+
                     mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link)
                     await thread.send(embed=mfs_embed)
+                # handles if user not in user_thread (new thread)
+                else:
+                    try:
+                        print("trying to send thread")
+                        mfr_points = 0
+                        points = int(await db.fetch_points(str(ctx.author.id)))
+                        new = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
+                        mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link)
+                        await new.send(embed=mfs_embed)
+                    except Exception as e:
+                        print(f"{e}")
+
 
         if points > 1:  # user have points, reduce them and send message + log
             await self.mfs_deduct_point(ctx, points)
@@ -255,25 +271,48 @@ class General(commands.Cog):
             print("entering 0 points")
             try:
 
-                # this logic is to send <MFS embed to thread if it exists
                 feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
                 if feedback_threads_cog:
+
                     user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-                    thread_id = user_thread[0]
-                    ticket_counter = user_thread[1]
 
-                    # Create the embed
-                    embed = discord.Embed(
-                        title=f"Ticket #{ticket_counter}",
-                        description=f"{formatted_time}",
-                        color=discord.Color.yellow()
-                    )
-                    embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
-                    embed.set_footer(text="Some Footer Text")
+                    # this logic is to send <MFS embed to thread if user has 0 points and if thread exists
+                    if user_thread:
+                        thread_id = user_thread[0]
+                        ticket_counter = user_thread[1]
 
-                    thread = await self.bot.fetch_channel(thread_id)
-                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                    await thread.send(embed=embed)
+                        # Create the embed
+                        embed = discord.Embed(
+                            title=f"Ticket #{ticket_counter}",
+                            description=f"{formatted_time}",
+                            color=discord.Color.yellow()
+                        )
+                        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+                        embed.set_footer(text="Some Footer Text")
+
+                        thread = await self.bot.fetch_channel(thread_id)
+                        await thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                        await thread.send(embed=embed)
+
+                    # if <MFS used with 0 points and no thread, make new thread
+                    else:
+                        print(user_thread)
+                        print("HEREEEE")
+                        new = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link,
+                                                                        thread_channel)
+                        user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+                        ticket_counter = user_thread[1]
+                        # Create the embed
+                        embed = discord.Embed(
+                            title=f"Ticket #{ticket_counter}",
+                            description=f"{formatted_time}",
+                            color=discord.Color.yellow()
+                        )
+                        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+                        embed.set_footer(text="Some Footer Text")
+
+                        await new.send(f"<@&{ADMINS_ROLE_ID}>")
+                        await new.send(embed=embed)
 
 
                 await self.send_messages_to_user(ctx.message)

@@ -7,6 +7,8 @@ from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
+from cogs.feedback_threads import FeedbackThreads
+
 
 IS_READY = 0
 
@@ -35,6 +37,9 @@ async def on_ready():
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
+        feedback_threads_cog = FeedbackThreads(bot)
+        await feedback_threads_cog.initialize_sqldb()
+        print("SQL initialized successfully.")
         await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
         await bot.tree.sync()
         print('Sync-ed slash commands')
