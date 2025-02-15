@@ -298,8 +298,10 @@ class General(commands.Cog):
                     else:
                         print(user_thread)
                         print("HEREEEE")
+                        mfr_points = 0
+                        points = points = int(await db.fetch_points(str(ctx.author.id)))
                         new = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link,
-                                                                        thread_channel)
+                                                                        thread_channel, mfr_points, points)
                         user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
                         ticket_counter = user_thread[1]
                         # Create the embed

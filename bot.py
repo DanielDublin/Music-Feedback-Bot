@@ -37,9 +37,6 @@ async def on_ready():
     if not IS_READY:
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        feedback_threads_cog = FeedbackThreads(bot)
-        await feedback_threads_cog.initialize_sqldb()
-        print("SQL initialized successfully.")
         await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
         await bot.tree.sync()
         print('Sync-ed slash commands')

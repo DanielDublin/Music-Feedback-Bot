@@ -20,7 +20,6 @@ class FeedbackThreads(commands.Cog):
             # select all data in the db (0 if there is none)
             self.sqlitedatabase.cursor.execute("SELECT user_id, thread_id, ticket_counter FROM users")
             data = self.sqlitedatabase.cursor.fetchall()
-            print(data)
             print("before repopulation", self.user_thread)
 
             # if data is in db, repopulate the dict
@@ -32,8 +31,12 @@ class FeedbackThreads(commands.Cog):
             else:
                 print("no data in sqlite db")
 
+
     async def create_feedback_thread(self, ctx, mfr_points, points):
+
         await self.bot.wait_until_ready()
+
+
         thread_channel = self.bot.get_channel(1103427357781528597)  # Replace with your actual thread channel ID
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
@@ -43,11 +46,11 @@ class FeedbackThreads(commands.Cog):
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
 
-
+        print(f"checking:{self.user_thread}")
         # Check if a thread exists
         if ctx.author.id in self.user_thread:
+            print(f"existing:{self.user_thread}")
             thread_id = self.user_thread[ctx.author.id][0]  # get stored thread ID
-
             existing_thread = await self.bot.fetch_channel(thread_id)  # fetch thread by ID
 
             # UNARCHIVE BEFORE SENDING ANOTHER MESSAGE TO THREAD
@@ -202,8 +205,10 @@ class FeedbackThreads(commands.Cog):
             return embed
         # handles any time points arent 1 or 0 (see general MFS logic)
         elif ctx.command.name == 'S':
+            points = int(await db.fetch_points(str(ctx.author.id)))
             print(f"points in S {points}")
-            if points > 1:
+            if points >= 1:
+                print("sending MFS points even though 0")
                 embed = await self.MFS_embed(ctx, formatted_time, message_link)
                 embed.title = f"Ticket #{ticket_counter}"
                 return embed
@@ -508,7 +513,11 @@ class FeedbackThreads(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(FeedbackThreads(bot))
+    # Create an instance of FeedbackThreads and initialize the database
+    feedback_cog = FeedbackThreads(bot)
+    await feedback_cog.initialize_sqldb()  # Initialize DB
+    await bot.add_cog(feedback_cog)  # Add the cog to the bot
+
 
 
 #         """
