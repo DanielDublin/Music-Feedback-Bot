@@ -123,7 +123,7 @@ class FeedbackThreads(commands.Cog):
 
             # Create the thread
             thread = await thread_channel.create_thread(
-                name=f"Feedback log for {ctx.author.name}",
+                name=f"{ctx.author.name} - {ctx.author.id}",
                 message=message,
                 reason="Creating a feedback log thread",
                 auto_archive_duration=60  # Auto-archive after 1 hour of inactivity
