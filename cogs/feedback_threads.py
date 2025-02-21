@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID
+from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
 from datetime import datetime
 import database.db as db
 from database.feedback_threads_db import SQLiteDatabase
@@ -20,16 +20,16 @@ class FeedbackThreads(commands.Cog):
             # select all data in the db (0 if there is none)
             self.sqlitedatabase.cursor.execute("SELECT user_id, thread_id, ticket_counter FROM users")
             data = self.sqlitedatabase.cursor.fetchall()
-            print("before repopulation", self.user_thread)
+            print("Trying to repopulate user thread data...")
 
             # if data is in db, repopulate the dict
             # data returns as tuple (user id, thread id, ticket counter)
             if data:
                 self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in
                                     data}
-                print("repopulated thread", self.user_thread)
+                print("Threads repopulated from db:", self.user_thread)
             else:
-                print("no data in sqlite db")
+                print("No data in SQLite Database")
 
 
     async def create_feedback_thread(self, ctx, mfr_points, points):
@@ -37,7 +37,7 @@ class FeedbackThreads(commands.Cog):
         await self.bot.wait_until_ready()
 
 
-        thread_channel = self.bot.get_channel(1103427357781528597)  # Replace with your actual thread channel ID
+        thread_channel = self.bot.get_channel(THREADS_CHANNEL)
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
@@ -46,7 +46,6 @@ class FeedbackThreads(commands.Cog):
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
 
-        print(f"checking:{self.user_thread}")
         # Check if a thread exists
         if ctx.author.id in self.user_thread:
             print(f"existing:{self.user_thread}")
@@ -232,9 +231,9 @@ class FeedbackThreads(commands.Cog):
 
         # FIRST IF - HANDLES MFR TO NOTHING
         # SECOND IF - HANDLES MFR TO MFS
-        if "MFR" in before.content and "MFR" not in after.content:
+        if "MFR" in before.content.upper() and "MFR" not in after.content.upper():
             print("Detected <MFR> to nothing edit!")
-            if "MFS" in after.content:
+            if "MFS" in after.content.upper():
                 print("Detected <MFR> to <MFS> edit!")
                 await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
             else:
@@ -242,8 +241,8 @@ class FeedbackThreads(commands.Cog):
             return
 
         # Check for MFS to MFR edit
-        if "MFS" in before.content and "MFS" not in after.content:
-            if "MFR" in after.content:
+        if "MFS" in before.content.upper() and "MFS" not in after.content.upper():
+            if "MFR" in after.content.upper():
                 print("Detected <MFS> to <MFR> edit!")
                 await self.MFS_to_MFR_edit(before, after, formatted_time, message_link)
                 return
@@ -314,18 +313,27 @@ class FeedbackThreads(commands.Cog):
             return
 
         # HANDLES MFR TO MFS EDIT (Deduct points)
-        if "MFR" in before.content and "MFS" in after.content:
+        if "MFR" in before.content.upper() and "MFS" in after.content.upper():
             print("entering MFR")
             if "Double Points" in base_timer_cog.timer_handler.active_timer:
                 points_deducted = 3
             else:
                 points_deducted = 2
 
+            # avoid negative points
+            updated_points = await db.fetch_points(str(after.author.id))
+            print(updated_points)
+
+
             # Deduct points
             await db.reduce_points(str(after.author.id), points_deducted)
 
             # Update points after deduction
             updated_points = await db.fetch_points(str(after.author.id))
+            if updated_points <= 0:
+                print("in updated")
+                await after.channel.send("not allowed!")
+                updated_points = 0
 
 
             embed_title = "<MFR edited to <MFS"
@@ -350,7 +358,7 @@ class FeedbackThreads(commands.Cog):
         # Get the existing thread and ticket_counter
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
-        if "MFS" in before.content and "MFR" in after.content:
+        if "MFS" in before.content.upper() and "MFR" in after.content.upper():
             print("Processing MFS to MFR edit: Adding points.")
             if "Double Points" in base_timer_cog.timer_handler.active_timer:
                 points_added = 3
@@ -388,7 +396,7 @@ class FeedbackThreads(commands.Cog):
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
         # HANDLES MFR to NOTHING (Deduct points)
-        if "MFR" in before.content and "MFR" not in after.content:
+        if "MFR" in before.content.upper() and "MFR" not in after.content.upper():
             print("entering MFR deleted")
             if "Double Points" in base_timer_cog.timer_handler.active_timer:
                 points_deducted = 3
@@ -539,4 +547,19 @@ async def setup(bot):
 fix MFS to MFR
 handle trying to remove points when points = 0
 handle points going to negative
+
+
+ticket counter +2 increased when
+<MFR to <MF
+to <MFR to <MFS
+triggering 399 if "MFR" in before.content and "MFR" not in after.content:
+
+edit message is delayed - should be sent before the ticket is 
+
+need to delete the post when "not allowed"
+
+
+breaks with <mfr edited to <mfs to deleting <mfs
+
+somehow negative points when i lose points due to edit
 """

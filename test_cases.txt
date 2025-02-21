@@ -1,0 +1,22 @@
+IF NOT IN SQLITE DB
+
+Input: <MFR
+Output:
+    +1 point in db/+2 points in db if during Double Points
+    notification sent to feedback channel
+    notification sent to log channel
+    thread created
+    ticket sent to thread
+    ticket counter started
+
+Input: <MFS
+Output:
+    -1 point in db/-1 point in db if during Double Points
+    notification sent to feedback channel
+    notification sent to log channel
+    thread created
+    ticket sent to thread
+    ticket counter started
+
+
+

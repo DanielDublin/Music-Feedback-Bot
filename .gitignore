@@ -389,3 +389,7 @@ FodyWeavers.xsd
 /database/feedback_threads.db
 /counter.py
 /output.json
+
+# jenn's test conditions for feedback_threads
+**/test_cases.txt
+
