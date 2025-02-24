@@ -19,9 +19,44 @@ Output:
     ticket counter started
 
 
-EDGE CASES
 
-Input: <MFR to <MFS with 0 points already available; using <MFR will add the point (1 MF point); the edit will deduct the gained and used points
+
+IF IN SQLITE DB
+________________________________________________________________________________________________________________________
+Input: <MFR
+Output:
+    +1 point in db/+2 points in db if during Double Points
+    notification sent to feedback channel
+    notification sent to log channel
+    thread created
+    ticket sent to thread
+    ticket counter started
+________________________________________________________________________________________________________________________
+- PASSED 2/24 -
+Input: <MFR to <MFS with >2 points already available; using <MFR will add the point (1 or 2 MF point); the edit will
+deduct the gained and used points
+
+Output:
+    -2 points in db/-3 points in db if during Double Points
+    notification sent to feedback channel
+    ticket sent to existing thread channel
+    ticket counter updated
+________________________________________________________________________________________________________________________
+
+
+
+
+
+
+
+
+
+
+EDGE CASES
+________________________________________________________________________________________________________________________
+Input: <MFR to <MFS with 0 points already available; using <MFR will add the point (1 or 2 MF point); the edit will
+deduct the gained and used points
+
 Output:
     INVALID
 
@@ -30,9 +65,10 @@ Output:
     notification with tag sent to feedback channel
     ticket sent to existing thread channel
     ticket counter updated
+________________________________________________________________________________________________________________________
+Input: <MFR to <MFS with 1 point already available; using <MFR will add the point (2 MF points); the edit will
+deduct the gained and used points
 
-
-Input: <MFR to <MFS with 1 point already available; using <MFR will add the point (2 MF points); the edit will deduct the gained and used points
 Output:
     VALID
 
@@ -40,3 +76,4 @@ Output:
     notification sent to feedback channel
     ticket sent to existing thread channel
     ticket counter updated
+________________________________________________________________________________________________________________________

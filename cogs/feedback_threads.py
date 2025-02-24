@@ -175,12 +175,17 @@ class FeedbackThreads(commands.Cog):
             return None  # If thread creation fails, return None
 
     async def existing_thread(self, ctx, formatted_time, message_link, mfr_points, points):
-        existing_thread_id = self.user_thread[ctx.author.id][0]
+        try:
+            existing_thread_id = self.user_thread[ctx.author.id][0]
+            existing_thread = self.bot.get_channel(existing_thread_id)
 
-        existing_thread = self.bot.get_channel(existing_thread_id)
-        if existing_thread is None:
-            print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
-            return
+            if existing_thread is None:
+                print(f"Thread with ID {existing_thread_id} does not exist or is not accessible.")
+                return
+        except KeyError:
+            print(f"No thread found for user {ctx.author.id}.")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
 
         # Check if the thread is archived
         if existing_thread.archived:
