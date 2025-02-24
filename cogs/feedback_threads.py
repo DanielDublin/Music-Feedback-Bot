@@ -10,7 +10,7 @@ class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.sqlitedatabase = SQLiteDatabase()
-        self.user_thread = {}  # Nested user: list[thread_id, ticket_counter]
+        self.user_thread = {}  # Nested {user: [thread_id, ticket_counter]}
 
     async def initialize_sqldb(self):
         # check if dict is empty
@@ -249,25 +249,6 @@ class FeedbackThreads(commands.Cog):
             else:
                 await self.MFS_to_nothing(before, after, formatted_time, message_link)
 
-        # # HANDLES MFR TO MFS EDIT
-        # # # commandprefix.lower() == "mfr"
-        # if any(variation in before.content.lower() for variation in mf_variations):
-        #
-        #     print("Detected <MFR> to <MFS> edit!")
-        #     formatted_time = datetime.now().strftime("%Y-%d-%m %H:%M")
-        #     message_link = f"https://discord.com/channels/{after.guild.id}/{after.channel.id}/{after.id}"
-        #
-        #     await self.MFR_to_MFS_edit(before, after, formatted_time, message_link)
-        #     return
-
-        # if "MFS" in before.content and "MFR" in after.content:
-        #
-        # if MFS OR MFR in content and deleted:
-        #
-        # if mfs or mfr not in content and added in:
-
-        # HANDLE LOGIC FOR IF 0 POINTS
-
     # checks if existing thread exists
     async def check_existing_thread_edit(self, after: discord.Message):
         # Check if existing thread exists for the user
@@ -303,13 +284,19 @@ class FeedbackThreads(commands.Cog):
             return None, 1, None  # Returning None for the thread, 1 for ticket_counter, and None for TimerCog
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+
         # Get the existing thread and ticket_counter
         existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
 
         # Access TimerCog to check for double points
         base_timer_cog = self.bot.get_cog("TimerCog")
+        general_cog = self.bot.get_cog("General")
         if base_timer_cog is None:
             print("BaseTimer cog not found.")
+            return
+
+        if general_cog is None:
+            print("General cog not found.")
             return
 
         # HANDLES MFR TO MFS EDIT (Deduct points)
@@ -322,37 +309,54 @@ class FeedbackThreads(commands.Cog):
 
             # avoid negative points
             updated_points = await db.fetch_points(str(after.author.id))
-            print(updated_points)
-
 
             # Deduct points
             await db.reduce_points(str(after.author.id), points_deducted)
 
             # Update points after deduction
             updated_points = await db.fetch_points(str(after.author.id))
-            if updated_points <= 0:
-                print("in updated")
-                await after.channel.send("not allowed!")
+            if updated_points < 0:
+                await db.reset_points(str(after.author.id))
                 updated_points = 0
 
+                # delete member message (submission)
+                await after.delete()
+                # tag admins in thread
+                await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                # send deleted message to user
+                await general_cog.send_messages_to_user(after)
 
-            embed_title = "<MFR edited to <MFS"
-            embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
+                # thread
+                embed_title = "<MFR edited to <MFS with no points"
+                embed_description = f"Not enough available points to use **{points_deducted}** MF points, and now has **{updated_points}** MF points."
+                embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after,
+                                              ticket_counter,
+                                              message_link)
 
-        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
-                         message_link)
-        if existing_thread.archived:
-            await existing_thread.edit(archived=False)
-        await existing_thread.send(embed=embed)
-        await asyncio.sleep(5)
-        await existing_thread.edit(archived=True)
+                # send message to user
+                channel_message = await after.channel.send(
+                    f"{after.author.mention} edited their message from <MFR to <MFS but didn't have enough MF Points. You now have **{updated_points}** MF Points."
+                    f"\n\nYour submission has been DMed to you. For more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
-        # send information to user
-        channel_message = await after.channel.send(
-            f"{after.author.mention} edited their message from <MFR to <MFS and used **{points_deducted}** MF Points. You now have **{updated_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
-        await asyncio.sleep(15)
-        await channel_message.delete()
+            # if edit doesn't cause <0 points
+            else:
+                # thread
+                embed_title = "<MFR edited to <MFS"
+                embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
+                embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after,
+                                              ticket_counter,
+                                              message_link)
+
+                # send message to user
+                channel_message = await after.channel.send(
+                    f"{after.author.mention} edited their message from <MFR to <MFS and used **{points_deducted}** MF Points. You now have **{updated_points}** MF Points."
+                    f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+
+            # sends message to channel + handles deletion, sends ticket to thread
+            await asyncio.gather(
+                self.thread_archive(existing_thread, embed),
+                self.delete_channel_message_after_fail_edit(channel_message)
+            )
 
     async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
@@ -375,6 +379,13 @@ class FeedbackThreads(commands.Cog):
             embed_title = "<MFS edited to <MFR"
             embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
 
+        # send information to user
+        channel_message = await after.channel.send(
+            f"{after.author.mention} edited their message from <MFS to <MFR and gained **{points_added}** MF Points. You now have **{updated_points}** MF Points."
+            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+        await asyncio.sleep(15)
+        await channel_message.delete()
+
         embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
                          message_link)
         if existing_thread.archived:
@@ -382,13 +393,6 @@ class FeedbackThreads(commands.Cog):
         await existing_thread.send(embed=embed)
         await asyncio.sleep(5)
         await existing_thread.edit(archived=True)
-
-        # send information to user
-        channel_message = await after.channel.send(
-            f"{after.author.mention} edited their message from <MFS to <MFR and gained **{points_added}** MF Points. You now have **{updated_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
-        await asyncio.sleep(15)
-        await channel_message.delete()
 
 
     async def MFR_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
@@ -519,12 +523,24 @@ class FeedbackThreads(commands.Cog):
         except Exception as e:
             print(f"Database commit error: {e}")
 
-    # used to call dict in general cog
+    # used to call the dictionary in general cog
     async def get_user_thread(self, user_id):
         if user_id in self.user_thread:
             return self.user_thread[user_id]
         else:
             return None
+
+    async def thread_archive(self, existing_thread, embed):
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
+        await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
+        await existing_thread.edit(archived=True)
+
+    async def delete_channel_message_after_fail_edit(self, channel_message):
+        await asyncio.sleep(15)
+        await channel_message.delete()
+
 
 
 async def setup(bot):

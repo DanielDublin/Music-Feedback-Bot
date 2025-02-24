@@ -19,4 +19,24 @@ Output:
     ticket counter started
 
 
+EDGE CASES
 
+Input: <MFR to <MFS with 0 points already available; using <MFR will add the point (1 MF point); the edit will deduct the gained and used points
+Output:
+    INVALID
+
+    -2 points in db/-3 points in db if during Double Points; points reset to 0 once < 0 to ensure no negatives
+    message sent in feedback channel deleted
+    notification with tag sent to feedback channel
+    ticket sent to existing thread channel
+    ticket counter updated
+
+
+Input: <MFR to <MFS with 1 point already available; using <MFR will add the point (2 MF points); the edit will deduct the gained and used points
+Output:
+    VALID
+
+    -2 points in db/-3 points in db if during Double Points
+    notification sent to feedback channel
+    ticket sent to existing thread channel
+    ticket counter updated
