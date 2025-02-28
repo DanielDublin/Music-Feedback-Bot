@@ -5,6 +5,7 @@ from datetime import datetime
 import database.db as db
 from database.feedback_threads_db import SQLiteDatabase
 import asyncio
+import sqlite3
 
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):

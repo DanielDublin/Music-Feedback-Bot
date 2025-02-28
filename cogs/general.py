@@ -153,6 +153,7 @@ class General(commands.Cog):
         if "Double Points" in base_timer_cog.timer_handler.active_timer:
             print("Double Points Timer is active.")
             mfr_points = 2
+
             await db.add_points(str(ctx.author.id), mfr_points)
             points = int(await db.fetch_points(str(ctx.author.id)))
             channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)  # feedback log channel

@@ -10,3 +10,5 @@ beautifulsoup4
 spotipy
 aiomysql
 gspread
+mock
+pytest-asyncio
