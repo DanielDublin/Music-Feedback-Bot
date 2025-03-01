@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import MagicMock, patch
 from cogs.feedback_threads import FeedbackThreads
 import sqlite3
-from tests.mock_user_data import MOCK_USERS_DATA, EXPECTED_USER_THREAD, EMPTY_USERS_DATA
+from tests.mock_user_data import *
 import asyncio
 
-class TestFeedbackThreads(unittest.IsolatedAsyncioTestCase):
+class TestSQLiteDb(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         # Create an in-memory SQLite database
         self.connection = sqlite3.connect(':memory:')
@@ -23,10 +23,17 @@ class TestFeedbackThreads(unittest.IsolatedAsyncioTestCase):
         self.connection.commit()
 
     async def asyncTearDown(self):
+        # Clear all data
+        self.cursor.execute("DELETE FROM users")
+        self.connection.commit()
+
+
+        # Close connection
+        self.cursor.close()
         self.connection.close()
 
     @patch('cogs.feedback_threads.SQLiteDatabase')
-    async def test_initialize_sqldb_with_empty_data(self, mock_sqlite_db):
+    async def test_initialize_sqldb_with_mock_data(self, mock_sqlite_db):
         # Mock user data
         self.cursor.executemany('''
             INSERT INTO users (user_id, thread_id, ticket_counter)
@@ -45,18 +52,22 @@ class TestFeedbackThreads(unittest.IsolatedAsyncioTestCase):
         feedback_threads.user_thread = {}
 
         # Check the state of user_thread before initialization
-        print("user_thread before initialization:", feedback_threads.user_thread)
+        print("user_thread items before:", len(feedback_threads.user_thread))
 
         # Call the method to initialize the SQLite DB (this should populate user_thread)
         await feedback_threads.initialize_sqldb()
 
         # Check the state of user_thread after initialization
-        print("user_thread after calling initialize_sqldb:", feedback_threads.user_thread)
+        print("user_thread items after:", len(feedback_threads.user_thread))
+
+        # Use the expected dictionary we created from MOCK_USERS_DATA
+        self.maxDiff = None  # Show the full diff if they don't match
 
         self.assertEqual(feedback_threads.user_thread, EXPECTED_USER_THREAD)
 
+
     @patch('cogs.feedback_threads.SQLiteDatabase')
-    async def test_initialize_sqldb_with_mock_data(self, mock_sqlite_db):
+    async def test_initialize_sqldb_with_empty_data(self, mock_sqlite_db):
         # Mock empty user data
         self.cursor.executemany('''
             INSERT INTO users (user_id, thread_id, ticket_counter)
@@ -75,14 +86,12 @@ class TestFeedbackThreads(unittest.IsolatedAsyncioTestCase):
         feedback_threads.user_thread = {}
 
         # Check the state of user_thread before initialization
-        print("user_thread before initialization:", feedback_threads.user_thread)
+        print("user_thread items before:", len(feedback_threads.user_thread))
 
         # Call the method to initialize the SQLite DB (this should populate user_thread)
         await feedback_threads.initialize_sqldb()
 
         # Check the state of user_thread after initialization
-        print("user_thread after calling initialize_sqldb:", feedback_threads.user_thread)
+        print("user_thread items after:", len(feedback_threads.user_thread))
 
         self.assertEqual(feedback_threads.user_thread, {})  # Ensure user_thread is empty
-
-# pytest will automatically discover and run this

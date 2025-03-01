@@ -48,3 +48,23 @@ EXPECTED_USER_THREAD = {
     444555666777888999: [1019, 18],
     555666777888999000: [1020, 19]
 }
+
+# mock channel where threads are created
+MOCK_THREAD_CHANNEL_DATA = {
+    'id': 123456789012345678,
+}
+
+# mock message id, user id, and where they're sent
+MOCK_MESSAGE_DATA = {
+    'id': 987654321098765432,
+    'author': 412733389196623879,
+    'channel': MOCK_THREAD_CHANNEL_DATA,
+}
+
+# mock discord server
+MOCK_GUILD_DATA = {
+    'id': 112233445566778899,
+}
+
+# Expected message link format
+EXPECTED_MESSAGE_LINK = f"https://discord.com/channels/{MOCK_GUILD_DATA}/{MOCK_THREAD_CHANNEL_DATA}/{MOCK_MESSAGE_DATA}"
