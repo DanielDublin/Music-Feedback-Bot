@@ -218,15 +218,6 @@ class FeedbackThreads(commands.Cog):
                 embed.title = f"Ticket #{ticket_counter}"
                 return embed
 
-        # Check if points are greater than 0 for 'S' command
-        # elif ctx.command.name == 'S' and current_points > 0:
-        #     print(current_points)
-        #     print("entering mfs")
-        #     embed = await self.MFS_embed(ctx, formatted_time, message_link, points)
-        #     print("embed sent")
-        #     embed.title = f"Ticket #{ticket_counter}"
-        #     return embed
-
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
 
@@ -257,8 +248,13 @@ class FeedbackThreads(commands.Cog):
 
         # Check for nothing to MFR
         if "MFR" not in before.content.upper() and "MFR" in after.content.upper():
-            print("Detected <MFS> to <MFR> edit!")
             await self.nothing_to_MFR(before, after, formatted_time, message_link)
+            return
+
+        # Check for nothing to MFS
+        if "MFS" not in before.content.upper() and "MFS" in after.content.upper():
+            print("Detected <MFS> to <MFR> edit!")
+            await self.nothing_to_MFS(before, after, formatted_time, message_link)
             return
 
     # checks if existing thread exists
@@ -478,6 +474,74 @@ class FeedbackThreads(commands.Cog):
             f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
         await asyncio.sleep(15)
         await channel_message.delete()
+
+    async def nothing_to_MFS(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+        # Get the existing thread and ticket_counter
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+
+        base_timer_cog = self.bot.get_cog("TimerCog")
+        general_cog = self.bot.get_cog("General")
+        if base_timer_cog is None:
+            print("BaseTimer cog not found.")
+            return
+
+        if general_cog is None:
+            print("General cog not found.")
+            return
+
+        # HANDLES MFR to NOTHING (Deduct points)
+        if "MFS" in after.content.upper() and "MFS" not in before.content.upper():
+            print("entering MFR added")
+            points_deducted = 1
+
+            # Deduct points
+            await db.reduce_points(str(after.author.id), points_deducted)
+
+            # Update points after deduction
+            updated_points = await db.fetch_points(str(after.author.id))
+
+            if updated_points < 0:
+                await db.reset_points(str(after.author.id))
+                updated_points = 0
+
+                # delete member message (submission)
+                await after.delete()
+                # tag admins in thread
+                await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                # send deleted message to user
+                await general_cog.send_messages_to_user(after)
+
+                # thread
+                embed_title = "<MFS added to message with no points"
+                embed_description = f"Not enough available points to use **{points_deducted}** MF points, and now has **{updated_points}** MF points."
+                embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after,
+                                              ticket_counter,
+                                              message_link)
+
+                # send message to user
+                channel_message = await after.channel.send(
+                    f"{after.author.mention} edited their message to include <MFS but didn't have enough MF Points. You now have **{updated_points}** MF Points."
+                    f"\n\nYour submission has been DMed to you. For more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+
+            # if edit doesn't cause <0 points
+            else:
+                # thread
+                embed_title = "<MFS added to message"
+                embed_description = f"Used **{points_deducted}** points and now has **{updated_points}** MF points."
+                embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after,
+                                              ticket_counter,
+                                              message_link)
+
+                # send message to user
+                channel_message = await after.channel.send(
+                    f"{after.author.mention} edited their message to include <MFS and used **{points_deducted}** MF Points. You now have **{updated_points}** MF Points."
+                    f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+
+            # sends message to channel + handles deletion, sends ticket to thread
+            await asyncio.gather(
+                self.thread_archive(existing_thread, embed),
+                self.delete_channel_message_after_fail_edit(channel_message)
+            )
 
     async def MFS_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
 

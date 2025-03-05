@@ -42,6 +42,29 @@ Output:
     ticket sent to existing thread channel
     ticket counter updated
 ________________________________________________________________________________________________________________________
+Input: nothing to <MFR; using <MFR will add the point (1 or 2 MF point)
+
+Output:
+    +1 points in db/+2 points in db if during Double Points
+    notification sent to feedback channel
+    ticket sent to existing thread channel
+    ticket counter updated
+________________________________________________________________________________________________________________________
+Input: nothing to <MFS; using <MFS will deduct the point (1 point if available)
+
+Output:
+    -1 points in db
+    notification sent to feedback channel
+    ticket sent to existing thread channel
+    ticket counter updated
+
+    if points = 0
+    notification sent to feedback channel
+    notification sent to log channel
+    thread created
+    ticket sent to thread
+    ticket counter started
+
 
 
 
@@ -73,6 +96,7 @@ Output:
     VALID
 
     -2 points in db/-3 points in db if during Double Points
+    message sent in feedback channel deleted
     notification sent to feedback channel
     ticket sent to existing thread channel
     ticket counter updated
