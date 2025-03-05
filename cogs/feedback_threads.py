@@ -255,6 +255,12 @@ class FeedbackThreads(commands.Cog):
             else:
                 await self.MFS_to_nothing(before, after, formatted_time, message_link)
 
+        # Check for nothing to MFR
+        if "MFR" not in before.content.upper() and "MFR" in after.content.upper():
+            print("Detected <MFS> to <MFR> edit!")
+            await self.nothing_to_MFR(before, after, formatted_time, message_link)
+            return
+
     # checks if existing thread exists
     async def check_existing_thread_edit(self, after: discord.Message):
         # Check if existing thread exists for the user
@@ -433,6 +439,42 @@ class FeedbackThreads(commands.Cog):
 
         channel_message = await after.channel.send(
             f"{after.author.mention} removed <MFR from their message and lost **{points_deducted}** MF Points. You now have **{updated_points}** MF Points."
+            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+        await asyncio.sleep(15)
+        await channel_message.delete()
+
+    async def nothing_to_MFR(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
+        # Get the existing thread and ticket_counter
+        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+
+        # HANDLES MFR to NOTHING (Deduct points)
+        if "MFR" in after.content.upper() and "MFR" not in before.content.upper():
+            print("entering MFR added")
+            if "Double Points" in base_timer_cog.timer_handler.active_timer:
+                points_added = 2
+            else:
+                points_added = 1
+
+            # Deduct points
+            await db.add_points(str(after.author.id), points_added)
+
+            # Update points after deduction
+            updated_points = await db.fetch_points(str(after.author.id))
+
+            embed_title = "<MFR added to message"
+            embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
+
+        # Create the embed
+        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                                      message_link)
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
+        await existing_thread.send(embed=embed)
+        await asyncio.sleep(5)
+        await existing_thread.edit(archived=True)
+
+        channel_message = await after.channel.send(
+            f"{after.author.mention} added <MFR to their message and gained **{points_added}** MF Points. You now have **{updated_points}** MF Points."
             f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
         await asyncio.sleep(15)
         await channel_message.delete()
