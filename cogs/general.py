@@ -210,14 +210,11 @@ class General(commands.Cog):
                       help=f"Use to ask for feedback.", brief="(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
-
         thread_channel = self.bot.get_channel(1103427357781528597)
-
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
         message_link = f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
-
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
 
@@ -233,120 +230,76 @@ class General(commands.Cog):
         points = int(await db.fetch_points(str(ctx.author.id)))
         print(points)
 
-        # handles <MFS when 1 point is used and current points is 1
-        if points == 1:
-            print("entering points 1")
+        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
+        if not feedback_threads_cog:
+            await ctx.channel.send("Error: FeedbackThreads cog not loaded.")
+            return
+
+        ticket_counter = await feedback_threads_cog.update_ticket_counter(ctx.author.id)
+
+        if points >= 1:
             await self.mfs_deduct_point(ctx, points)
-            print("points deducated")
-
-            feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-            print(feedback_threads_cog)
-
-            if feedback_threads_cog:
-                user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-
-                # handle if user in user_thread dict (if theres an existing thread)
-                if user_thread:
-                    thread_id = user_thread[0]
-                    thread = await self.bot.fetch_channel(thread_id)
-
-                    mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link)
+            mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
+            user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+            if user_thread:
+                thread_id = user_thread[0]
+                thread = await self.bot.fetch_channel(thread_id)
+                if thread:
                     await thread.send(embed=mfs_embed)
-                # handles if user not in user_thread (new thread)
-                else:
-                    try:
-                        print("trying to send thread")
-                        mfr_points = 0
-                        points = int(await db.fetch_points(str(ctx.author.id)))
-                        new = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
-                        mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link)
-                        await new.send(embed=mfs_embed)
-                    except Exception as e:
-                        print(f"{e}")
-
-
-        if points > 1:  # user have points, reduce them and send message + log
-            await self.mfs_deduct_point(ctx, points)
+            else:
+                new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, 0,
+                                                                   points - 1)
+                if new_thread and mfs_embed:
+                    await new_thread.send(embed=mfs_embed)
 
         elif points == 0:  # User doesn't have points
-            print("entering 0 points")
-            try:
+            embed = discord.Embed(
+                title=f"Ticket #{ticket_counter}",
+                description=f"{formatted_time}",
+                color=discord.Color.yellow()
+            )
+            embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+            embed.set_footer(text="Some Footer Text")
 
-                feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
-                if feedback_threads_cog:
+            user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+            if user_thread:
+                thread_id = user_thread[0]
+                thread = await self.bot.fetch_channel(thread_id)
+                if thread:
+                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                    await thread.send(embed=embed)
+            else:
+                new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link,
+                                                                   thread_channel, 0, points)
+                if new_thread:
+                    await new_thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                    await new_thread.send(embed=embed)
 
-                    user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-
-                    # this logic is to send <MFS embed to thread if user has 0 points and if thread exists
-                    if user_thread:
-                        thread_id = user_thread[0]
-                        ticket_counter = user_thread[1]
-
-                        # Create the embed
-                        embed = discord.Embed(
-                            title=f"Ticket #{ticket_counter}",
-                            description=f"{formatted_time}",
-                            color=discord.Color.yellow()
-                        )
-                        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
-                        embed.set_footer(text="Some Footer Text")
-
-                        thread = await self.bot.fetch_channel(thread_id)
-                        await thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                        await thread.send(embed=embed)
-
-                    # if <MFS used with 0 points and no thread, make new thread
-                    else:
-                        print(user_thread)
-                        print("HEREEEE")
-                        mfr_points = 0
-                        points = points = int(await db.fetch_points(str(ctx.author.id)))
-                        new = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link,
-                                                                        thread_channel, mfr_points, points)
-                        user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-                        ticket_counter = user_thread[1]
-                        # Create the embed
-                        embed = discord.Embed(
-                            title=f"Ticket #{ticket_counter}",
-                            description=f"{formatted_time}",
-                            color=discord.Color.yellow()
-                        )
-                        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
-                        embed.set_footer(text="Some Footer Text")
-
-                        await new.send(f"<@&{ADMINS_ROLE_ID}>")
-                        await new.send(embed=embed)
-
-
-                await self.send_messages_to_user(ctx.message)
-                await ctx.channel.send(
-                    f"{mention}, you do not have any MF points."
-                    f" Please give feedback first.\nYour request was DMed to you for future"
-                    f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
-                    delete_after=60)
-            except Exception:
-                await ctx.channel.send(f'{mention}, you do not have any MF points. Please give feedback first.'
-                                       f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\nPlease contact Moderators for help or re-read'
-                                       f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
-                                       delete_after=60)
-
+            await self.send_messages_to_user(ctx.message)
+            await ctx.channel.send(
+                f"{mention}, you do not have any MF points."
+                f" Please give feedback first.\nYour request was DMed to you for future"
+                f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
+                delete_after=60)
             await ctx.message.delete()
             await channel.send(f"<@{SERVER_OWNER_ID}>:")
+            alert_embed = discord.Embed(color=0x7e016f)
+            alert_embed.add_field(name="**ALERT**",
+                                  value=f"{mention} tried sending a track for feedback with **0** MF points.",
+                                  inline=False)
+            alert_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=alert_embed)
 
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="**ALERT**",
-                            value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
-
+        elif points < 0:
+            await ctx.channel.send(f"Error: Your MF point balance is negative. Please contact an admin.")
 
         # initiate feedback threads instance
-        feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
         if feedback_threads_cog:
-            # hardcode 1 in case we want to use dynamic mfs points in future
             mfs_points = 1
-            await feedback_threads_cog.create_feedback_thread(ctx, mfs_points, points)
+            # The create_feedback_thread call was potentially creating a new thread even if one existed.
+            # The thread creation/update logic is now handled within the points >= 1 and points == 0 blocks.
+            # If a user has an existing thread, the embed is sent there. If not, a new one is created.
+            pass
 
     async def mfs_deduct_point(self, ctx, points):
         if points:  # user have points, reduce them and send message + log

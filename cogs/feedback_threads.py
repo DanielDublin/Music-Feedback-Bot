@@ -37,7 +37,6 @@ class FeedbackThreads(commands.Cog):
 
         await self.bot.wait_until_ready()
 
-
         thread_channel = self.bot.get_channel(THREADS_CHANNEL)
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
@@ -73,10 +72,29 @@ class FeedbackThreads(commands.Cog):
         await asyncio.sleep(5)
         await new_thread.edit(archived=True)
 
-    async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points):
-        print("IN MFR_EMBED")
+    async def update_ticket_counter(self, user_id):
+        # set to 0 if not in dict
+        if user_id not in self.user_thread:
+            self.user_thread[user_id] = [None, 0]
 
-        ticket_counter = self.user_thread[ctx.author.id][1]
+        # Increment the counter
+        self.user_thread[user_id][1] += 1
+        ticket_counter = self.user_thread[user_id][1]
+
+        # Update database
+        self.sqlitedatabase.cursor.execute('''
+            UPDATE users 
+            SET ticket_counter = ? 
+            WHERE user_id = ?
+        ''', (ticket_counter, user_id))
+
+        # Always commit changes
+        await self.commit_changes()
+
+        return ticket_counter
+
+    async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points, ticket_counter):
+        print("IN MFR_EMBED")
 
         # MFR points logic for double points
         if mfr_points == 1:
@@ -100,17 +118,25 @@ class FeedbackThreads(commands.Cog):
             embed.set_footer(text="Some Footer Text")
             return embed
 
-    async def MFS_embed(self, ctx, formatted_time, message_link):
+    async def MFS_embed(self, ctx, formatted_time, message_link, ticket_counter):
         print("INT MFS")
+
+        if ticket_counter is None:
+            ticket_counter = await self.update_ticket_counter(ctx.author.id)
+
         points = int(await db.fetch_points(str(ctx.author.id)))
-        ticket_counter = self.user_thread[ctx.author.id][1]
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
             description=f"{formatted_time}",
-            color=discord.Color.red()
+            color=discord.Color.red() if points >= 1 else discord.Color.yellow()
         )
-        embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
+
+        if points >= 1:
+            embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points - 1}** MF points.", inline=True)
+        else:
+            embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+
         embed.add_field(name=f"{message_link}", value="", inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
@@ -158,12 +184,14 @@ class FeedbackThreads(commands.Cog):
             # Determine the correct embed based on the command
             embed = None
 
+            ticket_counter = await self.update_ticket_counter(ctx.author.id)
+
             if ctx.command.name == 'R':
-                embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
+                embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
             elif ctx.command.name == 'S':
                 print(f"points in S {points}")
                 if points > 1:
-                    embed = await self.MFS_embed(ctx, formatted_time, message_link)
+                    embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
 
             # Send the embed to the thread if available
             if embed:
@@ -192,20 +220,10 @@ class FeedbackThreads(commands.Cog):
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
 
-        self.user_thread[ctx.author.id][1] += 1
-        ticket_counter = self.user_thread[ctx.author.id][1]
-
-        # update ticket number in db
-        self.sqlitedatabase.cursor.execute('''
-            UPDATE users 
-            SET ticket_counter = ? 
-            WHERE user_id = ?
-        ''', (ticket_counter, ctx.author.id))
-
-        await self.commit_changes()
+        ticket_counter = await self.update_ticket_counter(ctx.author.id)
 
         if ctx.command.name == 'R':
-            embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points)
+            embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
             embed.title = f"Ticket #{ticket_counter}"
             return embed
         # handles any time points arent 1 or 0 (see general MFS logic)
@@ -214,7 +232,8 @@ class FeedbackThreads(commands.Cog):
             print(f"points in S {points}")
             if points >= 1:
                 print("sending MFS points even though 0")
-                embed = await self.MFS_embed(ctx, formatted_time, message_link)
+                ticket_counter = self.user_thread[ctx.author.id][1]
+                embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
                 embed.title = f"Ticket #{ticket_counter}"
                 return embed
 
@@ -268,16 +287,7 @@ class FeedbackThreads(commands.Cog):
                 await existing_thread.edit(archived=False)
 
             # Increment the ticket counter for the user
-            self.user_thread[after.author.id][1] += 1
-            ticket_counter = self.user_thread[after.author.id][1]
-            # update ticket count in db
-            self.sqlitedatabase.cursor.execute('''
-                UPDATE users 
-                SET ticket_counter = ? 
-                WHERE user_id = ?
-            ''', (ticket_counter, after.author.id))
-
-            await self.commit_changes()
+            ticket_counter = await self.update_ticket_counter(after.author.id)
 
             # Access TimerCog to check for double points
             base_timer_cog = self.bot.get_cog("TimerCog")
@@ -597,8 +607,8 @@ class FeedbackThreads(commands.Cog):
         return embed
 
     # handles if <MFS is used and user has no points - sends embed to thread or makes
-    async def handle_zero_points(self, ctx, formatted_time):
-        ticket_counter = self.user_thread[ctx.author.id][1]
+    async def handle_zero_points(self, ctx, formatted_time, ticket_counter):
+        ticket_counter = await self.update_ticket_counter(ctx.author.id)
 
         # Create the embed
         embed = discord.Embed(
@@ -654,7 +664,6 @@ class FeedbackThreads(commands.Cog):
         await channel_message.delete()
 
 
-
 async def setup(bot):
     # Create an instance of FeedbackThreads and initialize the database
     feedback_cog = FeedbackThreads(bot)
@@ -663,31 +672,3 @@ async def setup(bot):
 
 
 
-#         """
-#         Handle misspellings, capitalizations, switches, additions.
-#         ------was working on getting the ticket to send - the points deduct well
-#         add message in feedback channel that lets member know of points change on edit
-#         include excerpt of before and after
-#           fix that each edit causes the ticket counter to increase no matter if its mfr or not
-#         """
-
-"""
-fix MFS to MFR
-handle trying to remove points when points = 0
-handle points going to negative
-
-
-ticket counter +2 increased when
-<MFR to <MF
-to <MFR to <MFS
-triggering 399 if "MFR" in before.content and "MFR" not in after.content:
-
-edit message is delayed - should be sent before the ticket is 
-
-need to delete the post when "not allowed"
-
-
-breaks with <mfr edited to <mfs to deleting <mfs
-
-somehow negative points when i lose points due to edit
-"""
