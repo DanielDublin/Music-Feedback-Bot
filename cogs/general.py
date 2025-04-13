@@ -258,7 +258,7 @@ class General(commands.Cog):
                 description=f"{formatted_time}",
                 color=discord.Color.yellow()
             )
-            embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+            embed.add_field(name="<MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
             embed.set_footer(text="Some Footer Text")
 
             user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)

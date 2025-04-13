@@ -14,27 +14,34 @@ class FeedbackThreads(commands.Cog):
         self.user_thread = {}  # Nested {user: [thread_id, ticket_counter]}
 
     async def initialize_sqldb(self):
-        # check if dict is empty
-        # if it is, need to check if there are entries in db (if not, then the bot is entirely new)
-        # this only runs if a command is user -- maybe it call on bot restart?
+        """
+        Database is initialized in the __init__ method of the SQLiteDatabase class. The actual table is created in
+        feedback_threads_db.py.
+        If the user_thread dictionary is empty, it will check the database for existing users and populate the dictionary.
+        """
         if not self.user_thread:
-            # select all data in the db (0 if there is none)
             self.sqlitedatabase.cursor.execute("SELECT user_id, thread_id, ticket_counter FROM users")
             data = self.sqlitedatabase.cursor.fetchall()
-            print("Trying to repopulate user thread data...")
 
-            # if data is in db, repopulate the dict
-            # data returns as tuple (user id, thread id, ticket counter)
             if data:
                 self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in
                                     data}
-                print("Threads repopulated from db:", self.user_thread)
+                print("user_thread data repopulated from SQLite Database:", len(self.user_thread))
             else:
-                print("No data in SQLite Database")
-
+                print("No data in SQLite Database to repopulate the user_thread dictionary.")
 
     async def create_feedback_thread(self, ctx, mfr_points, points):
+        """
+        Access an existing feedback thread or create a new one for the user. If the user already has a thread, it will
+        be unarchived and updated with the new message.
+        If the user does not have a thread, a new one will be created and the user will be added to the database. The new
+        thread will then be archived.
 
+        :param ctx: The context of the command
+        :param mfr_points: The points added/substracted based on Double Points hour
+        :param points: The points associated with the user
+        :return: None
+        """
         await self.bot.wait_until_ready()
 
         thread_channel = self.bot.get_channel(THREADS_CHANNEL)
@@ -42,20 +49,19 @@ class FeedbackThreads(commands.Cog):
         message_id = ctx.message.id
         guild_id = ctx.guild.id
         message_link = f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
-
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%d-%m %H:%M")
 
-        # Check if a thread exists
+        # Check if a thread exists for a user
         if ctx.author.id in self.user_thread:
-            print(f"existing:{self.user_thread}")
-            thread_id = self.user_thread[ctx.author.id][0]  # get stored thread ID
-            existing_thread = await self.bot.fetch_channel(thread_id)  # fetch thread by ID
 
-            # UNARCHIVE BEFORE SENDING ANOTHER MESSAGE TO THREAD
+            thread_id = self.user_thread[ctx.author.id][0]
+            existing_thread = await self.bot.fetch_channel(thread_id)
+
+            # Need to unarchive before sending another message to the thread if it exists
             if existing_thread.archived:
                 await existing_thread.edit(archived=False)
-                # call existing thread logic
+
             embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
             if embed:
                 await existing_thread.send(embed=embed)
@@ -66,16 +72,20 @@ class FeedbackThreads(commands.Cog):
         # If no thread exists, create a new one
         new_thread = await self.new_thread(ctx, formatted_time, message_link, thread_channel, mfr_points, points)
 
-        # Store the thread ID so future messages update the correct thread
-        self.user_thread[ctx.author.id] = [new_thread.id, 1]  # Reset ticket counter for new thread
-
         await asyncio.sleep(5)
         await new_thread.edit(archived=True)
 
-    async def update_ticket_counter(self, user_id):
-        # set to 0 if not in dict
+    async def update_ticket_counter(self, user_id, thread_id=None):
+        """
+        Update the ticket counter for a user in the database and optionally set the thread ID.
+        :param user_id: The ID of the user.
+        :param thread_id: (Optional) The ID of the thread to associate with the user.
+        :return: The updated ticket counter.
+        """
         if user_id not in self.user_thread:
-            self.user_thread[user_id] = [None, 0]
+            self.user_thread[user_id] = [thread_id, 0]  # Initialize with provided thread_id and counter 0
+        elif thread_id is not None:
+            self.user_thread[user_id][0] = thread_id  # Update thread_id if provided
 
         # Increment the counter
         self.user_thread[user_id][1] += 1
@@ -83,18 +93,43 @@ class FeedbackThreads(commands.Cog):
 
         # Update database
         self.sqlitedatabase.cursor.execute('''
-            UPDATE users 
-            SET ticket_counter = ? 
+            UPDATE users
+            SET thread_id = ?,
+                ticket_counter = ?
             WHERE user_id = ?
-        ''', (ticket_counter, user_id))
+        ''', (self.user_thread[user_id][0], ticket_counter, user_id))
 
         # Always commit changes
         await self.commit_changes()
 
         return ticket_counter
 
+    async def add_user_to_db(self, user_id, thread_id, ticket_counter):
+        """
+        Check if user exists in DB, if not, add them.
+
+        :param user_id: The ID of the user to check
+        :param thread_id: The ID of the thread associated with the user
+        :param ticket_counter: The ticket counter for the user
+        :return: None
+        """
+        self.sqlitedatabase.cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+        user_check = self.sqlitedatabase.cursor.fetchone()
+
+        if not user_check:
+            self.sqlitedatabase.cursor.execute(
+                "INSERT INTO users (user_id, thread_id, ticket_counter) VALUES (?, ?, ?)",
+                (user_id, thread_id, ticket_counter)
+            )
+            await self.commit_changes()
+
+            self.sqlitedatabase.cursor.execute("SELECT * FROM users")
+            rows = self.sqlitedatabase.cursor.fetchall()
+            for row in rows:
+                print(row)
+                break
+
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points, ticket_counter):
-        print("IN MFR_EMBED")
 
         # MFR points logic for double points
         if mfr_points == 1:
@@ -132,22 +167,30 @@ class FeedbackThreads(commands.Cog):
             color=discord.Color.red() if points >= 1 else discord.Color.yellow()
         )
 
-        if points >= 1:
-            embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points - 1}** MF points.", inline=True)
-        else:
-            embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
+        embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
 
         embed.add_field(name=f"{message_link}", value="", inline=False)
         embed.set_footer(text="Some Footer Text")
         return embed
 
     async def new_thread(self, ctx, formatted_time, message_link, thread_channel, mfr_points=None, points=None):
+        """
+        Create a new thread for a user that uses <MFR or <MFS. The user information is added to the database and dictionary.
+        If the command is MFR, the MFR embed is sent to the thread. If the command is MFS, the MFS embed is sent to the thread.
+
+        :param ctx: The context of the command
+        :param formatted_time: The formatted time of the message
+        :param message_link: The link to the message created for the thread to be made from
+        :param thread_channel: The channel where the thread will be created
+        :param mfr_points: The points added/substracted based on Double Points hour
+        :param points: The points associated with the user
+        :return:
+        """
+
+        message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
 
         try:
-            # Send a starter message
-            message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
 
-            # Create the thread
             thread = await thread_channel.create_thread(
                 name=f"{ctx.author.name} - {ctx.author.id}",
                 message=message,
@@ -155,53 +198,28 @@ class FeedbackThreads(commands.Cog):
                 auto_archive_duration=60  # Auto-archive after 1 hour of inactivity
             )
 
-            # Add the thread_id and ticket_counter to the user dict
-            self.user_thread[ctx.author.id] = [thread.id, 1]  # Initialize ticket counter
-
-            # add member to db
-            self.sqlitedatabase.cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (ctx.message.author.id,))
-
-            user_check = self.sqlitedatabase.cursor.fetchone()
-
-            if not user_check:
-                self.sqlitedatabase.cursor.execute(
-                    "INSERT INTO users (user_id, thread_id, ticket_counter) VALUES (?, ?, ?)",
-                    (ctx.author.id, thread.id, self.user_thread[ctx.author.id][1])
-                )
-
-                # Commit the transaction to save the changes
-                await self.commit_changes()
-
-                # Retrieve and print the data from the users table
-                self.sqlitedatabase.cursor.execute("SELECT * FROM users")
-                rows = self.sqlitedatabase.cursor.fetchall()
-
-                # Print the rows
-                for row in rows:
-                    print(row)
-                    break
-
-            # Determine the correct embed based on the command
-            embed = None
-
-            ticket_counter = await self.update_ticket_counter(ctx.author.id)
-
-            if ctx.command.name == 'R':
-                embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
-            elif ctx.command.name == 'S':
-                print(f"points in S {points}")
-                if points > 1:
-                    embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
-
-            # Send the embed to the thread if available
-            if embed:
-                await thread.send(embed=embed)
-
-            return thread  # Return the thread object for further editing
-
         except Exception as e:
-            print(f"Error while creating thread: {e}")
-            return None  # If thread creation fails, return None
+            print(f"Error while creating new thread: {e}")
+            return None
+
+        ticket_counter = await self.update_ticket_counter(ctx.author.id, thread.id)
+
+        await self.add_user_to_db(ctx.author.id, thread.id, ticket_counter)
+        self.user_thread[ctx.author.id] = [thread.id, ticket_counter]
+
+        # Determine the correct embed based on the command
+        embed = None
+
+        if ctx.command.name == 'R':
+            embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
+        elif ctx.command.name == 'S':
+            if points > 1:
+                embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
+
+        if embed:
+            await thread.send(embed=embed)
+
+        return thread
 
     async def existing_thread(self, ctx, formatted_time, message_link, mfr_points, points):
         try:
@@ -604,21 +622,6 @@ class FeedbackThreads(commands.Cog):
         embed.add_field(name="After", value=after_content_truncated, inline=False)
         embed.add_field(name="Message Link", value=message_link, inline=False)
         embed.set_footer(text="Some Footer Text")
-        return embed
-
-    # handles if <MFS is used and user has no points - sends embed to thread or makes
-    async def handle_zero_points(self, ctx, formatted_time, ticket_counter):
-        ticket_counter = await self.update_ticket_counter(ctx.author.id)
-
-        # Create the embed
-        embed = discord.Embed(
-            title=f"Ticket #{ticket_counter}",
-            description=f"{formatted_time}",
-            color=discord.Color.yellow()
-        )
-        embed.add_field(name="<MFS", value=f"Used <MFS with no points available", inline=True)
-        embed.set_footer(text="Some Footer Text")
-
         return embed
 
     async def shorten_before_and_after_messages(self, before, after):

@@ -8,6 +8,10 @@ class SQLiteDatabase:
         self.create_table()
 
     def create_table(self):
+        """
+        Create the users table if it doesn't exist and print existing users.
+        :return:
+        """
         # Create the users table if it doesn't exist
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -26,7 +30,7 @@ class SQLiteDatabase:
         for row in rows:
             print(row)
 
-#         # Drop the users table
+# #         # Drop the users table
 #         self.cursor.execute("DROP TABLE IF EXISTS users")
 #         self.connection.commit()
 #
@@ -44,6 +48,6 @@ class SQLiteDatabase:
 #                 print(row)
 #         except sqlite3.OperationalError as e:
 #             print(f"Error after dropping table: {e}")
-#
-# # Example usage:
-# db = SQLiteDatabase()
+# #
+# # # Example usage:
+# # db = SQLiteDatabase()
