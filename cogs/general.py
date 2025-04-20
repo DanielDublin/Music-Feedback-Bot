@@ -3,11 +3,12 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 import database.db as db
-from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID, ADMINS_ROLE_ID
+from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 from cogs.slash_commands.timer_cogs.timer import TimerCog
 from cogs.slash_commands.timer_cogs.timer import BaseTimer
+import asyncio
 
 
 class General(commands.Cog):
@@ -209,8 +210,16 @@ class General(commands.Cog):
     @commands.command(name="S",
                       help=f"Use to ask for feedback.", brief="(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def MFs_command(self, ctx: discord.Message):
-        thread_channel = self.bot.get_channel(1103427357781528597)
+    async def MFs_command(self, ctx: discord.ext.commands.Context):
+        """
+        The MFS command is used to submit a request for feedback on a track. If the user has enough MF points, the bot will
+        deduct one point and will either create a feedback thread or use an existing one.
+
+        :param ctx: The context of the command, which includes information about the message, author, and channel.
+        :return:
+        """
+
+        thread_channel = self.bot.get_channel(THREADS_CHANNEL)
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
@@ -228,7 +237,6 @@ class General(commands.Cog):
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
-        print(points)
 
         feedback_threads_cog = self.bot.get_cog("FeedbackThreads")
         if not feedback_threads_cog:
@@ -238,42 +246,36 @@ class General(commands.Cog):
         ticket_counter = await feedback_threads_cog.update_ticket_counter(ctx.author.id)
 
         if points >= 1:
+            print("NOW")
             await self.mfs_deduct_point(ctx, points)
+
             mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
             user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-            if user_thread:
+            print(user_thread)
+            print("in here NOW")
+
+            if user_thread[0] != None:
+                print("found user_thread")
                 thread_id = user_thread[0]
+                print(user_thread[0])
+                print(thread_id)
                 thread = await self.bot.fetch_channel(thread_id)
                 if thread:
+                    print("trying to print thread")
                     await thread.send(embed=mfs_embed)
+                    await asyncio.sleep(5)
+                    print("attempting to archive")
+                    await thread.edit(archived=True)
             else:
                 new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, 0,
-                                                                   points - 1)
+                                                                   points, ticket_counter=ticket_counter)
                 if new_thread and mfs_embed:
-                    await new_thread.send(embed=mfs_embed)
+                    # await new_thread.send(embed=mfs_embed)
+                    await asyncio.sleep(5)
+                    print("attempting to archive")
+                    await new_thread.edit(archived=True)
 
         elif points == 0:  # User doesn't have points
-            embed = discord.Embed(
-                title=f"Ticket #{ticket_counter}",
-                description=f"{formatted_time}",
-                color=discord.Color.yellow()
-            )
-            embed.add_field(name="<MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
-            embed.set_footer(text="Some Footer Text")
-
-            user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-            if user_thread:
-                thread_id = user_thread[0]
-                thread = await self.bot.fetch_channel(thread_id)
-                if thread:
-                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                    await thread.send(embed=embed)
-            else:
-                new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link,
-                                                                   thread_channel, 0, points)
-                if new_thread:
-                    await new_thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                    await new_thread.send(embed=embed)
 
             await self.send_messages_to_user(ctx.message)
             await ctx.channel.send(
@@ -281,6 +283,7 @@ class General(commands.Cog):
                 f" Please give feedback first.\nYour request was DMed to you for future"
                 f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                 delete_after=60)
+
             await ctx.message.delete()
             await channel.send(f"<@{SERVER_OWNER_ID}>:")
             alert_embed = discord.Embed(color=0x7e016f)
@@ -290,8 +293,42 @@ class General(commands.Cog):
             alert_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=alert_embed)
 
-        elif points < 0:
-            await ctx.channel.send(f"Error: Your MF point balance is negative. Please contact an admin.")
+
+
+            embed = discord.Embed(
+                title=f"Ticket #{ticket_counter}",
+                description=f"{formatted_time}",
+                color=discord.Color.yellow()
+            )
+            embed.add_field(name="<MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
+            embed.set_footer(text="Some Footer Text")
+
+
+            user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
+
+            if user_thread and user_thread[0] != None:
+                thread_id = user_thread[0]
+                thread = await self.bot.fetch_channel(thread_id)
+                if thread:
+                    await thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                    print("sending this embed, why?")
+                    await thread.send(embed=embed)
+            else:
+                print("found no thread")
+                try:
+
+                    new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, 0, points, ticket_counter=ticket_counter)
+                except Exception as e:
+                    print(f"Error creating thread: {e}")
+
+                if new_thread:
+                    await new_thread.send(f"<@&{ADMINS_ROLE_ID}>")
+                    await new_thread.send(embed=embed)
+                    await asyncio.sleep(5)
+                    print("attempting to archive")
+                    await new_thread.edit(archived=True)
+
+
 
         # initiate feedback threads instance
         if feedback_threads_cog:

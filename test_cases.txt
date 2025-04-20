@@ -1,106 +1,17 @@
-IF NOT IN SQLITE DB
+Not in db:
+- user with 0 points uses <MFS
+:PASSED:
 
-Input: <MFR
-Output:
-    +1 point in db/+2 points in db if during Double Points
-    notification sent to feedback channel
-    notification sent to log channel
-    thread created
-    ticket sent to thread
-    ticket counter started
+- user with 1 point uses <MFS
+:PASSED:
 
-Input: <MFS
-Output:
-    -1 point in db/-1 point in db if during Double Points
-    notification sent to feedback channel
-    notification sent to log channel
-    thread created
-    ticket sent to thread
-    ticket counter started
+- user with 2 points uses <MFS
+:PASSED:
 
+- user with 0 points uses <MFR
 
+------------
+In db:
+- user with 0 points uses <MFS
+:PASSED:
 
-
-
-
-
-IF IN SQLITE DB
-________________________________________________________________________________________________________________________
-Input: <MFR
-Output:
-    +1 point in db/+2 points in db if during Double Points
-    notification sent to feedback channel
-    notification sent to log channel
-    thread created
-    ticket sent to thread
-    ticket counter started
-________________________________________________________________________________________________________________________
-- PASSED 2/24 -
-Input: <MFR to <MFS with >2 points already available; using <MFR will add the point (1 or 2 MF point); the edit will
-deduct the gained and used points
-
-Output:
-    -2 points in db/-3 points in db if during Double Points
-    notification sent to feedback channel
-    ticket sent to existing thread channel
-    ticket counter updated
-________________________________________________________________________________________________________________________
-Input: nothing to <MFR; using <MFR will add the point (1 or 2 MF point)
-
-Output:
-    +1 points in db/+2 points in db if during Double Points
-    notification sent to feedback channel
-    ticket sent to existing thread channel
-    ticket counter updated
-________________________________________________________________________________________________________________________
-Input: nothing to <MFS; using <MFS will deduct the point (1 point if available)
-
-Output:
-    -1 points in db
-    notification sent to feedback channel
-    ticket sent to existing thread channel
-    ticket counter updated
-
-    if points = 0
-    notification sent to feedback channel
-    notification sent to log channel
-    thread created
-    ticket sent to thread
-    ticket counter started
-
-
-
-
-
-
-
-
-
-
-
-EDGE CASES
-________________________________________________________________________________________________________________________
-Input: <MFR to <MFS with 0 points already available; using <MFR will add the point (1 or 2 MF point); the edit will
-deduct the gained and used points
-
-Output:
-    INVALID
-
-    -2 points in db/-3 points in db if during Double Points; points reset to 0 once < 0 to ensure no negatives
-    message sent in feedback channel deleted
-    notification with tag sent to feedback channel
-    ticket sent to existing thread channel
-    ticket counter updated
-________________________________________________________________________________________________________________________
-Input: <MFR to <MFS with 1 point already available; using <MFR will add the point (2 MF points); the edit will
-deduct the gained and used points
-
-Output:
-    VALID
-
-    -2 points in db/-3 points in db if during Double Points
-    message sent in feedback channel deleted
-    notification sent to feedback channel
-    ticket sent to existing thread channel
-    ticket counter updated
-________________________________________________________________________________________________________________________

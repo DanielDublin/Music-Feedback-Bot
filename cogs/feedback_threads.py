@@ -63,6 +63,7 @@ class FeedbackThreads(commands.Cog):
                 await existing_thread.edit(archived=False)
 
             embed = await self.existing_thread(ctx, formatted_time, message_link, mfr_points, points)
+
             if embed:
                 await existing_thread.send(embed=embed)
                 await asyncio.sleep(5)
@@ -83,15 +84,13 @@ class FeedbackThreads(commands.Cog):
         :return: The updated ticket counter.
         """
         if user_id not in self.user_thread:
-            self.user_thread[user_id] = [thread_id, 0]  # Initialize with provided thread_id and counter 0
+            self.user_thread[user_id] = [thread_id, 0]
         elif thread_id is not None:
-            self.user_thread[user_id][0] = thread_id  # Update thread_id if provided
+            self.user_thread[user_id][0] = thread_id
 
-        # Increment the counter
         self.user_thread[user_id][1] += 1
         ticket_counter = self.user_thread[user_id][1]
 
-        # Update database
         self.sqlitedatabase.cursor.execute('''
             UPDATE users
             SET thread_id = ?,
@@ -99,7 +98,6 @@ class FeedbackThreads(commands.Cog):
             WHERE user_id = ?
         ''', (self.user_thread[user_id][0], ticket_counter, user_id))
 
-        # Always commit changes
         await self.commit_changes()
 
         return ticket_counter
@@ -173,7 +171,7 @@ class FeedbackThreads(commands.Cog):
         embed.set_footer(text="Some Footer Text")
         return embed
 
-    async def new_thread(self, ctx, formatted_time, message_link, thread_channel, mfr_points=None, points=None):
+    async def new_thread(self, ctx, formatted_time, message_link, thread_channel, mfr_points=None, points=None, ticket_counter=None):
         """
         Create a new thread for a user that uses <MFR or <MFS. The user information is added to the database and dictionary.
         If the command is MFR, the MFR embed is sent to the thread. If the command is MFS, the MFS embed is sent to the thread.
@@ -186,7 +184,8 @@ class FeedbackThreads(commands.Cog):
         :param points: The points associated with the user
         :return:
         """
-
+        print("1")
+        print(thread_channel)
         message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
 
         try:
@@ -202,10 +201,9 @@ class FeedbackThreads(commands.Cog):
             print(f"Error while creating new thread: {e}")
             return None
 
-        ticket_counter = await self.update_ticket_counter(ctx.author.id, thread.id)
-
         await self.add_user_to_db(ctx.author.id, thread.id, ticket_counter)
         self.user_thread[ctx.author.id] = [thread.id, ticket_counter]
+        print(self.user_thread)
 
         # Determine the correct embed based on the command
         embed = None
@@ -213,8 +211,11 @@ class FeedbackThreads(commands.Cog):
         if ctx.command.name == 'R':
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
         elif ctx.command.name == 'S':
-            if points > 1:
+            print("HERE")
+            if points != 0:
                 embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
+            else:
+                pass
 
         if embed:
             await thread.send(embed=embed)
@@ -249,7 +250,6 @@ class FeedbackThreads(commands.Cog):
             points = int(await db.fetch_points(str(ctx.author.id)))
             print(f"points in S {points}")
             if points >= 1:
-                print("sending MFS points even though 0")
                 ticket_counter = self.user_thread[ctx.author.id][1]
                 embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
                 embed.title = f"Ticket #{ticket_counter}"
@@ -314,10 +314,6 @@ class FeedbackThreads(commands.Cog):
                 return existing_thread, ticket_counter, None
 
             return existing_thread, ticket_counter, base_timer_cog
-        else:
-            # Create a new thread for this user if no thread exists
-            print("Creating new thread for user")
-            return None, 1, None  # Returning None for the thread, 1 for ticket_counter, and None for TimerCog
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
 
