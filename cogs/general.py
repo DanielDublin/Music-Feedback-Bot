@@ -246,33 +246,24 @@ class General(commands.Cog):
         ticket_counter = await feedback_threads_cog.update_ticket_counter(ctx.author.id)
 
         if points >= 1:
-            print("NOW")
             await self.mfs_deduct_point(ctx, points)
 
             mfs_embed = await feedback_threads_cog.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
             user_thread = await feedback_threads_cog.get_user_thread(ctx.author.id)
-            print(user_thread)
-            print("in here NOW")
 
             if user_thread[0] != None:
-                print("found user_thread")
                 thread_id = user_thread[0]
-                print(user_thread[0])
-                print(thread_id)
                 thread = await self.bot.fetch_channel(thread_id)
+
                 if thread:
-                    print("trying to print thread")
                     await thread.send(embed=mfs_embed)
                     await asyncio.sleep(5)
-                    print("attempting to archive")
                     await thread.edit(archived=True)
             else:
                 new_thread = await feedback_threads_cog.new_thread(ctx, formatted_time, message_link, thread_channel, 0,
                                                                    points, ticket_counter=ticket_counter)
                 if new_thread and mfs_embed:
-                    # await new_thread.send(embed=mfs_embed)
                     await asyncio.sleep(5)
-                    print("attempting to archive")
                     await new_thread.edit(archived=True)
 
         elif points == 0:  # User doesn't have points

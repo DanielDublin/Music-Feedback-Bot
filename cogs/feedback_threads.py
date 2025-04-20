@@ -129,6 +129,7 @@ class FeedbackThreads(commands.Cog):
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points, ticket_counter):
 
+
         # MFR points logic for double points
         if mfr_points == 1:
             embed = discord.Embed(
@@ -152,7 +153,6 @@ class FeedbackThreads(commands.Cog):
             return embed
 
     async def MFS_embed(self, ctx, formatted_time, message_link, ticket_counter):
-        print("INT MFS")
 
         if ticket_counter is None:
             ticket_counter = await self.update_ticket_counter(ctx.author.id)
@@ -162,7 +162,7 @@ class FeedbackThreads(commands.Cog):
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter}",
             description=f"{formatted_time}",
-            color=discord.Color.red() if points >= 1 else discord.Color.yellow()
+            color=discord.Color.red()
         )
 
         embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
@@ -184,8 +184,6 @@ class FeedbackThreads(commands.Cog):
         :param points: The points associated with the user
         :return:
         """
-        print("1")
-        print(thread_channel)
         message = await thread_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
 
         try:
@@ -203,7 +201,6 @@ class FeedbackThreads(commands.Cog):
 
         await self.add_user_to_db(ctx.author.id, thread.id, ticket_counter)
         self.user_thread[ctx.author.id] = [thread.id, ticket_counter]
-        print(self.user_thread)
 
         # Determine the correct embed based on the command
         embed = None
@@ -211,7 +208,6 @@ class FeedbackThreads(commands.Cog):
         if ctx.command.name == 'R':
             embed = await self.MFR_embed(ctx, formatted_time, message_link, mfr_points, points, ticket_counter)
         elif ctx.command.name == 'S':
-            print("HERE")
             if points != 0:
                 embed = await self.MFS_embed(ctx, formatted_time, message_link, ticket_counter)
             else:

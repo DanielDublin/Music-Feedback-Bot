@@ -5,13 +5,20 @@ Not in db:
 - user with 1 point uses <MFS
 :PASSED:
 
-- user with 2 points uses <MFS
+- user with >1 points uses <MFS
 :PASSED:
 
 - user with 0 points uses <MFR
-
+:PASSED:
 ------------
 In db:
 - user with 0 points uses <MFS
 :PASSED:
+
+
+- user with 0 points uses <MFR
+:PASSED:
+
+-user with 1 point uses <MFR
+
 
