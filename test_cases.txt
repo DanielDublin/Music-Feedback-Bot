@@ -1,24 +1,77 @@
 Not in db:
 - user with 0 points uses <MFS
-:PASSED:
+:PASSED: 5/3/2025
 
 - user with 1 point uses <MFS
-:PASSED:
+:PASSED: 5/3/2025
 
 - user with >1 points uses <MFS
-:PASSED:
+:PASSED: 5/3/2025
 
 - user with 0 points uses <MFR
-:PASSED:
+:PASSED: 5/3/2025
+
+- user with 1 point uses <MFR
+:PASSED: 5/3/2025
+
+- user with >1 points uses <MFR
+:PASSED: 5/3/2025
 ------------
 In db:
 - user with 0 points uses <MFS
-:PASSED:
+:PASSED: 5/3/2025
 
+- user with 1 point uses <MFS
+:PASSED: 5/3/2025
+
+- user with >1 point uses <MFS
+:PASSED: 5/3/2025
 
 - user with 0 points uses <MFR
-:PASSED:
+:PASSED: 5/3/2025
 
--user with 1 point uses <MFR
+- user with 1 point uses <MFR
+:PASSED: 5/3/2025
+
+- user with >1 point uses <MFR
+:PASSED: 5/3/2025
+------------
+Not in db:
+- user with 0 points uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with 1 point uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with >1 points uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with 1 point uses <MFS to <MFR
+:PASSED: 5/3/2025
+
+- user with >1 points uses <MFS to <MFR
+:PASSED: 5/3/2025
+------------
+In db:
+- user with 0 points uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with 1 point uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with >1 points uses <MFR to <MFS
+:PASSED: 5/3/2025
+
+- user with 1 point uses <MFS to <MFR
+:PASSED: 5/3/2025
+
+- user with >1 points uses <MFS to <MFR
+:PASSED: 5/3/2025
+------------
+Not in db:
+- user with 0 points uses nothing to <MFS
+need to write
+
+
 
 

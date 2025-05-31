@@ -83,10 +83,15 @@ class FeedbackThreads(commands.Cog):
         :param thread_id: (Optional) The ID of the thread to associate with the user.
         :return: The updated ticket counter.
         """
+
+        print("in update")
         if user_id not in self.user_thread:
             self.user_thread[user_id] = [thread_id, 0]
         elif thread_id is not None:
             self.user_thread[user_id][0] = thread_id
+
+        if self.user_thread[user_id][1] is None:
+            self.user_thread[user_id][1] = 0
 
         self.user_thread[user_id][1] += 1
         ticket_counter = self.user_thread[user_id][1]
@@ -129,6 +134,14 @@ class FeedbackThreads(commands.Cog):
 
     async def MFR_embed(self, ctx, formatted_time, message_link, mfr_points, points, ticket_counter):
 
+        print(f"before: {self.user_thread}")
+        if ctx.author.id in self.user_thread:
+            print(self.user_thread[ctx.author.id])
+            if self.user_thread[ctx.author.id][1] is None:
+                print(self.user_thread[ctx.author.id][1])
+                ticket_counter = await self.update_ticket_counter(ctx.author.id)
+                print(self.user_thread[ctx.author.id][1])
+            print(f"after: {self.user_thread}")
 
         # MFR points logic for double points
         if mfr_points == 1:
@@ -351,8 +364,6 @@ class FeedbackThreads(commands.Cog):
                 await after.delete()
                 # tag admins in thread
                 await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                # send deleted message to user
-                await general_cog.send_messages_to_user(after)
 
                 # thread
                 embed_title = "<MFR edited to <MFS with no points"
@@ -383,7 +394,9 @@ class FeedbackThreads(commands.Cog):
             # sends message to channel + handles deletion, sends ticket to thread
             await asyncio.gather(
                 self.thread_archive(existing_thread, embed),
-                self.delete_channel_message_after_fail_edit(channel_message)
+                self.delete_channel_message_after_fail_edit(channel_message),
+                # send deleted message to user
+                general_cog.send_messages_to_user(after)
             )
 
     async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
@@ -407,21 +420,21 @@ class FeedbackThreads(commands.Cog):
             embed_title = "<MFS edited to <MFR"
             embed_description = f"Gained **{points_added}** points and now has **{updated_points}** MF points."
 
-        # send information to user
-        channel_message = await after.channel.send(
-            f"{after.author.mention} edited their message from <MFS to <MFR and gained **{points_added}** MF Points. You now have **{updated_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
-        await asyncio.sleep(15)
-        await channel_message.delete()
+            # send information to user
+            channel_message = await after.channel.send(
+                f"{after.author.mention} edited their message from <MFS to <MFR and gained **{points_added}** MF Points. You now have **{updated_points}** MF Points."
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
-        embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
-                         message_link)
-        if existing_thread.archived:
-            await existing_thread.edit(archived=False)
-        await existing_thread.send(embed=embed)
-        await asyncio.sleep(5)
-        await existing_thread.edit(archived=True)
+            embed = await self.edit_embed(embed_title, formatted_time, embed_description, before, after, ticket_counter,
+                             message_link)
 
+            # sends message to channel + handles deletion, sends ticket to thread
+            await asyncio.gather(
+                self.thread_archive(existing_thread, embed),
+                self.delete_channel_message_after_fail_edit(channel_message)
+            )
+            await asyncio.sleep(15)
+            await channel_message.delete()
 
     async def MFR_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
@@ -497,7 +510,13 @@ class FeedbackThreads(commands.Cog):
 
     async def nothing_to_MFS(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
         # Get the existing thread and ticket_counter
-        existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+        print("nothing to MFS")
+        if after.author.id in self.user_thread:
+            existing_thread, ticket_counter, base_timer_cog = await self.check_existing_thread_edit(after)
+        else:
+            new_thread = await self.check_existing_thread_edit(after, formatted_time, message_link,
+                                                                               after.channel)
+            existing_thread = new_thread
 
         base_timer_cog = self.bot.get_cog("TimerCog")
         general_cog = self.bot.get_cog("General")
@@ -509,9 +528,9 @@ class FeedbackThreads(commands.Cog):
             print("General cog not found.")
             return
 
-        # HANDLES MFR to NOTHING (Deduct points)
+        # HANDLES NOTHING TO MFS (Deduct points)
         if "MFS" in after.content.upper() and "MFS" not in before.content.upper():
-            print("entering MFR added")
+            print("entering MFS added")
             points_deducted = 1
 
             # Deduct points
@@ -528,8 +547,6 @@ class FeedbackThreads(commands.Cog):
                 await after.delete()
                 # tag admins in thread
                 await existing_thread.send(f"<@&{ADMINS_ROLE_ID}>")
-                # send deleted message to user
-                await general_cog.send_messages_to_user(after)
 
                 # thread
                 embed_title = "<MFS added to message with no points"
@@ -560,7 +577,9 @@ class FeedbackThreads(commands.Cog):
             # sends message to channel + handles deletion, sends ticket to thread
             await asyncio.gather(
                 self.thread_archive(existing_thread, embed),
-                self.delete_channel_message_after_fail_edit(channel_message)
+                self.delete_channel_message_after_fail_edit(channel_message),
+                # send deleted message to user
+                general_cog.send_messages_to_user(after)
             )
 
     async def MFS_to_nothing(self, before: discord.Message, after: discord.Message, formatted_time, message_link):
