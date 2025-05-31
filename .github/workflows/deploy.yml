@@ -1,4 +1,4 @@
-# added test comment (ignore)
+# added test comment (ignore part 2)
 name: Deploy on merge to main to GCP VM
 
 on:
