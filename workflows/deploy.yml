@@ -1,0 +1,39 @@
+name: Deploy on merge to main to GCP VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+        # will deploy when code merged to main
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+        # downloads SDK for workflow
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: 'latest'
+
+          # uses mf-bot-cicd service account
+      - name: Authenticate with GCP Service Account
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+          # deploys given the manual commands
+          # bot (including tmux session) lives under bots4fun1
+      - name: Deploy to GCP VM with SSH
+        run: |
+          gcloud compute ssh bots4fun1@mfbot-1 --zone=us-central1-c --command="
+            cd /home/bots4fun1/Music-Feedback-Bot && \
+            tmux list-sessions || true && \
+            tmux kill-session -t watchdog_session || true && \
+            tmux new -d -s watchdog_session 'python3 ./watchdog.py'
+          "
+
