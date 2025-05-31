@@ -1,3 +1,4 @@
+# added test comment (ignore)
 name: Deploy on merge to main to GCP VM
 
 on:
@@ -36,4 +37,6 @@ jobs:
             tmux kill-session -t watchdog_session || true && \
             tmux new -d -s watchdog_session 'python3 ./watchdog.py'
           "
+
+        
 
