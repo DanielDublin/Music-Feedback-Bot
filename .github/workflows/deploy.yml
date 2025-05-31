@@ -4,7 +4,7 @@ name: Deploy on merge to main to GCP VM
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
