@@ -11,7 +11,9 @@ class ThreadsManager:
         self.sqlitedatabase = sqlitedatabase
         # self.embeds = embeds
         self.user_thread = user_thread
-        self.threads_channel = None # Initialize to None, will be set in on_ready
+        self.threads_channel = None
+        self.helpers = DiscordHelpers(bot)
+
 
     async def on_ready(self):
 
@@ -25,11 +27,9 @@ class ThreadsManager:
 
             # if thread exists for user
             if ctx.author.id in self.user_thread: 
-                pass
-
+                await self.existing_thread(ctx)
             else:
-                if ctx.command.name == "R" or ctx.command.name == "S":
-                    await self.create_new_thread(ctx)
+                await self.create_new_thread(ctx)
 
     async def create_new_thread(self, ctx):
 
@@ -43,13 +43,28 @@ class ThreadsManager:
             auto_archive_duration=60  # Auto-archive after 1 hour of inactivity
         )
 
-
         # insert new user into dictionary
         self.user_thread[ctx.author.id] = [thread.id, 1]
 
         # insert new user into database
         self.sqlitedatabase.insert_user(ctx.author.id, thread.id, 1)
 
+    async def existing_thread(self, ctx):
+
+        # get the thread from the dictionary
+        thread_id = self.user_thread[ctx.author.id][0]
+        existing_thread = await self.bot.fetch_channel(thread_id)
+
+        # unarchive the thread 
+        await self.helpers.unarchive_thread(existing_thread)
+
+        # send embed
+        await existing_thread.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
+
+        # rearchive
+        await self.helpers.archive_thread(existing_thread)
+
+        return existing_thread
 
 async def setup(bot):
     await bot.add_cog(ThreadsManager(bot))

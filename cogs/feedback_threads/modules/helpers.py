@@ -1,18 +1,21 @@
-# async def unarchive_thread():
-#     if existing_thread.archived:
-#         await existing_thread.edit(archived=False)
-
-
-
-# async def archive_thread()
-
-
+import asyncio
 from datetime import datetime
 from data.constants import THREADS_CHANNEL
 
 class DiscordHelpers:
     def __init__(self, bot):
         self.bot = bot
+
+    async def unarchive_thread(self, existing_thread):
+        if existing_thread.archived:
+            await existing_thread.edit(archived=False)
+
+            
+    async def archive_thread(self, existing_thread):
+        print(f"[DEBUG] Thread archived? {existing_thread.archived}")
+        if not existing_thread.archived:
+            await asyncio.sleep(5)
+            await existing_thread.edit(archived=True)
 
     def generate_message_link(self, ctx):
         channel_id = ctx.message.channel.id
