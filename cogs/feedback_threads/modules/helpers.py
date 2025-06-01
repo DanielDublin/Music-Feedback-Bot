@@ -1,0 +1,25 @@
+# async def unarchive_thread():
+#     if existing_thread.archived:
+#         await existing_thread.edit(archived=False)
+
+
+
+# async def archive_thread()
+
+
+from datetime import datetime
+from data.constants import THREADS_CHANNEL
+
+class DiscordHelpers:
+    def __init__(self, bot):
+        self.bot = bot
+
+    def generate_message_link(self, ctx):
+        channel_id = ctx.message.channel.id
+        message_id = ctx.message.id
+        guild_id = ctx.guild.id
+        return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
+
+    def get_formatted_time(self):
+        current_time = datetime.now()
+        return current_time.strftime("%Y-%d-%m %H:%M")

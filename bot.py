@@ -54,18 +54,19 @@ initial_extensions = [
     'cogs.music',
     'cogs.owner_utilities',
     'cogs.help_command',
-    'modules.scan_delete_intro_messages'
+    'modules.scan_delete_intro_messages',
+    'cogs.feedback_threads.feedback_threads'
     # Add more cogs as needed
 ]
 
 # Load slash command cogs
 slash_extensions = [
-    'cogs.slash_commands.timer',
+    # 'cogs.slash_commands.timer_cogs.timer',
     'cogs.slash_commands.admin',
     'cogs.slash_commands.rank_commands',
+    # 'cogs.slash_commands.thread_search'
     # Add more slash command cogs as needed
 ]
-
 
 # Define an exception handler
 @bot.event

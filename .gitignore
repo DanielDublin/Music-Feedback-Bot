@@ -392,3 +392,4 @@ FodyWeavers.xsd
 /output.json
 
 .venv/
+feedback_threads.sqlite
