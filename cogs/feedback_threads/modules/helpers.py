@@ -10,9 +10,7 @@ class DiscordHelpers:
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
 
-            
     async def archive_thread(self, existing_thread):
-        print(f"[DEBUG] Thread archived? {existing_thread.archived}")
         if not existing_thread.archived:
             await asyncio.sleep(5)
             await existing_thread.edit(archived=True)

@@ -6,6 +6,8 @@ import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
+from cogs.feedback_threads.modules.points_logic import PointsLogic
+
 
 
 
@@ -210,29 +212,33 @@ class General(commands.Cog):
 
         else:  # User doesn't have points
 
-            try:
-                
-                await self.send_messages_to_user(ctx.message)
-                await ctx.channel.send(
-                    f"{mention}, you do not have any MF points."
-                    f" Please give feedback first.\nYour request was DMed to you for future"
-                    f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
-                    delete_after=60)
-            except Exception:
-                await ctx.channel.send(f'{mention}, you do not have any MF points. Please give feedback first.'
-                                       f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
-                                       f'\nPlease contact Moderators for help or re-read'
-                                       f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
-                                       delete_after=60)
 
-            await ctx.message.delete()
-            await channel.send(f"<@{SERVER_OWNER_ID}>:")
+                feedback_cog = self.bot.get_cog("FeedbackThreads")
+                if not feedback_cog:
+                    await ctx.send("Feedback cog not loaded.")
+                    return
 
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="**ALERT**",
-                            value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
+                user_thread = feedback_cog.user_thread
+                points_logic = PointsLogic(self.bot, user_thread, ctx)
+
+                user_id = str(ctx.author.id)
+                print(user_id)
+                ticket_counter = feedback_cog.user_thread[ctx.author.id][1]
+                print(ticket_counter) # default to 0 if missing
+                thread_id = feedback_cog.user_thread[ctx.author.id][0]
+                thread = await self.bot.fetch_channel(thread_id)
+                print(thread)
+
+                try:
+                    print("trying to send embed")
+                    await points_logic.send_embed(user_id=user_id, ticket_counter=ticket_counter, thread=thread, called_from_zero=True)
+                except Exception as e:
+                    print(e)
+
+            # need to check if existing thread 
+
+
+
 
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')

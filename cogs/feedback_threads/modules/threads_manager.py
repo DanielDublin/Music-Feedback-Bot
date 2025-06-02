@@ -1,19 +1,20 @@
 import discord
 from datetime import datetime
 import asyncio
-from database.db import fetch_points
 from .helpers import DiscordHelpers
+from .points_logic import PointsLogic
+from .embeds import Embeds
 from data.constants import THREADS_CHANNEL
 
 class ThreadsManager:
     def __init__(self, bot, sqlitedatabase, user_thread):
         self.bot = bot
         self.sqlitedatabase = sqlitedatabase
-        # self.embeds = embeds
         self.user_thread = user_thread
+        self.points_logic = PointsLogic(bot, user_thread)
         self.threads_channel = None
         self.helpers = DiscordHelpers(bot)
-
+        self.embeds = Embeds(bot, user_thread)
 
     async def on_ready(self):
 
@@ -51,19 +52,28 @@ class ThreadsManager:
 
     async def existing_thread(self, ctx):
 
-        # get the thread from the dictionary
+        # increase ticket counter in dictionary
+        self.user_thread[ctx.author.id][1] += 1
+
+        # update database
+        self.sqlitedatabase.update_ticket_counter(ctx.author.id, self.user_thread[ctx.author.id][1])
+
+        # get the thread and ticket_counter from the dictionary
         thread_id = self.user_thread[ctx.author.id][0]
         existing_thread = await self.bot.fetch_channel(thread_id)
+
+        ticket_counter = self.user_thread[ctx.author.id][1]
 
         # unarchive the thread 
         await self.helpers.unarchive_thread(existing_thread)
 
         # send embed
-        await existing_thread.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
+        await self.points_logic.send_embed(user_id=ctx.author.id, ticket_counter=ticket_counter, thread=existing_thread)
 
         # rearchive
         await self.helpers.archive_thread(existing_thread)
 
+        # return for archive use
         return existing_thread
 
 async def setup(bot):

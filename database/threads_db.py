@@ -104,7 +104,7 @@ class SQLiteDatabase:
                 UPDATE users 
                 SET ticket_counter = ticket_counter + 1 
                 WHERE user_id = ?
-            ''', (ticket_counter, user_id))
+            ''', (user_id,))
             self.connection.commit()
             if self.cursor.rowcount > 0:
                 print(f"Updated ticket_counter for user_id {user_id} to {ticket_counter}")
