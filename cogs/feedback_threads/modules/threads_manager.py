@@ -50,6 +50,8 @@ class ThreadsManager:
         # insert new user into database
         self.sqlitedatabase.insert_user(ctx.author.id, thread.id, 1)
 
+        # await self.points_logic.send_embed_new_thread(ctx, thread)
+
     async def existing_thread(self, ctx):
 
         # increase ticket counter in dictionary
@@ -68,7 +70,7 @@ class ThreadsManager:
         await self.helpers.unarchive_thread(existing_thread)
 
         # send embed
-        await self.points_logic.send_embed(user_id=ctx.author.id, ticket_counter=ticket_counter, thread=existing_thread)
+        await self.points_logic.send_embed_existing_thread(user_id=ctx.author.id, ticket_counter=ticket_counter, thread=existing_thread)
 
         # rearchive
         await self.helpers.archive_thread(existing_thread)
