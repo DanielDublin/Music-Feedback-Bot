@@ -36,21 +36,9 @@ class FeedbackThreads(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_message(self, message):
-
-        if message.author.bot:
-            return
-        
-        # Only process commands in the feedback channel
-        if message.channel.id != FEEDBACK_CHANNEL_ID:
-            return
-        
-        # Only process if it's a command
-        ctx = await self.bot.get_context(message)
-        if ctx.command is None:
-            return
-
-        await self.bot.process_commands(message)
+    async def on_ready(self):
+        await self.initialize_sqldb()
+        await self.threads_manager.on_ready()
 
 
 async def setup(bot):

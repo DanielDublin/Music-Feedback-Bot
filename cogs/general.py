@@ -139,6 +139,8 @@ class General(commands.Cog):
                       help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx: discord.Message):
+
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -169,6 +171,8 @@ class General(commands.Cog):
         # Called_from_zero used to flag if the member is using <MFS with no points
         await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
 
+
+
     async def send_messages_to_user(self, message: discord.Message):
         out_message = "Hey, you've run into an error when submitting for feedback.\n"\
                       "Make sure you are using the correct bot commands.\n"\
@@ -189,6 +193,7 @@ class General(commands.Cog):
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
+
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -254,6 +259,7 @@ class General(commands.Cog):
             # Check if user has a feedback thread
             # Called_from_zero used to flag if the member is using <MFS with no points (TRUE to throw exception)
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
+
 
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
