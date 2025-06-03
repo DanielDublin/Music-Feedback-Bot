@@ -24,15 +24,20 @@ class ThreadsManager:
         if not self.threads_channel:
             print(f"Error: THREADS_CHANNEL with ID {THREADS_CHANNEL} not found.")
 
-    async def check_if_feedback_thread(self, ctx):
-
-            # if thread exists for user
-            if ctx.author.id in self.user_thread: 
-                await self.existing_thread(ctx)
+    async def check_if_feedback_thread(self, ctx, called_from_zero=False):
+        print(f"check_if_feedback_thread called for user {ctx.author.id}, command {ctx.command.name}, called_from_zero={called_from_zero}")
+        try:
+            if ctx.author.id in self.user_thread:
+                print(f"Existing thread found for {ctx.author.id}")
+                await self.existing_thread(ctx, called_from_zero)
             else:
-                await self.create_new_thread(ctx)
+                print(f"No thread found for {ctx.author.id}, creating new")
+                await self.create_new_thread(ctx, called_from_zero)
+        except Exception as e:
+            print(f"Error in check_if_feedback_thread: {str(e)}")
+            await ctx.send(f"An error occurred: {str(e)}")
 
-    async def create_new_thread(self, ctx):
+    async def create_new_thread(self, ctx, called_from_zero=False):
 
         # channel to send threads for all members
         message = await self.threads_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
@@ -50,9 +55,15 @@ class ThreadsManager:
         # insert new user into database
         self.sqlitedatabase.insert_user(ctx.author.id, thread.id, 1)
 
-        # await self.points_logic.send_embed_new_thread(ctx, thread)
+        # send embed
+        await self.points_logic.send_embed_new_thread(ctx, thread)
 
-    async def existing_thread(self, ctx):
+    async def existing_thread(self, ctx, called_from_zero=False):
+        if ctx is None:
+            print("Error in existing_thread: ctx is None")
+            raise ValueError("Context (ctx) is required but is None")
+        else:
+            print("ctx is not None in existing_thread")
 
         # increase ticket counter in dictionary
         self.user_thread[ctx.author.id][1] += 1
@@ -70,7 +81,16 @@ class ThreadsManager:
         await self.helpers.unarchive_thread(existing_thread)
 
         # send embed
-        await self.points_logic.send_embed_existing_thread(user_id=ctx.author.id, ticket_counter=ticket_counter, thread=existing_thread)
+        try:
+            await self.points_logic.send_embed_existing_thread(
+                ctx=ctx,
+                user_id=ctx.author.id,
+                ticket_counter=ticket_counter,
+                thread=existing_thread,
+                called_from_zero=called_from_zero
+            )
+        except Exception as e:
+            await ctx.send(f"An error occurred: {str(e)}")
 
         # rearchive
         await self.helpers.archive_thread(existing_thread)

@@ -8,8 +8,7 @@ from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.points_logic import PointsLogic
-
-
+from cogs.feedback_threads.modules.threads_manager import ThreadsManager
 
 
 class General(commands.Cog):
@@ -17,6 +16,7 @@ class General(commands.Cog):
         self.bot = bot
         self.pfp_url =""
         self.helpers = DiscordHelpers(self.bot)
+
         
     def guild_only(ctx):
         return ctx.guild is not None
@@ -162,6 +162,10 @@ class General(commands.Cog):
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
 
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
+
+        await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+
 
 
     async def send_messages_to_user(self, message: discord.Message):
@@ -196,9 +200,11 @@ class General(commands.Cog):
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
-        
+
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
 
         if points:  # user have points, reduce them and send message + log
+
             points -= 1
             await db.reduce_points(str(ctx.author.id), 1)
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
@@ -212,13 +218,9 @@ class General(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+
         else:  # User doesn't have points
-
-
-            # this gets the environment ready to import thread, ticket_counter, points_logic, and user_id, then sends the embed
-            # send_embed will check if there is an existing thread or not
-            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
-            await points_logic.send_embed_existing_thread(user_id=user_id, ticket_counter=ticket_counter, thread=thread, called_from_zero=True)
 
             try:
                 
@@ -243,6 +245,8 @@ class General(commands.Cog):
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
+
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
 
 
     @commands.check(guild_only)

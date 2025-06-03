@@ -39,17 +39,11 @@ class FeedbackThreads(commands.Cog):
     async def on_message(self, message):
         if message.author.bot:
             return
-        # Only process messages in the feedback channel
+        # Only process commands in the feedback channel
         if message.channel.id != FEEDBACK_CHANNEL_ID:
             return
-
-        ctx = await self.bot.get_context(message)
-
-        if ctx.command.name == "R" or ctx.command.name == "S":
-            await self.threads_manager.check_if_feedback_thread(ctx)
-
-
-        await self.bot.process_commands(message) 
+        print(f"Processing message from {message.author.id} in channel {message.channel.id}")
+        await self.bot.process_commands(message)
 
 
 async def setup(bot):

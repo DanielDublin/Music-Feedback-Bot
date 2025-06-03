@@ -32,21 +32,40 @@ class DiscordHelpers:
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
             return
+        
+        if ctx.author.id in feedback_cog.user_thread:
+            user_thread = feedback_cog.user_thread
+            points_logic = PointsLogic(self.bot, user_thread, ctx)
 
-        user_thread = feedback_cog.user_thread
-        points_logic = PointsLogic(self.bot, user_thread, ctx)
+            user_id = str(ctx.author.id)
+            print(user_id)
 
-        user_id = str(ctx.author.id)
-        print(user_id)
-
-        try:
             ticket_counter = user_thread[ctx.author.id][1]
             thread_id = user_thread[ctx.author.id][0]
-        except KeyError:
-            await ctx.send("You do not have a thread.")
-            return
 
-        thread = await self.bot.fetch_channel(thread_id)
-        print(thread)
+            thread = await self.bot.fetch_channel(thread_id)
+            print(thread)
+        else:
+            pass
 
         return thread, ticket_counter, points_logic, user_id
+    
+
+
+
+    
+    async def load_threads_cog(self, ctx):
+    # Get the FeedbackThreads cog instance
+        feedback_cog = self.bot.get_cog("FeedbackThreads")
+        print("feedback_cog")
+        if not feedback_cog:
+            await ctx.send("Feedback cog not loaded.")
+
+
+        # Access the shared user_thread dict and ThreadsManager instance
+        user_thread = feedback_cog.user_thread
+        print("user_thread")
+        sqlitedatabase = await feedback_cog.initialize_sqldb()
+        print("sqlitedatabase")
+        return feedback_cog, user_thread, sqlitedatabase
+
