@@ -188,6 +188,7 @@ class General(commands.Cog):
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -201,7 +202,14 @@ class General(commands.Cog):
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
+        try:
+            
+            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
+
+        except Exception as e:
+            print(f"Error in MFs_command: {str(e)}")
+            await ctx.channel.send(f"An error occurred: {str(e)}")
+            return
 
         if points:  # user have points, reduce them and send message + log
 
@@ -218,7 +226,11 @@ class General(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
-            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+            try:
+                await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+            except Exception as e:
+                print(f"Error in MFs_command: {str(e)}")
+                await ctx.channel.send(f"An error occurred: {str(e)}")
 
         else:  # User doesn't have points
 

@@ -50,22 +50,16 @@ class DiscordHelpers:
 
         return thread, ticket_counter, points_logic, user_id
     
-
-
-
-    
     async def load_threads_cog(self, ctx):
     # Get the FeedbackThreads cog instance
         feedback_cog = self.bot.get_cog("FeedbackThreads")
-        print("feedback_cog")
+
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
 
-
         # Access the shared user_thread dict and ThreadsManager instance
         user_thread = feedback_cog.user_thread
-        print("user_thread")
         sqlitedatabase = await feedback_cog.initialize_sqldb()
-        print("sqlitedatabase")
+
         return feedback_cog, user_thread, sqlitedatabase
 

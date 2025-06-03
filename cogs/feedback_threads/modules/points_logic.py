@@ -29,7 +29,7 @@ class PointsLogic:
     async def send_embed_existing_thread(self, ctx, user_id=None, ticket_counter=None, thread=None, called_from_zero=False):
 
         user_id = ctx.author.id  # Use ctx, not self.ctx
-        ticket_counter = self.user_thread.get(ctx.author.id, [None, 0])[1]  # Use ctx
+        ticket_counter = ticket_counter
         points = await db.fetch_points(str(user_id))
 
         if ctx.command.name == "R":
@@ -44,6 +44,11 @@ class PointsLogic:
                 await self.handle_mfs_submissions(ctx, thread, ticket_counter)
 
     async def handle_mfr_submissions(self, ctx, thread, ticket_counter):
+
+        print(f"mfr: ctx={ctx}, thread={thread}, ticket_counter={ticket_counter}")
+
+        
+
         if thread is None:
             print("Error: thread is None")
             if ctx:
