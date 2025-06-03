@@ -64,7 +64,7 @@ slash_extensions = [
     # 'cogs.slash_commands.timer_cogs.timer',
     'cogs.slash_commands.admin',
     'cogs.slash_commands.rank_commands',
-    # 'cogs.slash_commands.thread_search'
+    'cogs.slash_commands.threads'
     # Add more slash command cogs as needed
 ]
 
