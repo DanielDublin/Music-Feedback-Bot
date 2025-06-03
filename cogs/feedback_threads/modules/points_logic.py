@@ -30,7 +30,6 @@ class PointsLogic:
 
         user_id = ctx.author.id  # Use ctx, not self.ctx
         ticket_counter = ticket_counter
-        points = await db.fetch_points(str(user_id))
 
         if ctx.command.name == "R":
             await self.handle_mfr_submissions(ctx, thread, ticket_counter)

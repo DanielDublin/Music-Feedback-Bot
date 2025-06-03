@@ -1,4 +1,5 @@
 import discord
+import database.db as db
 from .helpers import DiscordHelpers
 
 class Embeds:
@@ -10,20 +11,23 @@ class Embeds:
 
     async def mfr(self, ctx, ticket_counter, thread=None):
 
+        points = int(await db.fetch_points(str(ctx.author.id)))
+        
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
         description=f"{self.helpers.get_formatted_time()}",
         color=discord.Color.green()
         )
 
-        embed.add_field(name="<MFR", value=f"Gained **1** point and now has **POINTS** MF points.", inline=True)
-
-        embed.add_field(name="MESSAGE LINK", value="", inline=False)
+        embed.add_field(name="<MFR", value=f"Gained **1** point and now has **{points}** MF points.", inline=True)
+        embed.add_field(name=self.helpers.get_message_link(ctx), value="", inline=False)
         embed.set_footer(text="Some Footer Text")
 
         return embed
 
     async def mfs(self, ctx, ticket_counter, thread=None):
+
+        points = int(await db.fetch_points(str(ctx.author.id)))
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -31,9 +35,9 @@ class Embeds:
         color=discord.Color.red()
         )
 
-        embed.add_field(name="<MFS", value=f"Used **1** point and now has **POINTS** MF points.", inline=True)
+        embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
 
-        embed.add_field(name="MESSAGE LINK", value="", inline=False)
+        embed.add_field(name=self.helpers.get_message_link(ctx), value="", inline=False)
         embed.set_footer(text="Some Footer Text")
 
         return embed

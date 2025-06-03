@@ -16,7 +16,7 @@ class DiscordHelpers:
             await asyncio.sleep(5)
             await existing_thread.edit(archived=True)
 
-    def generate_message_link(self, ctx):
+    def get_message_link(self, ctx):
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
