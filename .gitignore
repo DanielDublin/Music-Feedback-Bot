@@ -3,6 +3,8 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+.venv/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -388,3 +390,6 @@ FodyWeavers.xsd
 /data/constants-test.py
 /counter.py
 /output.json
+
+.venv/
+feedback_threads.sqlite

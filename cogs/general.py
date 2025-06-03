@@ -6,13 +6,17 @@ import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
-
+from cogs.feedback_threads.modules.helpers import DiscordHelpers
+from cogs.feedback_threads.modules.points_logic import PointsLogic
+from cogs.feedback_threads.modules.threads_manager import ThreadsManager
 
 
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pfp_url =""
+        self.helpers = DiscordHelpers(self.bot)
+
         
     def guild_only(ctx):
         return ctx.guild is not None
@@ -135,6 +139,8 @@ class General(commands.Cog):
                       help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFR_command(self, ctx: discord.Message):
+
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -158,6 +164,13 @@ class General(commands.Cog):
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
 
+        # load cog needed to use variables
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
+
+        # Check if user has a feedback thread
+        # Called_from_zero used to flag if the member is using <MFS with no points
+        await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+
 
 
     async def send_messages_to_user(self, message: discord.Message):
@@ -180,6 +193,8 @@ class General(commands.Cog):
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def MFs_command(self, ctx: discord.Message):
+
+
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -192,9 +207,12 @@ class General(commands.Cog):
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
-        
+
+        # load cog needed to use variables
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
 
         if points:  # user have points, reduce them and send message + log
+
             points -= 1
             await db.reduce_points(str(ctx.author.id), 1)
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
@@ -207,6 +225,10 @@ class General(commands.Cog):
                             inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
+
+            # Check if user has a feedback thread
+            # Called_from_zero used to flag if the member is using <MFS with no points
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
 
         else:  # User doesn't have points
 
@@ -233,6 +255,11 @@ class General(commands.Cog):
                             value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
+
+            # Check if user has a feedback thread
+            # Called_from_zero used to flag if the member is using <MFS with no points (TRUE to throw exception)
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
+
 
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
