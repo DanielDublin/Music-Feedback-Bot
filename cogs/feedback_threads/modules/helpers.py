@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from data.constants import THREADS_CHANNEL
 
 class DiscordHelpers:
@@ -23,7 +24,8 @@ class DiscordHelpers:
         return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
 
     def get_formatted_time(self):
-        current_time = datetime.now()
+        eastern = ZoneInfo("America/New_York")
+        current_time = datetime.now(eastern)
         return current_time.strftime("%B %d, %Y %H:%M")
 
     async def load_feedback_cog(self, ctx):
