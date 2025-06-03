@@ -40,10 +40,9 @@ jobs:
             if [ -f .env ]; then export \$(cat .env | xargs); fi && \
             tmux list-sessions || true && \
             tmux kill-session -t watchdog_session || true && \
-            tmux new -d -s watchdog_session 'python3 ./watchdog.py' || { echo 'Failed to start watchdog.py'; exit 1; } && \
+            tmux new -d -s watchdog_session 'cd /home/bots4fun1/Music-Feedback-Bot && python3 ./watchdog.py' || { echo 'Failed to start watchdog.py'; exit 1; } && \
             sleep 5 && \
             tmux list-sessions || true
           "
-
         
 
