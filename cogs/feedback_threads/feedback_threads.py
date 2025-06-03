@@ -28,21 +28,28 @@ class FeedbackThreads(commands.Cog):
                 if data:
                     self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in data}
                     self.threads_manager.user_thread = self.user_thread
-                    print(f"user_thread data repopulated from SQLite Database: {len(self.user_thread)} entries.")
+                    print(f"user_thread repopulated from SQLite Database: {len(self.user_thread)} entries")
                 else:
-                    print("initialize_sqldb: No data in SQLite Database to repopulate the user_thread dictionary.")
+                    print("initialize_sqldb: No data in SQLite Database to repopulate the user_thread dictionary")
 
             return self.user_thread
 
 
     @commands.Cog.listener()
     async def on_message(self, message):
+
         if message.author.bot:
             return
+        
         # Only process commands in the feedback channel
         if message.channel.id != FEEDBACK_CHANNEL_ID:
             return
-        print(f"Processing message from {message.author.id} in channel {message.channel.id}")
+        
+        # Only process if it's a command
+        ctx = await self.bot.get_context(message)
+        if ctx.command is None:
+            return
+
         await self.bot.process_commands(message)
 
 

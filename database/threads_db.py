@@ -37,10 +37,8 @@ class SQLiteDatabase:
                 )
             ''')
             self.connection.commit()
-            print("SQLite database created or already exists.")
+            print("SQLite database created or already exists")
 
-            # Query and print existing users
-            self.fetch_all_users()
         except sqlite3.Error as e:
             print(f"Error creating table: {e}")
 
@@ -51,12 +49,6 @@ class SQLiteDatabase:
         try:
             self.cursor.execute("SELECT user_id, thread_id, ticket_counter FROM users") # It's good practice to select specific columns
             rows = self.cursor.fetchall()
-            print("Users in database:") # This print is fine for debugging
-            if rows:
-                for row in rows:
-                    print(row) # This print is fine for debugging
-            else:
-                print("No users found.")
 
             return rows 
 
@@ -85,8 +77,9 @@ class SQLiteDatabase:
             ''', (user_id, thread_id, ticket_counter))
             self.connection.commit()
             user_id = self.cursor.lastrowid
-            print(f"Inserted user with user_id: {user_id}, thread_id: {thread_id}, ticket_counter: {ticket_counter}")
+
             return user_id
+        
         except sqlite3.Error as e:
             print(f"Error inserting user: {e}")
             return None
@@ -106,10 +99,7 @@ class SQLiteDatabase:
                 WHERE user_id = ?
             ''', (user_id,))
             self.connection.commit()
-            if self.cursor.rowcount > 0:
-                print(f"Updated ticket_counter for user_id {user_id} to {ticket_counter}")
-            else:
-                print(f"No user found with user_id {user_id}")
+
         except sqlite3.Error as e:
             print(f"Error updating ticket_counter: {e}")
 
@@ -122,6 +112,7 @@ class SQLiteDatabase:
         try:
             self.connection.close()
             print("Database connection closed")
+
         except sqlite3.Error as e:
             print(f"Error closing connection: {e}")
 
@@ -131,16 +122,3 @@ class SQLiteDatabase:
         """
         self.close_connection()
 
-# Example usage
-if __name__ == "__main__":
-    # Initialize database
-    db = SQLiteDatabase()
-    
-    # Update a user's ticket counter
-    db.update_ticket_counter(user_id=1, ticket_counter=10)
-    
-    # Query all users
-    db.fetch_all_users()
-    
-    # Close connection
-    db.close_connection()

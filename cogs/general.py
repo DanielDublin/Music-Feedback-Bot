@@ -162,11 +162,12 @@ class General(commands.Cog):
                                delete_after=4)
         await channel.send(embed=embed)  # Logs channel
 
+        # load cog needed to use variables
         feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
 
+        # Check if user has a feedback thread
+        # Called_from_zero used to flag if the member is using <MFS with no points
         await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
-
-
 
     async def send_messages_to_user(self, message: discord.Message):
         out_message = "Hey, you've run into an error when submitting for feedback.\n"\
@@ -202,14 +203,8 @@ class General(commands.Cog):
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         points = int(await db.fetch_points(str(ctx.author.id)))
 
-        try:
-            
-            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
-
-        except Exception as e:
-            print(f"Error in MFs_command: {str(e)}")
-            await ctx.channel.send(f"An error occurred: {str(e)}")
-            return
+        # load cog needed to use variables
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
 
         if points:  # user have points, reduce them and send message + log
 
@@ -226,11 +221,9 @@ class General(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
-            try:
-                await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
-            except Exception as e:
-                print(f"Error in MFs_command: {str(e)}")
-                await ctx.channel.send(f"An error occurred: {str(e)}")
+            # Check if user has a feedback thread
+            # Called_from_zero used to flag if the member is using <MFS with no points
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
 
         else:  # User doesn't have points
 
@@ -258,8 +251,9 @@ class General(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
+            # Check if user has a feedback thread
+            # Called_from_zero used to flag if the member is using <MFS with no points (TRUE to throw exception)
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
-
 
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')

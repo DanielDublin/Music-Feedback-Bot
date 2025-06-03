@@ -25,17 +25,14 @@ class ThreadsManager:
             print(f"Error: THREADS_CHANNEL with ID {THREADS_CHANNEL} not found.")
 
     async def check_if_feedback_thread(self, ctx, called_from_zero=False):
-        print(f"check_if_feedback_thread called for user {ctx.author.id}, command {ctx.command.name}, called_from_zero={called_from_zero}")
-        try:
-            if ctx.author.id in self.user_thread:
-                print(f"Existing thread found for {ctx.author.id}")
-                await self.existing_thread(ctx, called_from_zero)
-            else:
-                print(f"No thread found for {ctx.author.id}, creating new")
-                await self.create_new_thread(ctx, called_from_zero)
-        except Exception as e:
-            print(f"Error in check_if_feedback_thread: {str(e)}")
-            await ctx.send(f"An error occurred: {str(e)}")
+            
+        if ctx.author.id in self.user_thread:
+
+            await self.existing_thread(ctx, called_from_zero)
+            
+        else:
+
+            await self.create_new_thread(ctx, called_from_zero)
 
     async def create_new_thread(self, ctx, called_from_zero=False):
 
@@ -66,12 +63,13 @@ class ThreadsManager:
             called_from_zero=called_from_zero
         )
 
+        # archive the thread
+        await self.helpers.archive_thread(thread)
+
+        # return for archive use
+        return thread
+
     async def existing_thread(self, ctx, called_from_zero=False):
-        if ctx is None:
-            print("Error in existing_thread: ctx is None")
-            raise ValueError("Context (ctx) is required but is None")
-        else:
-            print("ctx is not None in existing_thread")
 
         # increase ticket counter in dictionary
         self.user_thread[ctx.author.id][1] += 1
@@ -89,16 +87,13 @@ class ThreadsManager:
         await self.helpers.unarchive_thread(existing_thread)
 
         # send embed
-        try:
-            await self.points_logic.send_embed_existing_thread(
-                ctx=ctx,
-                user_id=ctx.author.id,
-                ticket_counter=ticket_counter,
-                thread=existing_thread,
-                called_from_zero=called_from_zero
-            )
-        except Exception as e:
-            await ctx.send(f"An error occurred: {str(e)}")
+        await self.points_logic.send_embed_existing_thread(
+            ctx=ctx,
+            user_id=ctx.author.id,
+            ticket_counter=ticket_counter,
+            thread=existing_thread,
+            called_from_zero=called_from_zero
+        )
 
         # rearchive
         await self.helpers.archive_thread(existing_thread)
