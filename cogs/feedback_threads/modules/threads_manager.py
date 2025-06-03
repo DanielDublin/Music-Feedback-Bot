@@ -55,8 +55,16 @@ class ThreadsManager:
         # insert new user into database
         self.sqlitedatabase.insert_user(ctx.author.id, thread.id, 1)
 
+        # get the ticket counter
+        ticket_counter = self.user_thread[ctx.author.id][1]
+
         # send embed
-        await self.points_logic.send_embed_new_thread(ctx, thread)
+        await self.points_logic.send_embed_new_thread(
+            ctx=ctx, 
+            thread=thread, 
+            ticket_counter=ticket_counter, 
+            called_from_zero=called_from_zero
+        )
 
     async def existing_thread(self, ctx, called_from_zero=False):
         if ctx is None:

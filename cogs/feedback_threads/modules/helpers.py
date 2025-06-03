@@ -24,7 +24,7 @@ class DiscordHelpers:
 
     def get_formatted_time(self):
         current_time = datetime.now()
-        return current_time.strftime("%Y-%d-%m %H:%M")
+        return current_time.strftime("%B %d, %Y %H:%M")
 
     async def load_feedback_cog(self, ctx):
         from .points_logic import PointsLogic
