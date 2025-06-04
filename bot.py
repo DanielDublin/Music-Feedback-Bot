@@ -25,10 +25,30 @@ bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents,
                    owner_id=BOT_DEV_ID)
 bot.remove_command('help')
 
+@bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=732355624259813531))
+async def sync(interaction: discord.Interaction):
+    await bot.tree.sync(guild=discord.Object(id=732355624259813531))
+    await interaction.response.send_message("Commands synced", ephemeral=True)
+
 
 # Define the on_ready event
 @bot.event
 async def on_ready():
+/*************  ✨ Windsurf Command ⭐  *************/
+    """
+    Called when the bot is ready.
+
+    This function is called once all the login procedures are completed and the bot is ready to start accepting commands.
+
+    It initializes the database, initializes the FeedbackThreads cog, and syncs the slash commands.
+
+    Global variables:
+        IS_READY (int): Flag to check if the on_ready event has already been triggered.
+
+    Returns:
+        None
+    """
+/*******  93be5411-ba84-467b-b660-5bf9de594541  *******/
     global IS_READY
     global bot
 
