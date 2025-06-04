@@ -36,6 +36,10 @@ async def on_ready():
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
         #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+        # tree = bot.tree
+        # print("Registered commands:")
+        # for command in tree.get_commands():
+        #     print(f"- {command.name}: {command.description}")
         await bot.tree.sync() 
         print('Sync-ed slash commands')
  
