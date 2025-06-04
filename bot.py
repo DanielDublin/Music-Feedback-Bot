@@ -34,7 +34,7 @@ async def on_ready():
 
     if not IS_READY:
 
-        channel_id = 123456789012345678
+        channel_id = 1137143797361422458
         channel = bot.get_channel(channel_id)
 
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
