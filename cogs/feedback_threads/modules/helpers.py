@@ -85,31 +85,27 @@ class DiscordHelpers:
             print(f"No thread found for user ID: {user_id}")
             return None 
         
-    # async def delete_user_from_user_thread(self, user_id: int):
-    #     feedback_cog = self.bot.get_cog("FeedbackThreads")
-    #     if not feedback_cog:
-    #         print("Feedback cog not loaded.")
-    #         return
+    async def delete_user_from_user_thread(bot, user_id: int):
+        feedback_cog = bot.get_cog("FeedbackThreads")
 
-    #     user_thread = feedback_cog.user_thread
+        if not feedback_cog:
+            print("Feedback cog not loaded.")
+            return
 
-    #     if user_id in user_thread:
-    #         removed = user_thread.pop(user_id)
-    #         print(f"Removed thread info for user {user_id}: {removed}")
-    #     else:
-    #         print(f"User ID {user_id} not found in user_thread.")
+        user_thread = feedback_cog.user_thread
+
+        if user_id in user_thread:
+            user_thread.pop(user_id)
 
 
-    # async def delete_user_from_db(self, user_id: int):
-    #     feedback_cog = self.bot.get_cog("FeedbackThreads")
-    #     if not feedback_cog:
-    #         print("Feedback cog not loaded.")
-    #         return
+    async def delete_user_from_db(bot, user_id: int):
+        feedback_cog = bot.get_cog("FeedbackThreads")
 
-    #     if not hasattr(feedback_cog, "sqlitedatabase"):
-    #         feedback_cog.sqlitedatabase = await feedback_cog.initialize_sqldb()
+        if not feedback_cog:
+            print("Feedback cog not loaded.")
+            return
 
-    #     feedback_cog.sqlitedatabase.delete_user_from_db(user_id)
+        feedback_cog.sqlitedatabase.delete_user(user_id)
 
 
 
