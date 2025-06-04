@@ -33,15 +33,26 @@ async def on_ready():
     global bot
 
     if not IS_READY:
+
+        channel_id = 123456789012345678
+        channel = bot.get_channel(channel_id)
+
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         await db.init_database()  # Initialize the database when the bot starts
-        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+
         tree = bot.tree
-        print("Registered commands:")
+
+        await channel.send("Registered commands:")
         for command in tree.get_commands():
-            print(f"- {command.name}: {command.description}")
-        await bot.tree.sync() 
-        print('Sync-ed slash commands')
+            await channel.send(f"- {command.name}: {command.description}")
+
+        try:
+            await bot.tree.sync()
+        except Exception as e:
+            await channel.send(f"Error syncing commands: {e}")
+
+        await channel.send('Sync-ed slash commands')
+
  
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
