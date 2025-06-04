@@ -34,21 +34,6 @@ async def sync(interaction: discord.Interaction):
 # Define the on_ready event
 @bot.event
 async def on_ready():
-/*************  ✨ Windsurf Command ⭐  *************/
-    """
-    Called when the bot is ready.
-
-    This function is called once all the login procedures are completed and the bot is ready to start accepting commands.
-
-    It initializes the database, initializes the FeedbackThreads cog, and syncs the slash commands.
-
-    Global variables:
-        IS_READY (int): Flag to check if the on_ready event has already been triggered.
-
-    Returns:
-        None
-    """
-/*******  93be5411-ba84-467b-b660-5bf9de594541  *******/
     global IS_READY
     global bot
 

@@ -33,6 +33,7 @@ jobs:
         run: |
           gcloud compute ssh bots4fun1@mfbot-1 --zone=us-central1-c --command="
             cd /home/bots4fun1/Music-Feedback-Bot && \
+            git pull origin master && \
             if [ -f requirements.txt ]; then pip3 install --user -r requirements.txt; else echo 'No requirements.txt found'; fi && \
             tmux list-sessions || true && \
             tmux kill-session -t watchdog_session || true && \
