@@ -51,4 +51,5 @@ class ThreadSearch(commands.Cog):
             await interaction.followup.send(f"No active thread for <@{user.id}>.")
 
 async def setup(bot):
-    await bot.add_cog(ThreadSearch(bot))
+    await bot.add_cog(ThreadSearch(bot), guild=discord.Object(id=732355624259813531)) 
+    # await bot.add_cog(ThreadSearch(bot))
