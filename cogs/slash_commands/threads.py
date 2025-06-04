@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from ..feedback_threads.modules.helpers import DiscordHelpers
 
+@app_commands.guilds(discord.Object(id=732355624259813531))
 class ThreadSearch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
