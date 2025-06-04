@@ -34,24 +34,37 @@ async def on_ready():
 
     if not IS_READY:
 
-        channel_id = 1137143797361422458
-        channel = bot.get_channel(channel_id)
-
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
+        
         await db.init_database()  # Initialize the database when the bot starts
 
-        tree = bot.tree
+        feedback_cog = bot.get_cog("FeedbackThreads")
+        if feedback_cog:
+            try:
+                await feedback_cog.initialize_sqldb()
+                print("FeedbackThreads database initialized")
+            except Exception as e:
+                print(f"FeedbackThreads database initialization failed: {e}")
 
-        await channel.send("Registered commands:")
-        for command in tree.get_commands():
-            await channel.send(f"- {command.name}: {command.description}")
+            try:
+                await feedback_cog.threads_manager.on_ready()
+                print("FeedbackThreads threads manager initialized")
+            except Exception as e:
+                print(f"FeedbackThreads threads manager initialization failed: {e}")
+        else:
+            print("FeedbackThreads Cog not found")
 
-        try:
-            await bot.tree.sync()
-        except Exception as e:
-            await channel.send(f"Error syncing commands: {e}")
 
-        await channel.send('Sync-ed slash commands')
+        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+
+        # tree = bot.tree
+        # print("Registered commands:")
+        # for command in tree.get_commands():
+        #     print(f"- {command.name}: {command.description}")
+
+        await bot.tree.sync() 
+
+        print('Sync-ed slash commands')
 
  
         general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)

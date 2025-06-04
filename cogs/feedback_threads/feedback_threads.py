@@ -12,12 +12,6 @@ class FeedbackThreads(commands.Cog):
         self.sqlitedatabase = SQLiteDatabase()
         self.user_thread = {}  # {user_id: [thread_id, ticket_counter]}
         self.threads_manager = ThreadsManager(bot, self.sqlitedatabase, self.user_thread)
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-
-        await self.initialize_sqldb()
-        await self.threads_manager.on_ready() 
          
     async def initialize_sqldb(self):
 
@@ -33,13 +27,6 @@ class FeedbackThreads(commands.Cog):
                     print("initialize_sqldb: No data in SQLite Database to repopulate the user_thread dictionary")
 
             return self.user_thread
-
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        await self.initialize_sqldb()
-        await self.threads_manager.on_ready()
-
 
 async def setup(bot):
     await bot.add_cog(FeedbackThreads(bot))
