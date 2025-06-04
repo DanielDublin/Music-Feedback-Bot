@@ -103,6 +103,23 @@ class SQLiteDatabase:
         except sqlite3.Error as e:
             print(f"Error updating ticket_counter: {e}")
 
+    def delete_user(self, user_id):
+        """
+        Deletes a user from the 'users' table.
+        
+        Args:
+            user_id (int): The ID of the user to delete.
+        """
+        try:
+            self.cursor.execute('''
+                DELETE FROM users 
+                WHERE user_id = ?
+            ''', (user_id,))
+            self.connection.commit()
+
+        except sqlite3.Error as e:
+            print(f"Error deleting user: {e}")
+
 
     def close_connection(self):
         """
