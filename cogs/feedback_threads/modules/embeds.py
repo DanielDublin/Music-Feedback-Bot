@@ -19,7 +19,7 @@ class Embeds:
         color=discord.Color.green()
         )
 
-        embed.add_field(name="<MFR", value=f"Gained **1** point and now has **{points}** MF points.", inline=True)
+        embed.add_field(name="🟢 <MFR", value=f"Gained **1** point and now has **{points}** MF points.", inline=True)
         embed.add_field(name=self.helpers.get_message_link(ctx), value="", inline=False)
         embed.set_footer(text=f"Feedback by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
 
@@ -35,7 +35,7 @@ class Embeds:
         color=discord.Color.red()
         )
 
-        embed.add_field(name="<MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
+        embed.add_field(name="🔴 <MFS", value=f"Used **1** point and now has **{points}** MF points.", inline=True)
         embed.add_field(name=self.helpers.get_message_link(ctx), value="", inline=False)
         embed.set_footer(text=f"Feedback by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
 
@@ -49,7 +49,7 @@ class Embeds:
         color=discord.Color.yellow()
         )
 
-        embed.add_field(name="<MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
+        embed.add_field(name="⚠️ <MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
         embed.set_footer(text=f"Feedback by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
 
         return embed

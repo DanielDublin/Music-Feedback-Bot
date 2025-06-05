@@ -37,12 +37,13 @@ class DiscordHelpers:
         
         if ctx.author.id in feedback_cog.user_thread:
             user_thread = feedback_cog.user_thread
-            points_logic = PointsLogic(self.bot, user_thread, ctx)
+            points_logic = PointsLogic(self.bot, user_thread)
 
             user_id = str(ctx.author.id)
             print(user_id)
 
             ticket_counter = user_thread[ctx.author.id][1]
+            print(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
