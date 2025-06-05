@@ -154,33 +154,26 @@ class General(commands.Cog):
         points = int(await db.fetch_points(str(ctx.author.id)))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel
 
+        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).", delete_after=4)
+
         # load cog needed to use variables
         feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
 
-        # Check if user has a feedback thread
-        # Called_from_zero used to flag if the member is using <MFS with no points
         await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
 
-        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
-                               delete_after=4)
-
         thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
-
 
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(
             name="Feedback Notice",
             value=(
                 f"{mention} has **given feedback** and now has **{points}** MF point(s).\n\n"
-                f"↘️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                f"🟢 [Ticket #{ticket_counter}]({thread.jump_url})"
             ),
             inline=False
 )
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await channel.send(embed=embed)  # Logs channel
-
-
-
 
 
     async def send_messages_to_user(self, message: discord.Message):
@@ -227,24 +220,29 @@ class General(commands.Cog):
             await db.reduce_points(str(ctx.author.id), 1)
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
                                    delete_after=4)
-
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="Feedback Notice",
-                            value=f"{mention} has **submitted** a work for feedback and now"
-                                  f" has **{points}** MF point(s).",
-                            inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
-
+            
             # Check if user has a feedback thread
             # Called_from_zero used to flag if the member is using <MFS with no points
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+
+            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(name="Feedback Notice",
+                            value=(
+                                f"{mention} has **submitted** a work for feedback and now has **{points}** MF point(s).\n\n"
+                                f"🔴 [Ticket #{ticket_counter}]({thread.jump_url})"
+                            ),
+                            inline=False)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=embed)
 
         else:  # User doesn't have points
 
             try:
                 
                 await self.send_messages_to_user(ctx.message)
+
                 await ctx.channel.send(
                     f"{mention}, you do not have any MF points."
                     f" Please give feedback first.\nYour request was DMed to you for future"
@@ -258,17 +256,26 @@ class General(commands.Cog):
                                        delete_after=60)
 
             await ctx.message.delete()
-            await channel.send(f"<@{SERVER_OWNER_ID}>:")
-
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="**ALERT**",
-                            value=f"{mention} tried sending a track for feedback with **0** MF points.", inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
 
             # Check if user has a feedback thread
             # Called_from_zero used to flag if the member is using <MFS with no points (TRUE to throw exception)
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
+
+            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
+
+            await channel.send(f"<@{SERVER_OWNER_ID}>:")
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(
+                name="**ALERT**",
+                value=(
+                    f"{mention} tried sending a track for feedback with **0** MF points.\n\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                ),
+                inline=False
+            )
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=embed)
 
 
     @commands.check(guild_only)
