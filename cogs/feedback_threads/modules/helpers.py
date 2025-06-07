@@ -41,14 +41,14 @@ class DiscordHelpers:
             points_logic = PointsLogic(self.bot, user_thread)
 
             user_id = str(ctx.author.id)
-            ctx.send(user_id)
+            await ctx.send(user_id)
 
             ticket_counter = user_thread[ctx.author.id][1]
-            ctx.send(f"ticket counter: {ticket_counter}")
+            await ctx.send(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
-            ctx.send(thread)
+            await ctx.send(thread)
         else:
             pass
 
@@ -56,7 +56,7 @@ class DiscordHelpers:
     
     async def load_threads_cog(self, ctx):
 
-        ctx.send("Loading threads cog in loding...")
+        await ctx.send("Loading threads cog in loding...")
     # Get the FeedbackThreads cog instance
 
         feedback_cog = self.bot.get_cog("FeedbackThreads")
@@ -68,7 +68,7 @@ class DiscordHelpers:
         user_thread = feedback_cog.user_thread
         sqlitedatabase = await feedback_cog.initialize_sqldb()
 
-        ctx.send("Completed")
+        await ctx.send("Completed")
 
         return feedback_cog, user_thread, sqlitedatabase
     

@@ -47,22 +47,22 @@ class Admin(commands.Cog):
         ctx_like = ContextLike(interaction, command=self.add)
 
         try:
-            ctx_like.interaction.channel.send("Loading threads...")
+            await ctx_like.interaction.channel.send("Loading threads...")
             feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
         except Exception as e:
-            ctx_like.interaction.channel.send(e)
+            await ctx_like.interaction.channel.send(e)
             return
 
         try:
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
         except Exception as e:
-            ctx_like.interaction.channel.send(e)
+            await ctx_like.interaction.channel.send(e)
             return
 
         try:
             thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
         except Exception as e:
-            ctx_like.interaction.channel.send(e)
+            await ctx_like.interaction.channel.send(e)
             return
 
         if thread.archived:
