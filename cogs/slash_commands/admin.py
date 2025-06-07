@@ -49,18 +49,23 @@ class Admin(commands.Cog):
         try:
             await ctx_like.interaction.channel.send("Loading threads...")
             feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+            await ctx_like.interaction.channel.send("load threads Done!")
         except Exception as e:
             await ctx_like.interaction.channel.send(e)
             return
 
         try:
+            await ctx_like.interaction.channel.send("Checking if feedback thread...")
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+            await ctx_like.interaction.channel.send("check if feedback thread Done!")
         except Exception as e:
             await ctx_like.interaction.channel.send(e)
             return
 
         try:
+            await ctx_like.interaction.channel.send("Loading feedback cog...")
             thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+            await ctx_like.interaction.channel.send("load feedback cog Done!")
         except Exception as e:
             await ctx_like.interaction.channel.send(e)
             return
