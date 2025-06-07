@@ -47,12 +47,23 @@ class Admin(commands.Cog):
         ctx_like = ContextLike(interaction, command=self.add)
 
         feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
 
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+        try:
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+        except Exception as e:
+            ctx_like.interaction.channel.send(e)
+            return
 
-        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
-        await thread.send(embed=mod_embed)
+        try:
+            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+        except Exception as e:
+            ctx_like.interaction.channel.send(e)
+            return
+
+        if thread.archived:
+            await self.helpers.unarchive_thread(thread)
+            mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
+            await thread.send(embed=mod_embed)
 
 
         # Mod remove points
