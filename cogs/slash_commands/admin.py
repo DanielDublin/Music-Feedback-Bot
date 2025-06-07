@@ -4,12 +4,17 @@ from discord.ext import commands
 from discord import app_commands
 import json
 from data.constants import SERVER_ID
+from cogs.feedback_threads.modules.helpers import DiscordHelpers
+from cogs.feedback_threads.modules.ctx_class import ContextLike
+from cogs.feedback_threads.modules.embeds import Embeds
 
 
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pfp_url = ""
+        self.helpers = DiscordHelpers(self.bot)
+        self.embeds = Embeds(self.bot, self.helpers)
 
     group = app_commands.Group(name="mfpoints", description="Alter any user's points.", default_permissions=discord.Permissions(administrator=True))
     
@@ -32,12 +37,23 @@ class Admin(commands.Cog):
         current_points = int(await db.fetch_points(str(user.id)))
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name="Music Feedback",
-                        value=f"{interaction.user.mention} has given {user.mention} {points} MF point."
+                        value=f"ℹ️ {interaction.user.mention} has given {user.mention} {points} MF point."
                               f" They now have **{current_points}** MF point(s).",
                         inline=False)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
+
+        ctx_like = ContextLike(interaction, command=self.add)
+
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+
+        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+
+        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
+        await thread.send(embed=mod_embed)
+
 
         # Mod remove points
 
@@ -68,6 +84,16 @@ class Admin(commands.Cog):
             await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
+            ctx_like = ContextLike(interaction, command=self.add)
+
+            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+            await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+
+            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+
+            mod_embed = await self.embeds.mod_remove_points(ctx_like, user, ticket_counter, thread, points=points)
+            await thread.send(embed=mod_embed)
+
         else:
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(name="Music Feedback",
@@ -80,7 +106,7 @@ class Admin(commands.Cog):
             # Mod clear points
 
     @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
-    async def clear(self, interaction: discord.Interaction, user: discord.Member):
+    async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
@@ -88,6 +114,8 @@ class Admin(commands.Cog):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
+
+        cleared_points = int(await db.fetch_points(str(user.id)))
 
         await db.reset_points(str(user.id))
         embed = discord.Embed(color=0x7e016f)
@@ -97,6 +125,16 @@ class Admin(commands.Cog):
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
+
+        ctx_like = ContextLike(interaction, command=self.add)
+
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+
+        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+
+        mod_embed = await self.embeds.mod_clear_points(ctx_like, user, ticket_counter, thread, points=cleared_points)
+        await thread.send(embed=mod_embed)
 
 print("Processing complete")
 
