@@ -28,11 +28,16 @@ class ThreadsManager:
             
         if ctx.author.id in self.user_thread:
 
-            await self.existing_thread(ctx, called_from_zero)
+            try:
+                await self.existing_thread(ctx, called_from_zero)
+            except Exception as e:  
+                await ctx.send(f"An error occurred: {str(e)}")
             
         else:
-
-            await self.create_new_thread(ctx, called_from_zero)
+            try:
+                await self.create_new_thread(ctx, called_from_zero)
+            except Exception as e:  
+                await ctx.send(f"An error occurred: {str(e)}")
 
     async def create_new_thread(self, ctx, called_from_zero=False):
 

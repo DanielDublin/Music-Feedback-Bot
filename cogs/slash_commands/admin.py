@@ -64,6 +64,7 @@ class Admin(commands.Cog):
             try:
                 await interaction.channel.send("DEBUG: Checking if feedback thread exists...")
                 await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+                
                 await interaction.channel.send("DEBUG: Feedback thread check completed.")
             except Exception as e:
                 await interaction.channel.send(f"❌ Unexpected error in check_if_feedback_thread: {e}")
