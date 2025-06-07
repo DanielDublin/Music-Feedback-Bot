@@ -31,35 +31,24 @@ class DiscordHelpers:
 
     async def load_feedback_cog(self, ctx):
         from .points_logic import PointsLogic
-
-        await ctx.send("loading feedback cog")
-
         feedback_cog = self.bot.get_cog("FeedbackThreads")
-
-        await ctx(f"feedback_cog: {feedback_cog}")
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
             return
         
         if ctx.author.id in feedback_cog.user_thread:
-
-            await ctx.send("user in user_thread")
-            
             user_thread = feedback_cog.user_thread
-            await ctx.send(f"user_thread: {user_thread}") # print user_thread)
             points_logic = PointsLogic(self.bot, user_thread)
-            await ctx.send(f"points_logic: {points_logic}")
 
             user_id = str(ctx.author.id)
-            await ctx.send(user_id)
+            print(user_id)
 
             ticket_counter = user_thread[ctx.author.id][1]
-            await ctx.send(f"ticket counter: {ticket_counter}")
+            print(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
-            await ctx.send(f"thread id: {thread_id}")
 
             thread = await self.bot.fetch_channel(thread_id)
-            await ctx.send(thread)
+            print(thread)
         else:
             pass
 
@@ -67,28 +56,14 @@ class DiscordHelpers:
     
     async def load_threads_cog(self, ctx):
     # Get the FeedbackThreads cog instance
-
-        await ctx.send("loading feedback cog in helpers")
-
         feedback_cog = self.bot.get_cog("FeedbackThreads")
-
-        await ctx.send(f"feedback_cog: {feedback_cog}")
 
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
 
         # Access the shared user_thread dict and ThreadsManager instance
         user_thread = feedback_cog.user_thread
-
-        await ctx.send(f"user_thread: {user_thread}")
         sqlitedatabase = await feedback_cog.initialize_sqldb()
-
-        await ctx.send(f"sqlitedatabase: {sqlitedatabase}")
-
-        await ctx.send("complete load threads()")
-
-
-
 
         return feedback_cog, user_thread, sqlitedatabase
     

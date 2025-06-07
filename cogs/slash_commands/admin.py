@@ -47,34 +47,13 @@ class Admin(commands.Cog):
         # adding to force merge
         ctx_like = ContextLike(interaction, command=self.add)
 
-        try:
-            await ctx_like.interaction.channel.send("Loading threads...")
-            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-            await ctx_like.interaction.channel.send("load threads Done!")
-        except Exception as e:
-            await ctx_like.interaction.channel.send(e)
-            return
+        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
 
-        try:
-            await ctx_like.interaction.channel.send("Checking if feedback thread...")
-            await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
-            await ctx_like.interaction.channel.send("check if feedback thread Done!")
-        except Exception as e:
-            await ctx_like.interaction.channel.send(e)
-            return
+        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
 
-        try:
-            await ctx_like.interaction.channel.send("Loading feedback cog...")
-            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
-            await ctx_like.interaction.channel.send("load feedback cog Done!")
-        except Exception as e:
-            await ctx_like.interaction.channel.send(e)
-            return
-
-        if thread.archived:
-            await self.helpers.unarchive_thread(thread)
-            mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
-            await thread.send(embed=mod_embed)
+        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
+        await thread.send(embed=mod_embed)
 
 
         # Mod remove points
