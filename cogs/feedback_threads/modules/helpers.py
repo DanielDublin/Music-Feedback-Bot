@@ -44,13 +44,13 @@ class DiscordHelpers:
             print(user_id)
 
             ticket_counter = user_thread[ctx.author.id][1]
-            print(f"ticket counter: {ticket_counter}")
+            ctx.send(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
-            print(f"thread id: {thread_id}")
-
+            ctx.send(f"thread id: {thread_id}")
 
             try:
                 thread = await self.bot.fetch_channel(thread_id)
+                ctx.send(f"thread: {thread}") # print(thread)
             except Exception as e:
                 await ctx.send(f"An error occurred: {str(e)} in load_feedback_cog")
             print(thread)
