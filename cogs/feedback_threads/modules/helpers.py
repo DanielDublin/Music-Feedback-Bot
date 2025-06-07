@@ -68,14 +68,26 @@ class DiscordHelpers:
     async def load_threads_cog(self, ctx):
     # Get the FeedbackThreads cog instance
 
+        await ctx.send("loading feedback cog in helpers")
+
         feedback_cog = self.bot.get_cog("FeedbackThreads")
+
+        await ctx.send(f"feedback_cog: {feedback_cog}")
 
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
 
         # Access the shared user_thread dict and ThreadsManager instance
         user_thread = feedback_cog.user_thread
+
+        await ctx.send(f"user_thread: {user_thread}")
         sqlitedatabase = await feedback_cog.initialize_sqldb()
+
+        await ctx.send(f"sqlitedatabase: {sqlitedatabase}")
+
+        await ctx.send("complete load threads()")
+
+
 
 
         return feedback_cog, user_thread, sqlitedatabase
