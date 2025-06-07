@@ -54,3 +54,50 @@ class Embeds:
 
         return embed
     
+
+    async def mod_add_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+
+        total_points = int(await db.fetch_points(str(user.id)))
+
+        embed = discord.Embed(
+        title=f"Ticket #{ticket_counter}",
+        description=f"{self.helpers.get_formatted_time()}",
+        color=0x000099
+        )
+
+        embed.add_field(name="ℹ️ **Added MF points**", value=f"Added **{points}** points to {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.set_footer(text=f"Added by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+
+        return embed
+    
+
+    async def mod_remove_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+
+        total_points = int(await db.fetch_points(str(user.id)))
+
+        embed = discord.Embed(
+        title=f"Ticket #{ticket_counter}",
+        description=f"{self.helpers.get_formatted_time()}",
+        color=0x000099
+        )
+
+        embed.add_field(name="ℹ️ **Removed MF points**", value=f"Removed **{points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.set_footer(text=f"Removed by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+
+        return embed
+
+    async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+
+        total_points = int(await db.fetch_points(str(user.id)))
+
+        embed = discord.Embed(
+        title=f"Ticket #{ticket_counter}",
+        description=f"{self.helpers.get_formatted_time()}",
+        color=0x000099
+        )
+
+        embed.add_field(name="ℹ️ **Cleared MF points**", value=f"Cleared **{points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.set_footer(text=f"Cleared by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+
+        return embed
+        

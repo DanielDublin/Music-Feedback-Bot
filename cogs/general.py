@@ -165,7 +165,7 @@ class General(commands.Cog):
 
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(
-            name="Feedback Notice",
+            name=f"Feedback Notice - {self.helpers.get_formatted_time()}",
             value=(
                 f"{mention} has **given feedback** and now has **{points}** MF point(s).\n\n"
                 f"🟢 [Ticket #{ticket_counter}]({thread.jump_url})"
@@ -228,7 +228,7 @@ class General(commands.Cog):
             thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
 
             embed = discord.Embed(color=0x7e016f)
-            embed.add_field(name="Feedback Notice",
+            embed.add_field(name=f"Feedback Notice - {self.helpers.get_formatted_time()}",
                             value=(
                                 f"{mention} has **submitted** a work for feedback and now has **{points}** MF point(s).\n\n"
                                 f"🔴 [Ticket #{ticket_counter}]({thread.jump_url})"
@@ -267,7 +267,7 @@ class General(commands.Cog):
 
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(
-                name="**ALERT**",
+                name=f"ALERT - {self.helpers.get_formatted_time()}",
                 value=(
                     f"{mention} tried sending a track for feedback with **0** MF points.\n\n"
                     f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"

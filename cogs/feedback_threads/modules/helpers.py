@@ -1,4 +1,5 @@
 import asyncio
+import discord
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from data.constants import THREADS_CHANNEL
@@ -109,6 +110,4 @@ class DiscordHelpers:
         feedback_cog.sqlitedatabase.delete_user(user_id)
 
 
-
-
-
+    
