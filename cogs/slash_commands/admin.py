@@ -44,15 +44,60 @@ class Admin(commands.Cog):
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
-        ctx_like = ContextLike(interaction, command=self.add)
+        # Initialize thread and mod_embed to None for safety, just in case
+        thread = None 
+        mod_embed = None
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+        try:
+            ctx_like = ContextLike(interaction, command=self.add)
 
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+            # --- FIXES START HERE ---
+            # Use f-strings for all channel.send calls to combine multiple values into one string
+            await interaction.channel.send(f"DEBUG: Guild ID: {ctx_like.interaction.guild.id}")
+            await interaction.channel.send(f"DEBUG: Channel ID: {ctx_like.interaction.channel.id}")
 
-        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
-        await thread.send(embed=mod_embed)
+            await interaction.channel.send("DEBUG: Step 1 - Loading threads cog.")
+
+            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+            await interaction.channel.send("DEBUG: Step 2 - Threads cog loaded.")
+            
+            try:
+                await interaction.channel.send("DEBUG: Checking if feedback thread exists...")
+                await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+                await interaction.channel.send("DEBUG: Feedback thread check completed.")
+            except Exception as e:
+                await interaction.channel.send(f"❌ Unexpected error in check_if_feedback_thread: {e}")
+            
+            await interaction.channel.send("DEBUG: Step 3 - Loading feedback cog.")
+
+            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+            
+            if thread: # Ensure thread is not None before trying to stringify it
+                await interaction.channel.send(f"DEBUG: Thread object: {thread}")
+            else:
+                await interaction.channel.send("DEBUG: No thread object returned from load_feedback_cog. Cannot send mod_embed to thread.")
+                return # Exit early if no thread is found
+
+            await interaction.channel.send("DEBUG: Creating mod_embed...")
+            mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
+            await interaction.channel.send("DEBUG: mod_embed created.")
+
+            if thread and mod_embed: # Only attempt to send if thread and mod_embed are valid
+                try:
+                    await thread.send(embed=mod_embed)
+                    await interaction.channel.send("DEBUG: mod_embed sent to thread successfully.")
+                except discord.Forbidden:
+                    await interaction.channel.send(f"❌ Missing access to thread: {thread.id} — cannot send mod_embed")
+                except Exception as e:
+                    await interaction.channel.send(f"❌ Unexpected error when sending to thread: {e}")
+            else:
+                await interaction.channel.send("⚠️ Thread object or mod_embed not available, skipping sending to thread.")
+
+
+        except discord.Forbidden as e:
+            await interaction.channel.send(f"❌ Permission error during thread operations: {e}")
+        except Exception as e:
+            await interaction.channel.send(f"❌ Unexpected error in mod_add flow: {e}")
 
 
         # Mod remove points

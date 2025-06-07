@@ -46,6 +46,7 @@ class DiscordHelpers:
             ticket_counter = user_thread[ctx.author.id][1]
             print(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
+            print(f"thread id: {thread_id}")
 
             thread = await self.bot.fetch_channel(thread_id)
             print(thread)
