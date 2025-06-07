@@ -46,7 +46,12 @@ class Admin(commands.Cog):
 
         ctx_like = ContextLike(interaction, command=self.add)
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+        try:
+            ctx_like.interaction.channel.send("Loading threads...")
+            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
+        except Exception as e:
+            ctx_like.interaction.channel.send(e)
+            return
 
         try:
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
