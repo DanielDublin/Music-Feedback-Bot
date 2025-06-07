@@ -7,6 +7,7 @@ from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
+from cogs.feedback_threads.modules.ctx_class import ContextLike
 
 
 IS_READY = 0
@@ -60,7 +61,7 @@ async def on_ready():
             print("FeedbackThreads Cog not found")
 
 
-        #await bot.tree.sync(guild=discord.Object(id=SERVER_ID)) # for debug
+        # await bot.tree.sync(guild=discord.Object(id=732355624259813531)) # for debug
 
         # tree = bot.tree
         # print("Registered commands:")

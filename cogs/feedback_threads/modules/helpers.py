@@ -41,14 +41,14 @@ class DiscordHelpers:
             points_logic = PointsLogic(self.bot, user_thread)
 
             user_id = str(ctx.author.id)
-            print(user_id)
+            ctx.send(user_id)
 
             ticket_counter = user_thread[ctx.author.id][1]
-            print(f"ticket counter: {ticket_counter}")
+            ctx.send(f"ticket counter: {ticket_counter}")
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
-            print(thread)
+            ctx.send(thread)
         else:
             pass
 
