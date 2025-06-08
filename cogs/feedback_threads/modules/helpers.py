@@ -29,7 +29,7 @@ class DiscordHelpers:
         current_time = datetime.now(eastern)
         return current_time.strftime("%B %d, %Y %H:%M")
 
-    async def load_feedback_cog(self, ctx):
+    async def load_feedback_cog(self, ctx=None, user_id=None):
 
         await ctx.send(f"{ctx.guild} in load_feedback_cog")
 

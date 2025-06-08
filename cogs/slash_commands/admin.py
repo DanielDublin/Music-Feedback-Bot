@@ -7,6 +7,7 @@ from data.constants import SERVER_ID
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.ctx_class import ContextLike
 from cogs.feedback_threads.modules.embeds import Embeds
+from cogs.feedback_threads.modules.points_logic import PointsLogic
 
 
 class Admin(commands.Cog):
@@ -44,22 +45,41 @@ class Admin(commands.Cog):
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
-        # adding to force merge
-        ctx_like = ContextLike(interaction, command=self.add)
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.add)
+        
+        # CRUCIAL CHANGE: Capture the shared_user_thread_dict here
+        feedback_cog, shared_user_thread_dict, _ = await self.helpers.load_threads_cog(admin_ctx_like)
+        
+        target_user_ctx_like = ContextLike(
+            interaction=interaction, 
+            command=self.add, 
+            custom_author=user 
+        )
 
-        await ctx_like.send(f"{ctx_like.guild} in add")
+        thread_for_target_user = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+        ticket_counter = None
+        points_logic = None
+        user_id_str = str(user.id)
 
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+        # CRUCIAL CHANGE: Check the shared_user_thread_dict
+        if user_id_str in shared_user_thread_dict:
+            _, ticket_counter_val = shared_user_thread_dict[user_id_str]
+            ticket_counter = ticket_counter_val
+            points_logic = PointsLogic(self.bot, shared_user_thread_dict)
+        else:
+            print(f"Error: User {user_id_str} not found in shared_user_thread_dict after thread check in add command.")
 
-        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
-        await thread.send(embed=mod_embed)
+
+        if thread_for_target_user:
+            mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+            await thread_for_target_user.send(embed=mod_embed)
+        else:
+            print(f"Warning: Could not find or create feedback thread for {user.display_name} ({user.id}). "
+                  "Mod point change embed not sent to their thread.")
 
 
-        # Mod remove points
-
+    # Mod remove points
     @group.command(name='remove', description="Use to remove points from a user.\n```/mfpoints remove @user/user_id amount(optional)```")
     async def remove(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
@@ -87,15 +107,38 @@ class Admin(commands.Cog):
             await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
-            ctx_like = ContextLike(interaction, command=self.add)
+            admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
 
-            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-            await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+            # CRUCIAL CHANGE: Capture the shared_user_thread_dict here
+            feedback_cog, shared_user_thread_dict, _ = await self.helpers.load_threads_cog(admin_ctx_like)
+            
+            target_user_ctx_like = ContextLike(
+                interaction=interaction,
+                command=self.remove,
+                custom_author=user
+            )
 
-            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+            thread_for_target_user = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-            mod_embed = await self.embeds.mod_remove_points(ctx_like, user, ticket_counter, thread, points=points)
-            await thread.send(embed=mod_embed)
+            ticket_counter = None
+            points_logic = None
+            user_id_str = str(user.id)
+
+            # CRUCIAL CHANGE: Check the shared_user_thread_dict
+            if user_id_str in shared_user_thread_dict:
+                _, ticket_counter_val = shared_user_thread_dict[user_id_str]
+                ticket_counter = ticket_counter_val
+                points_logic = PointsLogic(self.bot, shared_user_thread_dict)
+            else:
+                print(f"Error: User {user_id_str} not found in shared_user_thread_dict after thread check in remove command.")
+
+
+            if thread_for_target_user:
+                mod_embed = await self.embeds.mod_remove_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+                await thread_for_target_user.send(embed=mod_embed)
+            else:
+                print(f"Warning: Could not find or create feedback thread for {user.display_name} ({user.id}). "
+                      "Mod point change embed not sent to their thread.")
 
         else:
             embed = discord.Embed(color=0x7e016f)
@@ -106,7 +149,7 @@ class Admin(commands.Cog):
             await interaction.response.send_message("Nope!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
-            # Mod clear points
+    # Mod clear points
 
     @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
     async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
@@ -129,15 +172,38 @@ class Admin(commands.Cog):
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
-        ctx_like = ContextLike(interaction, command=self.add)
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.clear)
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+        # CRUCIAL CHANGE: Capture the shared_user_thread_dict here
+        feedback_cog, shared_user_thread_dict, _ = await self.helpers.load_threads_cog(admin_ctx_like)
+        
+        target_user_ctx_like = ContextLike(
+            interaction=interaction,
+            command=self.clear,
+            custom_author=user
+        )
 
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
+        thread_for_target_user = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-        mod_embed = await self.embeds.mod_clear_points(ctx_like, user, ticket_counter, thread, points=cleared_points)
-        await thread.send(embed=mod_embed)
+        ticket_counter = None
+        points_logic = None
+        user_id_str = str(user.id)
+
+        # CRUCIAL CHANGE: Check the shared_user_thread_dict
+        if user_id_str in shared_user_thread_dict:
+            _, ticket_counter_val = shared_user_thread_dict[user_id_str]
+            ticket_counter = ticket_counter_val
+            points_logic = PointsLogic(self.bot, shared_user_thread_dict)
+        else:
+            print(f"Error: User {user_id_str} not found in shared_user_thread_dict after thread check in clear command.")
+
+
+        if thread_for_target_user:
+            mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, points=cleared_points)
+            await thread_for_target_user.send(embed=mod_embed)
+        else:
+            print(f"Warning: Could not find or create feedback thread for {user.display_name} ({user.id}). "
+                  "Mod point clear embed not sent to their thread.")
 
 print("Processing complete")
 

@@ -25,12 +25,15 @@ class ThreadsManager:
             print(f"Error: THREADS_CHANNEL with ID {THREADS_CHANNEL} not found.")
 
     async def check_if_feedback_thread(self, ctx, called_from_zero=False):
+
+        thread = None
             
         if ctx.author.id in self.user_thread:
 
             await ctx.send(f"User {ctx.author.id} already has a feedback thread.")
 
             await self.existing_thread(ctx, called_from_zero)
+            thread = await self.existing_thread(ctx, called_from_zero)
 
             await ctx.send(f"User {ctx.author.id} has a feedback thread. DONE")
             
@@ -40,6 +43,8 @@ class ThreadsManager:
 
             await self.create_new_thread(ctx, called_from_zero)
             await ctx.send(f"User {ctx.author.id} created a feedback thread.")
+
+        return thread
 
     async def create_new_thread(self, ctx, called_from_zero=False):
 
