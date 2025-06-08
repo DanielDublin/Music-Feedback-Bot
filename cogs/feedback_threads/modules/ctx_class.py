@@ -8,6 +8,7 @@ class ContextLike:
         self.guild = interaction.guild
         self.user = interaction.user 
         self.command = command
+        self.guild = interaction.guild
         self.message = None
 
     async def send(self, *args, **kwargs):
