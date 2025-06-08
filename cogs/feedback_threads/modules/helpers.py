@@ -31,8 +31,6 @@ class DiscordHelpers:
 
     async def load_feedback_cog(self, ctx):
 
-        await ctx.send(f"{ctx.guild} in load_feedback_cog")
-
         from .points_logic import PointsLogic
         feedback_cog = self.bot.get_cog("FeedbackThreads")
         if not feedback_cog:
@@ -44,21 +42,19 @@ class DiscordHelpers:
             points_logic = PointsLogic(self.bot, user_thread)
 
             user_id = str(ctx.author.id)
-            await ctx.send(f"user_id: {user_id} in load_feedback_cog")
 
             ticket_counter = user_thread[ctx.author.id][1]
-            await ctx.send(f"ticket counter: {ticket_counter} in load_feedback_cog")
+
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
-            await ctx.send(f"thread: {thread} in load_feedback_cog") # print(thread)
+
         else:
             pass
 
         return thread, ticket_counter, points_logic, user_id
     
     async def load_threads_cog(self, ctx):
-        await ctx.send(f"{ctx.guild} in load_threads_cog")
 
         # Get the FeedbackThreads cog instance
         feedback_cog = self.bot.get_cog("FeedbackThreads")
