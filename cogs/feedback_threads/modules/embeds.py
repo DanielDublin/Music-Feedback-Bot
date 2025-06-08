@@ -65,7 +65,7 @@ class Embeds:
         color=0x000099
         )
 
-        embed.add_field(name="ℹ️ **Added MF points**", value=f"Added **{points}** points to {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.add_field(name="ℹ️ Added MF points", value=f"Added **{points}** points to {user.mention}. They now have **{total_points}** MF points.", inline=True)
         embed.set_footer(text=f"Added by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         return embed
@@ -81,7 +81,7 @@ class Embeds:
         color=0x000099
         )
 
-        embed.add_field(name="ℹ️ **Removed MF points**", value=f"Removed **{points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.add_field(name="ℹ️ Removed MF points", value=f"Removed **{points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
         embed.set_footer(text=f"Removed by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         return embed
@@ -96,8 +96,25 @@ class Embeds:
         color=0x000099
         )
 
-        embed.add_field(name="ℹ️ **Cleared MF points**", value=f"Cleared **{cleared_points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.add_field(name="ℹ️ Cleared MF points", value=f"Cleared **{cleared_points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
         embed.set_footer(text=f"Cleared by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         return embed
         
+    async def MFS_to_MFR_embed(self, ctx, thread, ticket_counter, points_added, updated_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter}",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFS` edited to `<MFR`",
+            value=f"Gained **POINTS** points and now has **TOTAL** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Before", value="", inline=False)
+        embed.add_field(name="After", value="", inline=False)
+
+        return embed

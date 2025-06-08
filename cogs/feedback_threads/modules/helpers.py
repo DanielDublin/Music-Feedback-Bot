@@ -1,5 +1,6 @@
 import asyncio
 import discord
+import database.db as db
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from data.constants import THREADS_CHANNEL
@@ -108,6 +109,14 @@ class DiscordHelpers:
             return
 
         feedback_cog.sqlitedatabase.delete_user(user_id)
+
+    async def add_points_for_edits(bot, user_id: int, points: int):
+
+
+        added_edited_points = db.add_points(user_id, points)
+
+        return added_edited_points
+
 
 
     
