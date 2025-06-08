@@ -7,6 +7,7 @@ from data.constants import SERVER_ID
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.ctx_class import ContextLike
 from cogs.feedback_threads.modules.embeds import Embeds
+from cogs.feedback_threads.modules.points_logic import PointsLogic
 
 
 class Admin(commands.Cog):
@@ -44,21 +45,27 @@ class Admin(commands.Cog):
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
-        # adding to force merge
-        ctx_like = ContextLike(interaction, command=self.add)
+        # use this class to store the information of the member that is being modded
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
+
+        # get the user_thread
+        feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
+        
+        # store the information of the target user
+        target_user_ctx_like = ContextLike(
+            interaction=interaction,
+            command=self.remove,
+            custom_author=user
+        )
+        
+        # pass the user_thread to the threads_manager for the target user
+        thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
+
+        mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+        await thread_for_target_user.send(embed=mod_embed)
 
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
-
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
-
-        mod_embed = await self.embeds.mod_add_points(ctx_like, user, ticket_counter, thread, points=points)
-        await thread.send(embed=mod_embed)
-
-
-        # Mod remove points
-
+    # Mod remove points
     @group.command(name='remove', description="Use to remove points from a user.\n```/mfpoints remove @user/user_id amount(optional)```")
     async def remove(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
@@ -86,15 +93,24 @@ class Admin(commands.Cog):
             await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
-            ctx_like = ContextLike(interaction, command=self.add)
+            # use this class to store the information of the member that is being modded
+            admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
 
-            feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-            await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+            # get the user_thread
+            feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
+            
+            # store the information of the target user
+            target_user_ctx_like = ContextLike(
+                interaction=interaction,
+                command=self.remove,
+                custom_author=user
+            )
+            
+            # pass the user_thread to the threads_manager for the target user
+            thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
-
-            mod_embed = await self.embeds.mod_remove_points(ctx_like, user, ticket_counter, thread, points=points)
-            await thread.send(embed=mod_embed)
+            mod_embed = await self.embeds.mod_remove_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+            await thread_for_target_user.send(embed=mod_embed)
 
         else:
             embed = discord.Embed(color=0x7e016f)
@@ -105,7 +121,7 @@ class Admin(commands.Cog):
             await interaction.response.send_message("Nope!", ephemeral=True)
             await interaction.channel.send(embed=embed)
 
-            # Mod clear points
+    # Mod clear points
 
     @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
     async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
@@ -128,15 +144,24 @@ class Admin(commands.Cog):
         await interaction.response.send_message("Done!", ephemeral=True)
         await interaction.channel.send(embed=embed)
 
-        ctx_like = ContextLike(interaction, command=self.add)
+        # use this class to store the information of the member that is being modded
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
 
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
+        # get the user_thread
+        feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
+        
+        # store the information of the target user
+        target_user_ctx_like = ContextLike(
+            interaction=interaction,
+            command=self.remove,
+            custom_author=user
+        )
+        
+        # pass the user_thread to the threads_manager for the target user
+        thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx_like)
-
-        mod_embed = await self.embeds.mod_clear_points(ctx_like, user, ticket_counter, thread, points=cleared_points)
-        await thread.send(embed=mod_embed)
+        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+        await thread_for_target_user.send(embed=mod_embed)
 
 print("Processing complete")
 

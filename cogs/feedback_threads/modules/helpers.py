@@ -29,9 +29,9 @@ class DiscordHelpers:
         current_time = datetime.now(eastern)
         return current_time.strftime("%B %d, %Y %H:%M")
 
-    async def load_feedback_cog(self, ctx):
-
+    async def load_feedback_cog(self, ctx=None, user_id=None):
         from .points_logic import PointsLogic
+
         feedback_cog = self.bot.get_cog("FeedbackThreads")
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
@@ -44,11 +44,9 @@ class DiscordHelpers:
             user_id = str(ctx.author.id)
 
             ticket_counter = user_thread[ctx.author.id][1]
-
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
-
         else:
             pass
 
