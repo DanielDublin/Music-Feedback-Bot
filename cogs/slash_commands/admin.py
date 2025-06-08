@@ -160,7 +160,7 @@ class Admin(commands.Cog):
         # pass the user_thread to the threads_manager for the target user
         thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, cleared_points=cleared_points)
         await thread_for_target_user.send(embed=mod_embed)
 
 print("Processing complete")

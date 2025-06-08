@@ -86,7 +86,7 @@ class Embeds:
 
         return embed
 
-    async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+    async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, cleared_points=0):
 
         total_points = int(await db.fetch_points(str(user.id)))
 
@@ -96,7 +96,7 @@ class Embeds:
         color=0x000099
         )
 
-        embed.add_field(name="ℹ️ **Cleared MF points**", value=f"Cleared **{points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
+        embed.add_field(name="ℹ️ **Cleared MF points**", value=f"Cleared **{cleared_points}** points from {user.mention}. They now have **{total_points}** MF points.", inline=True)
         embed.set_footer(text=f"Cleared by {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
 
         return embed
