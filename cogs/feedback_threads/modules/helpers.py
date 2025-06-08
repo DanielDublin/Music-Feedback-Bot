@@ -30,6 +30,9 @@ class DiscordHelpers:
         return current_time.strftime("%B %d, %Y %H:%M")
 
     async def load_feedback_cog(self, ctx):
+
+        await ctx.send(f"{ctx.guild} in load_feedback_cog")
+
         from .points_logic import PointsLogic
         feedback_cog = self.bot.get_cog("FeedbackThreads")
         if not feedback_cog:
@@ -41,33 +44,36 @@ class DiscordHelpers:
             points_logic = PointsLogic(self.bot, user_thread)
 
             user_id = str(ctx.author.id)
-            print(user_id)
+            await ctx.send(f"user_id: {user_id} in load_feedback_cog")
 
             ticket_counter = user_thread[ctx.author.id][1]
-            print(f"ticket counter: {ticket_counter}")
+            await ctx.send(f"ticket counter: {ticket_counter} in load_feedback_cog")
             thread_id = user_thread[ctx.author.id][0]
 
             thread = await self.bot.fetch_channel(thread_id)
-            print(thread)
+            await ctx.send(f"thread: {thread} in load_feedback_cog") # print(thread)
         else:
             pass
 
         return thread, ticket_counter, points_logic, user_id
     
     async def load_threads_cog(self, ctx):
-    # Get the FeedbackThreads cog instance
+        await ctx.send(f"{ctx.guild} in load_threads_cog")
+
+        # Get the FeedbackThreads cog instance
         feedback_cog = self.bot.get_cog("FeedbackThreads")
 
         if not feedback_cog:
             await ctx.send("Feedback cog not loaded.")
+            return None, None, None  # <-- Return here to avoid AttributeError
 
         # Access the shared user_thread dict and ThreadsManager instance
         user_thread = feedback_cog.user_thread
         sqlitedatabase = await feedback_cog.initialize_sqldb()
 
         return feedback_cog, user_thread, sqlitedatabase
-    
 
+    
     async def get_thread_id_no_ctx(bot, user_id: int):
 
         feedback_cog = bot.get_cog("FeedbackThreads")
