@@ -47,7 +47,6 @@ class Admin(commands.Cog):
         # adding to force merge
         ctx_like = ContextLike(interaction, command=self.add)
 
-        await ctx_like.send(f"{ctx_like.guild} in add")
 
         feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx_like)
         await feedback_cog.threads_manager.check_if_feedback_thread(ctx_like, called_from_zero=False)
