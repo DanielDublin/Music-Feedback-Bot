@@ -28,18 +28,14 @@ class ThreadsManager:
             
         if ctx.author.id in self.user_thread:
 
-            await ctx.send(f"User {ctx.author.id} already has a feedback thread.")
 
             await self.existing_thread(ctx, called_from_zero)
-
-            await ctx.send(f"User {ctx.author.id} has a feedback thread. DONE")
             
         else:
 
-            await ctx.send(f"User {ctx.author.id} does not have a feedback thread.")
 
             await self.create_new_thread(ctx, called_from_zero)
-            await ctx.send(f"User {ctx.author.id} created a feedback thread.")
+
 
     async def create_new_thread(self, ctx, called_from_zero=False):
 
@@ -86,16 +82,16 @@ class ThreadsManager:
 
         # get the thread and ticket_counter from the dictionary
         thread_id = self.user_thread[ctx.author.id][0]
-        await ctx.send(f"thread_id: {thread_id} in existing_thread") # print(thread_id)
+# print(thread_id)
         existing_thread = await self.bot.fetch_channel(thread_id)
-        await ctx.send(f"existing_thread: {existing_thread} in existing_thread") # print(existing_thread)
+# print(existing_thread)
 
         ticket_counter = self.user_thread[ctx.author.id][1]
-        await ctx.send(f"ticket_counter: {ticket_counter} in existing_thread") # print(ticket_counter)
+ # print(ticket_counter)
 
         # unarchive the thread 
         await self.helpers.unarchive_thread(existing_thread)
-        await ctx.send("unarchived")
+
 
         # send embed
         await self.points_logic.send_embed_existing_thread(
@@ -105,7 +101,6 @@ class ThreadsManager:
             thread=existing_thread,
             called_from_zero=called_from_zero
         )
-        await ctx.send("sent embed")
 
         # rearchive
         await self.helpers.archive_thread(existing_thread)
