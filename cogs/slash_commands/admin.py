@@ -25,6 +25,8 @@ class Admin(commands.Cog):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
+        
+        await interaction.response.defer(ephemeral=True)
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -33,18 +35,7 @@ class Admin(commands.Cog):
         if points <=0:
             await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
             return 
-
-        await db.add_points(str(user.id), points)
-        current_points = int(await db.fetch_points(str(user.id)))
-        embed = discord.Embed(color=0x7e016f)
-        embed.add_field(name="Music Feedback",
-                        value=f"ℹ️ {interaction.user.mention} has given {user.mention} {points} MF point."
-                              f" They now have **{current_points}** MF point(s).",
-                        inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-        await interaction.response.send_message("Done!", ephemeral=True)
-        await interaction.channel.send(embed=embed)
-
+        
         # use this class to store the information of the member that is being modded
         admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
 
@@ -61,9 +52,21 @@ class Admin(commands.Cog):
         # pass the user_thread to the threads_manager for the target user
         thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
+        await db.add_points(str(user.id), points)
+        current_points = int(await db.fetch_points(str(user.id)))
+
+        await interaction.followup.send("Done! The thread is here: <#"+str(thread_for_target_user.id)+">", ephemeral=True)
+
+        embed = discord.Embed(color=0x7e016f)
+        embed.add_field(name="Music Feedback",
+                        value=f"ℹ️ {interaction.user.mention} has given {user.mention} {points} MF point."
+                              f" They now have **{current_points}** MF point(s).",
+                        inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        await interaction.channel.send(embed=embed)
+
         mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
         await thread_for_target_user.send(embed=mod_embed)
-
 
     # Mod remove points
     @group.command(name='remove', description="Use to remove points from a user.\n```/mfpoints remove @user/user_id amount(optional)```")
@@ -71,6 +74,8 @@ class Admin(commands.Cog):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
+        
+        await interaction.response.defer(ephemeral=True)
         
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -80,7 +85,25 @@ class Admin(commands.Cog):
             await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
             return
         
+        # use this class to store the information of the member that is being modded
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
+
+        # get the user_thread
+        feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
+        
+        # store the information of the target user
+        target_user_ctx_like = ContextLike(
+            interaction=interaction,
+            command=self.remove,
+            custom_author=user
+        )
+        
+        # pass the user_thread to the threads_manager for the target user
+        thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
+        
         current_points = int(await db.fetch_points(str(user.id)))
+
+        await interaction.followup.send("Done! The thread is here: <#"+str(thread_for_target_user.id)+">", ephemeral=True)
 
         if current_points - points >= 0:
             await db.reduce_points(str(user.id), points)
@@ -90,24 +113,7 @@ class Admin(commands.Cog):
                                   f" They now have **{current_points - points}** MF point(s).",
                             inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await interaction.response.send_message("Done!", ephemeral=True)
             await interaction.channel.send(embed=embed)
-
-            # use this class to store the information of the member that is being modded
-            admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
-
-            # get the user_thread
-            feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
-            
-            # store the information of the target user
-            target_user_ctx_like = ContextLike(
-                interaction=interaction,
-                command=self.remove,
-                custom_author=user
-            )
-            
-            # pass the user_thread to the threads_manager for the target user
-            thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
             mod_embed = await self.embeds.mod_remove_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
             await thread_for_target_user.send(embed=mod_embed)
@@ -128,21 +134,12 @@ class Admin(commands.Cog):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
             return
+        
+        await interaction.response.defer(ephemeral=True)
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
-
-        cleared_points = int(await db.fetch_points(str(user.id)))
-
-        await db.reset_points(str(user.id))
-        embed = discord.Embed(color=0x7e016f)
-        embed.add_field(name="Music Feedback",
-                        value=f"{interaction.user.mention} has cleared all of {user.mention}'s MF points. They now have **0** MF points.",
-                        inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-        await interaction.response.send_message("Done!", ephemeral=True)
-        await interaction.channel.send(embed=embed)
 
         # use this class to store the information of the member that is being modded
         admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
@@ -160,7 +157,21 @@ class Admin(commands.Cog):
         # pass the user_thread to the threads_manager for the target user
         thread_for_target_user, ticket_counter = await feedback_cog.threads_manager.check_if_feedback_thread(target_user_ctx_like, called_from_zero=False)
 
-        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+        cleared_points = int(await db.fetch_points(str(user.id)))
+
+        await db.reset_points(str(user.id))
+
+        await interaction.followup.send("Done! The thread is here: <#"+str(thread_for_target_user.id)+">", ephemeral=True)
+
+        embed = discord.Embed(color=0x7e016f)
+        embed.add_field(name="Music Feedback",
+                        value=f"{interaction.user.mention} has cleared all of {user.mention}'s MF points. They now have **0** MF points.",
+                        inline=False)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+
+        await interaction.channel.send(embed=embed)
+
+        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, cleared_points=cleared_points)
         await thread_for_target_user.send(embed=mod_embed)
 
 print("Processing complete")
