@@ -101,17 +101,17 @@ class Embeds:
 
         return embed
         
-    async def MFS_to_MFR_embed(self, ctx, thread, ticket_counter, points_added, updated_points):
+    async def MFS_to_MFR_embed(self, ctx, thread, ticket_counter, points_added, updated_points, total_points):
 
         embed = discord.Embed(
-            title=f"Ticket #{ticket_counter}",
+            title=f"Ticket #{ticket_counter} - Edit",
             description=f"{self.helpers.get_formatted_time()}",
             color=discord.Color.yellow()
         )
 
         embed.add_field(
             name="⚠️ `<MFS` edited to `<MFR`",
-            value=f"Gained **POINTS** points and now has **TOTAL** MF points.",
+            value=f"Gained **{points_added}** points and now has **{total_points}** MF points.",
             inline=True
         )
         embed.add_field(name="Before", value="", inline=False)

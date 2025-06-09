@@ -62,18 +62,19 @@ class PointsLogic:
     async def MFS_to_MFR_edit(self, message: discord.Message, thread, ticket_counter):
 
         points_to_add = 2
-        user_id = message.author.id
+        user_id = str(message.author.id)
 
-        updated_points = await self.helpers.add_points_for_edits(user_id, points_to_add)
+        await self.helpers.add_points_for_edits(user_id, points_to_add)
 
-        # Send information to user in the original channel
-        feedback_channel_message = await message.channel.send( # Use message.channel instead of 'after'
-            f"{message.author.mention} edited their message from `<MFS` to `<MFR` and gained **{points_to_add}** MF Points. You now have **{updated_points}** MF Points."
+        total_points = int(await db.fetch_points(str(user_id)))
+
+        # send information to user in the original channel
+        await message.channel.send( 
+            f"{message.author.mention} edited their message from `<MFS` to `<MFR` and gained **{points_to_add}** MF Points. You now have **{total_points}** MF Points."
             f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
-        # Send embed to the thread
-        # Correct call to MFS_to_MFR_embed, passing correct arguments
-        embed = await self.embeds.MFS_to_MFR_embed(message, thread, ticket_counter, points_to_add, updated_points)
+        # send embed
+        embed = await self.embeds.MFS_to_MFR_embed(message, thread, ticket_counter, points_to_add, updated_points, total_points)
         await thread.send(embed=embed)
 
 

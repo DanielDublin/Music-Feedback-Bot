@@ -110,12 +110,25 @@ class DiscordHelpers:
 
         feedback_cog.sqlitedatabase.delete_user(user_id)
 
-    async def add_points_for_edits(bot, user_id: int, points: int):
+    async def add_points_for_edits(self, user_id: int, points_to_add: int):
+
+        points = int(await db.fetch_points(str(user_id)))
+
+        # add the points
+        print(f"points: {points}")
 
 
-        added_edited_points = db.add_points(user_id, points)
+        await db.add_points(user_id, points_to_add)
+        added_edited_points = int(await db.fetch_points(str(user_id)))
+
+
+        print(f"added_edit_points: {added_edited_points}")
+
 
         return added_edited_points
+    
+    async def shorten_message():
+        pass
 
 
 
