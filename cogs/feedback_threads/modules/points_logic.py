@@ -119,13 +119,13 @@ class PointsLogic:
         
         user_id = str(after.author.id)
         points_to_remove = 2
-    
+
+        points_available = int(await db.fetch_points(str(user_id)))
         await self.helpers.remove_points_for_edits(user_id, points_to_remove)
         total_points = int(await db.fetch_points(str(user_id)))
 
-
         # if the user has greater than the points that need to be removed, it's a valid edit
-        if total_points > points_to_remove:
+        if points_available >= points_to_remove:
 
             # send information to user in the original channel
             await after.channel.send( 
