@@ -123,35 +123,82 @@ class PointsLogic:
         await self.helpers.remove_points_for_edits(user_id, points_to_remove)
         total_points = int(await db.fetch_points(str(user_id)))
 
-        # send information to user in the original channel
-        await after.channel.send( 
-            f"{after.author.mention} edited their message from `<MFR` to `<MFS` and used **{points_to_remove}** MF Points. You now have **{total_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
-        # send ticket
-        embed = await self.embeds.MFR_to_MFS_embed(
-        original_message=shortened_before_content,
-        shortened_message=shortened_after_content,
-        ctx=after.channel, 
-        thread=thread,
-        ticket_counter=ticket_counter,
-        points_removed=points_to_remove,
-        total_points=total_points
-        )
-        await thread.send(embed=embed)
+        # if the user has greater than the points that need to be removed, it's a valid edit
+        if total_points > points_to_remove:
 
-        # send log
-        log_embed = discord.Embed(color=0x7e016f)
-        log_embed.add_field(
-            name=f"Feedback Edit - {self.helpers.get_formatted_time()}",
-            value=(
-                f"<@{user_id}> has **edited** their message from `<MFR` to `<MFS`. "
-                f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
-                f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url}) - Edited Message: {after.jump_url}"
-            ),
-            inline=False
-        )
-        log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-        await channel.send(embed=log_embed) 
+            # send information to user in the original channel
+            await after.channel.send( 
+                f"{after.author.mention} edited their message from `<MFR` to `<MFS` and used **{points_to_remove}** MF Points. You now have **{total_points}** MF Points."
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+
+            # send ticket
+            embed = await self.embeds.MFR_to_MFS_embed(
+            original_message=shortened_before_content,
+            shortened_message=shortened_after_content,
+            ctx=after.channel, 
+            thread=thread,
+            ticket_counter=ticket_counter,
+            points_removed=points_to_remove,
+            total_points=total_points
+            )
+            await thread.send(embed=embed)
+
+            # send log
+            log_embed = discord.Embed(color=0x7e016f)
+            log_embed.add_field(
+                name=f"Feedback Edit - {self.helpers.get_formatted_time()}",
+                value=(
+                    f"<@{user_id}> has **edited** their message from `<MFR` to `<MFS`. "
+                    f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url}) - Edited Message: {after.jump_url}"
+                ),
+                inline=False
+            )
+            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=log_embed) 
+        
+        # otherwise, they don't have the points to use
+        else:
+
+            # delete the post
+            await after.delete()
+
+            # reset the points
+            await db.reset_points(user_id)
+            total_points = int(await db.fetch_points(str(user_id)))
+
+            # send information to user
+            await after.channel.send( 
+                f"{after.author.mention}, this system is 1-for-1 and you do not have enough MF Points available to use. Give feedback first."
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>." )
+            
+            # send ticket
+            embed = await self.embeds.MFR_to_MFS_with_no_points_embed(
+            original_message=shortened_before_content,
+            shortened_message=shortened_after_content,
+            ctx=after.channel, 
+            thread=thread,
+            ticket_counter=ticket_counter,
+            points_removed=points_to_remove,
+            total_points=total_points
+            )
+            await thread.send(embed=embed)
+
+            # send the log
+            log_embed = discord.Embed(color=0x7e016f)
+            log_embed.add_field(
+                name=f"Feedback Edit - {self.helpers.get_formatted_time()}",
+                value=(
+                    f"<@{user_id}> has **edited** their message from `<MFR` to `<MFS` without enough points. "
+                    f"They tried to use **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                ),
+                inline=False
+            )
+            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=log_embed)
+
+
 
 

@@ -136,3 +136,21 @@ class Embeds:
         embed.add_field(name="After", value=f"{shortened_message}", inline=False)
 
         return embed
+    
+    async def MFR_to_MFS_with_no_points_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_removed, total_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter} - Deletion",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFR` edited to `<MFS` without enough points",
+            value=f"Tried to use **{points_removed}** points and now has **{total_points}** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Before", value=f"{original_message}", inline=False)
+        embed.add_field(name="After", value=f"{shortened_message}", inline=False)
+
+        return embed
