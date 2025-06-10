@@ -102,6 +102,7 @@ class DiscordHelpers:
 
 
     async def delete_user_from_db(bot, user_id: int):
+
         feedback_cog = bot.get_cog("FeedbackThreads")
 
         if not feedback_cog:
@@ -112,23 +113,21 @@ class DiscordHelpers:
 
     async def add_points_for_edits(self, user_id: int, points_to_add: int):
 
-        points = int(await db.fetch_points(str(user_id)))
-
-        # add the points
-        print(f"points: {points}")
-
-
         await db.add_points(user_id, points_to_add)
-        added_edited_points = int(await db.fetch_points(str(user_id)))
 
-
-        print(f"added_edit_points: {added_edited_points}")
-
-
-        return added_edited_points
+        return
     
-    async def shorten_message():
-        pass
+    async def remove_points_for_edits(self, user_id: int, points_to_remove: int):
+
+        await db.reduce_points(user_id, points_to_remove)
+
+        return
+    
+    async def shorten_message(self, content: str, max_length: int):
+        if len(content) > max_length:
+            return content[:max_length - 3] + "..."
+        
+        return content
 
 
 

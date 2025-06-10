@@ -101,7 +101,7 @@ class Embeds:
 
         return embed
         
-    async def MFS_to_MFR_embed(self, ctx, thread, ticket_counter, points_added, updated_points, total_points):
+    async def MFS_to_MFR_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_added, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Edit",
@@ -114,7 +114,25 @@ class Embeds:
             value=f"Gained **{points_added}** points and now has **{total_points}** MF points.",
             inline=True
         )
-        embed.add_field(name="Before", value="", inline=False)
-        embed.add_field(name="After", value="", inline=False)
+        embed.add_field(name="Before", value=f"{original_message}", inline=False)
+        embed.add_field(name="After", value=f"{shortened_message}", inline=False)
+
+        return embed
+    
+    async def MFR_to_MFS_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_removed, total_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter} - Edit",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFR` edited to `<MFS`",
+            value=f"Used **{points_removed}** points and now has **{total_points}** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Before", value=f"{original_message}", inline=False)
+        embed.add_field(name="After", value=f"{shortened_message}", inline=False)
 
         return embed

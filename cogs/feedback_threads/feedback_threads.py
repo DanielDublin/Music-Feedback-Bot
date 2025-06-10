@@ -40,38 +40,27 @@ class FeedbackThreads(commands.Cog):
     async def on_message_edit(self, before, after):
         if before.author.bot:
             return
-        
-        before_content_normalized = before.content.strip().lower()
-        after_content_normalized = after.content.strip().lower()
 
         if before.channel.id == FEEDBACK_CHANNEL_ID:
 
+            before_content_normalized = before.content.strip().lower()
+            after_content_normalized = after.content.strip().lower()
+
+            user_id = after.author.id
+            thread_info = self.user_thread.get(user_id)
+            thread_id, ticket_counter = thread_info
+            thread = await self.bot.fetch_channel(thread_id)
+
             # MFS to MFR
-            if before_content_normalized == "<mfs" and after_content_normalized == "<mfr": 
+            if "<mfs" in before_content_normalized and "<mfr" in after_content_normalized: 
 
-                user_id = after.author.id
-                print(f"Processing MFS to MFR edit for user {user_id}")
-                
-                thread_info = self.user_thread.get(user_id)
-                print(f"Thread info for user {user_id}: {thread_info}")
+                await self.points_logic.MFS_to_MFR_edit(before, after, thread, ticket_counter)
 
-                if not thread_info:
-                    print(f"No thread info found for user {user_id}. Cannot process MFS to MFR edit.")
-                    # Optionally, you might want to send a message to the user or log this
-                    return
+            # MFR to MFS
+            elif "<mfr" in before_content_normalized and "<mfs" in after_content_normalized:
 
-                thread_id, ticket_counter = thread_info
-                print(f"Thread ID: {thread_id}, Ticket Counter: {ticket_counter}")
-                
-                # Fetch the actual thread object
-                thread = await self.bot.fetch_channel(thread_id)
-                print(f"Thread object: {thread}")
+                await self.points_logic.MFR_to_MFS_edit(before, after, thread, ticket_counter)
 
-                # Now call MFS_to_MFR_edit with the correct arguments
-                try:
-                    await self.points_logic.MFS_to_MFR_edit(after, thread, ticket_counter)
-                except Exception as e:
-                    print(f"Error processing MFS to MFR edit for user {user_id}: {e}")
 
 
 async def setup(bot):
