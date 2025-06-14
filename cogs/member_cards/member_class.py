@@ -5,7 +5,7 @@ import os
 import re
 from dotenv import load_dotenv
 import database.db as db
-from data.constants import SERVER_ID, FINISHED_MUSIC
+from data.constants import SERVER_ID, FINISHED_MUSIC, AOTW_CHANNEL
 from discord.ext import commands
 
 load_dotenv()
@@ -87,37 +87,50 @@ class MemberCards(commands.Cog):
 
     async def get_last_finished_music(self, member: discord.Member):
 
-        channel = self.bot.get_channel(FINISHED_MUSIC)
+        finished_music_channel = self.bot.get_channel(FINISHED_MUSIC)
+        aotw_channel = self.bot.get_channel(AOTW_CHANNEL)
 
-        last_message_by_member = None
-        # get last message by member in finished music
-        async for message in channel.history(limit=1):
-            if message.author.id == member.id:
-                last_message_by_member = message
+        rank = await self.get_rank(member)
+        aotw_role_name = "Artist of the Week"
+
+        if rank == aotw_role_name:
+            # get last message in AOTW channel regardless of who sent it 
+            last_aotw_message = None
+            async for message in aotw_channel.history(limit=1):
+                last_aotw_message = message
                 break
 
-        # if the member has never posted in finished music before
-        if not last_message_by_member:
-            return "Coming soon!"
-
-        content = last_message_by_member.content 
-
-        url_detect_pattern = r"(?:https?://|www\.)[a-zA-Z0-9./-]+(?:\.[a-zA-Z]{2,})(?:/[^\s]*)?"
-        detected_urls = re.findall(url_detect_pattern, content)
-
-        # if finished music link
-        if detected_urls:
-            return f"[Latest Release](<{detected_urls[0]}>)"
-        # if finished music attachment
-        elif last_message_by_member.attachments:
-            return f"[Latest Release](<{last_message_by_member.jump_url}>)"
-        # posted in finished music, but not with a link or attachment (like text only)
+            # if there's a message in AOTW, hyperlink it
+            if last_aotw_message:
+                return f"[Special Artist of the Week Release](<{last_aotw_message.jump_url}>)"
+            
+        # if not AOTW, default to finished music
         else:
-            return "Coming soon!"
+            # get latest message for member in finished music
+            last_music_by_member = None
+            async for message in finished_music_channel.history(limit=100):
+                if message.author.id == member.id:
+                    last_music_by_member = message
+                    break
 
+            # check for links or urls
+            if last_music_by_member:
+                url_detect_pattern = r"(?:https?://|www\.)[a-zA-Z0-9./-]+(?:\.[a-zA-Z]{2,})(?:/[^\s]*)?"
+                finished_music_content = last_music_by_member.content
+                detected_urls = re.findall(url_detect_pattern, finished_music_content)
 
-
-
+                # if URL
+                if detected_urls:
+                    return f"[Latest Release](<{detected_urls[0]}>)"
+                # if attachment
+                elif last_music_by_member.attachments:
+                    return f"[Latest Release](<{last_music_by_member.jump_url}>)"
+                # posted in finish music, but not a link or attachment
+                else:
+                    return "Coming soon!"
+            # if not AOTW or posted, then return
+            else:
+                return "Coming soon!"
 
     async def get_random_message(self, member: discord.Member):
         pass
