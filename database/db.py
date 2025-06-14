@@ -122,6 +122,24 @@ async def fetch_points(user_id: str):
 
         await update_dict_from_db(user_id)
         return users_dict[user_id]["Points"]
+    
+async def top_10():
+    global pool
+
+    if pool is None:
+        await init_database()
+
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("""
+                SELECT user_id, points
+                FROM users
+                ORDER BY points DESC
+                LIMIT 10
+            """)
+
+            top_members = await cursor.fetchall()
+            return top_members
 
 
 # Fetch rank for a user
