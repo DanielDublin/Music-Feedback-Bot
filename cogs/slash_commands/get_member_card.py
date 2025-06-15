@@ -17,6 +17,11 @@ class GetMemberCard(commands.Cog):
         self.background_images_dir = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/"
 
         self.background_map = {
+            "Owner": "moderators.png",
+            "Admins": "moderators.png",
+            "Moderators": "moderators.png",
+            "Chat Moderators": "moderators.png",
+            "Bot Boinker": "moderators.png",
             "The Real MFrs": "gilded.png",
             "MF Gilded": "gilded.png",
             "Headliners": "headliners.png",
@@ -31,6 +36,11 @@ class GetMemberCard(commands.Cog):
         }
 
         self.rank_blink_colors = {
+            "Owner": "#ffd1dc",
+            "Admins": "#ffd1dc",
+            "Moderators": "#0F806A",
+            "Chat Moderators": "#bce6d4",
+            "Bot Boinker": "#02cffc",
             "Artist of the Week": "#00ffd1",
             "The Real MFrs": "#3e35ff",
             "MF Gilded": "#8c32e6",
@@ -115,6 +125,10 @@ class GetMemberCard(commands.Cog):
         amplitude = 50  # Reduced amplitude for less dramatic movement
         center_x = (card_width // 2) - (banner_width // 2)  # Center the banner (-100px to align 400px with 300px center)
 
+        # Define roles for which text should be inverted (white text on dark background)
+        inverted_text_roles = ["Owner", "Admins", "Moderators", "Chat Moderators", "Bot Boinker"]
+
+
         # Custom fading background for Artist of the Week
         if rank_str == "Artist of the Week" and animated:
             base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
@@ -129,6 +143,10 @@ class GetMemberCard(commands.Cog):
             background_image_path = None
             if rank_str in self.background_map:
                 background_filename = self.background_map[rank_str]
+                # Ensure the background filename is 'moderators.png' for the specified roles
+                if rank_str in inverted_text_roles:
+                    # Removed os.path.join as background_images_dir is already part of the path in the class
+                    background_filename = "moderators.png" # Just the filename, not the full path here
                 background_image_path = os.path.join(self.background_images_dir, background_filename)
             base_card_content = None
             if background_image_path and os.path.exists(background_image_path):
@@ -221,25 +239,38 @@ class GetMemberCard(commands.Cog):
 
         target_hex_color = self.rank_blink_colors.get(rank_str, "#808080")
         rank_color_end = self._hex_to_rgb(target_hex_color)
-        rank_color_start = (0, 0, 0) # This will be (0,0,0) for non-AOTW, or used in the pulse for AOTW
+        
+        # --- THIS IS THE CORRECTED LOGIC FOR rank_color_start ---
+        if rank_str == "Artist of the Week":
+            rank_color_start = (0, 0, 0) # AOTW always starts from black and flashes vibrant
+        elif rank_str in inverted_text_roles:
+            rank_color_start = (255, 255, 255) # Inverted roles fade from white
+        else:
+            rank_color_start = (0, 0, 0) # All other roles fade from black
+        # --- END OF CORRECTED LOGIC ---
+
+
+        # Determine the base text color (for username, member since, points)
+        base_text_color = (255, 255, 255) if rank_str in inverted_text_roles else (0, 0, 0)
+
 
         if not animated: # For static PNG cards
             output = io.BytesIO()
             static_draw.text((right_column_x_start, rank_y), f"{rank_str}", fill=rank_color_end, font=font_rank_blinking)
-            static_draw.text((username_x_aligned, username_y), discord_username, fill=(0, 0, 0), font=font_username)
-            static_draw.text((label_x_aligned, member_since_label_y), joined_label, fill=(0, 0, 0), font=font_date_label)
-            static_draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=(0, 0, 0), font=font_date_value)
+            static_draw.text((username_x_aligned, username_y), discord_username, fill=base_text_color, font=font_username)
+            static_draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
+            static_draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
             if is_top_feedback:
                 top_mfr_static_color = (59, 196, 237)
                 top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(static_draw, top_mfr_block_y, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, top_mfr_static_color)
                 mf_points_static_text = f" - MF Points: {numeric_points}"
                 mf_points_x = top_mfr_text_end_x + 5
                 mf_points_y = top_mfr_text_y
-                static_draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=(0, 0, 0), font=font_top_mfr)
+                static_draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=base_text_color, font=font_top_mfr)
             else:
                 mf_points_only_text = f"MF Points: {numeric_points}"
                 mf_points_only_y = top_mfr_block_y + (top_mfr_icon_size - font_top_mfr.size) // 2
-                static_draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=(0, 0, 0), font=font_top_mfr)
+                static_draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
             if random_msg:
                 static_card_base.paste(message_box, (right_column_x_start, random_msg_y), message_box)
             static_card_base.save(output, format="PNG")
@@ -313,11 +344,10 @@ class GetMemberCard(commands.Cog):
                 if random_msg:
                     frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
             else: # For all other ranks (non-AOTW animated cards)
-                # Set a default text color for non-AOTW cards
-                default_text_color = (0, 0, 0) # Black for better contrast on typical backgrounds
-                draw.text((username_x_aligned, username_y), discord_username, fill=default_text_color, font=font_username)
-                draw.text((label_x_aligned, member_since_label_y), joined_label, fill=default_text_color, font=font_date_label)
-                draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=default_text_color, font=font_date_value)
+                # Apply the determined base_text_color here
+                draw.text((username_x_aligned, username_y), discord_username, fill=base_text_color, font=font_username)
+                draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
+                draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
                 if random_msg:
                     frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
 
@@ -364,11 +394,11 @@ class GetMemberCard(commands.Cog):
                 mf_points_static_text = f" - MF Points: {numeric_points}"
                 mf_points_x = top_mfr_text_end_x + 5
                 mf_points_y = top_mfr_text_y
-                draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=(0, 0, 0), font=font_top_mfr)
+                draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=base_text_color, font=font_top_mfr)
             else:
                 mf_points_only_text = f"MF Points: {numeric_points}"
                 mf_points_only_y = top_mfr_block_y + (top_mfr_icon_size - font_top_mfr.size) // 2
-                draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=(0, 0, 0), font=font_top_mfr)
+                draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
 
             dithered = frame.convert("P", palette=Image.ADAPTIVE, dither=Image.FLOYDSTEINBERG)
             frames.append(dithered)
