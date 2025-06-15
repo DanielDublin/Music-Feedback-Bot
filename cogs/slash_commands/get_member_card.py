@@ -192,7 +192,7 @@ class GetMemberCard(commands.Cog):
         pfp_x, pfp_y = 50, 65
         pfp_diameter = 120
         border_thickness = 8
-        border_color = (255, 215, 0, 255) if rank_str in ["MF Gilded", "The Real Mfrs"] else (0, 0, 0, 255)
+        border_color = (0, 0, 0, 255)
 
         border_bbox_x1 = pfp_x - border_thickness
         border_bbox_y1 = pfp_y - border_thickness
