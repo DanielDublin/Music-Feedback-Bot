@@ -10,6 +10,7 @@ from datetime import datetime
 import aiohttp
 from pilmoji import Pilmoji 
 import emoji
+from typing import Optional
 
 class GetMemberCard(commands.Cog):
     def __init__(self, bot):
@@ -823,7 +824,7 @@ class GetMemberCard(commands.Cog):
     @app_commands.checks.has_any_role(*ALLOWED_ROLES)
     @mf_card_group.command(name="card", description="View a member's MF Card.")
     @app_commands.describe(member="The member whose MF Card you want to view (defaults to you).")
-    async def view_mf_card(self, interaction: discord.Interaction, member: discord.Member = None):
+    async def view_mf_card(self, interaction: discord.Interaction, member: Optional[discord.Member] = None):
         await interaction.response.defer()
         if member == None:
             member = interaction.user
