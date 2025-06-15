@@ -3,11 +3,11 @@ from discord.ext import commands
 from discord import app_commands
 from PIL import Image, ImageDraw, ImageFont, ImageSequence, ImageFilter, ImageOps
 import io
-import aiohttp
 import os
 import traceback
 import math
 from datetime import datetime
+import aiohttp
 
 class GetMemberCard(commands.Cog):
     def __init__(self, bot):
@@ -115,9 +115,8 @@ class GetMemberCard(commands.Cog):
         font_date_value = ImageFont.truetype(font_path, 25)
         font_rank_blinking = ImageFont.truetype(font_path, 55)
         font_top_mfr = ImageFont.truetype(font_path, 30)
-        font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, 18)
+        # font_random_msg will be determined dynamically
         font_tag = ImageFont.truetype(font_path, 12) # Adjusted font for individual tags
-        # font_extra_roles removed as it's no longer needed
 
         # Define icon and text padding sizes used in badge drawing and layout
         top_mfr_icon_size = 30
@@ -192,7 +191,7 @@ class GetMemberCard(commands.Cog):
         pfp_x, pfp_y = 50, 65
         pfp_diameter = 120
         border_thickness = 8
-        border_color = (255, 215, 0, 255) if rank_str in ["MF Gilded", "The Real MFrs"] else (0, 0, 0, 255)
+        border_color = (255, 215, 0, 255) if rank_str in ["MF Gilded", "The Real Mfrs"] else (0, 0, 0, 255)
 
         border_bbox_x1 = pfp_x - border_thickness
         border_bbox_y1 = pfp_y - border_thickness
@@ -223,7 +222,12 @@ class GetMemberCard(commands.Cog):
         # --- Roles block starts below the points block ---
         roles_y = bottom_of_points_block_y + 10 # Add padding after roles block
 
-        message_box_width = card_width - right_column_x_start - 30 # Available width for tags and random message
+        # The random message box should be as wide as it was before the previous change.
+        # This is the full available width of the right column.
+        message_box_width_for_random_msg = card_width - right_column_x_start - 30 
+
+        # Available width for tags. This is the entire right column's content area.
+        tag_line_available_width = card_width - right_column_x_start - 30 
         tag_bg_color = (40, 40, 40, 200) # Semi-transparent dark grey for tag background
 
         role_categories = [
@@ -261,7 +265,7 @@ class GetMemberCard(commands.Cog):
             
             tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
 
-            if current_tag_x_dry_run + tag_width > right_column_x_start + message_box_width:
+            if current_tag_x_dry_run + tag_width > right_column_x_start + tag_line_available_width:
                 current_tag_x_dry_run = right_column_x_start
                 current_tag_y_offset_dry_run += tag_line_height + tag_spacing_y
             
@@ -271,15 +275,168 @@ class GetMemberCard(commands.Cog):
         if not all_roles_combined:
             roles_block_height = 0
         else:
-            # The last line height and spacing were added. Subtract if only one line, or if the last item caused a wrap.
             roles_block_height = current_tag_y_offset_dry_run + tag_line_height # Add the height of the last line
 
 
         # Random message box starts below the roles block
         random_msg_y = roles_y + roles_block_height + 10 # Add padding after roles block
+        
+        # --- Dynamic Font Sizing and Truncation for Random Message ---
+        message_box = None # Initialize message_box outside the if block
+        if random_msg:
+            random_msg_initial_font_size = 18
+            random_msg_min_font_size = font_tag.size # Smallest allowed, 12
+            
+            # Calculate the effective bottom Y coordinate of the "member since date" block
+            bottom_of_member_since_date_block_y = join_date_value_y + font_date_value.size
+
+            # The target height if the message box aligns its bottom with the date block
+            # This is the space from random_msg_y down to the bottom of the date text.
+            height_if_align_to_date_bottom = bottom_of_member_since_date_block_y - random_msg_y
+
+            # Max height available down to the bottom of the card with a buffer
+            bottom_buffer_for_message_box = 20
+            max_height_to_card_bottom = card_height - random_msg_y - bottom_buffer_for_message_box
+
+            # Determine the maximum available height for the message box.
+            # If the top of the message box (`random_msg_y`) is already below the date's bottom,
+            # then the "alignment height" would be negative or zero. In that case, we just
+            # limit by the card's bottom. Otherwise, take the minimum of the two constraints.
+            if height_if_align_to_date_bottom > 0:
+                max_available_height_for_msg_box_area = min(height_if_align_to_date_bottom, max_height_to_card_bottom)
+            else: 
+                # Message box starts below the date's bottom, so just use card bottom limit
+                max_available_height_for_msg_box_area = max_height_to_card_bottom
+
+            # Ensure there's at least a minimal height for content/padding if a message is present.
+            # This prevents issues if calculated max_available_height is too small or negative.
+            min_practical_height = (2 * 10) + random_msg_min_font_size # 2*padding + height of 1 line at min font
+            if max_available_height_for_msg_box_area < min_practical_height:
+                 max_available_height_for_msg_box_area = max(min_practical_height, 0)
+            
+            # Initialize final_font_random_msg to a default in case no text fits
+            final_font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, random_msg_min_font_size)
+            final_wrapped_message = [] 
+            
+            current_font_size = random_msg_initial_font_size
+            font_found = False
+
+            while current_font_size >= random_msg_min_font_size:
+                temp_font = ImageFont.truetype(self.italic_font_path or font_path, current_font_size)
+                message_box_padding = 10 # Padding inside the message box
+
+                effective_text_width = message_box_width_for_random_msg - (2 * message_box_padding)
+                if effective_text_width <= 0: 
+                    effective_text_width = 1 # Avoid division by zero or negative width issues
+
+                wrapped_message_temp = self.wrap_text(random_msg, temp_font, effective_text_width)
+                
+                temp_message_content_height = len(wrapped_message_temp) * temp_font.size
+                temp_message_box_total_height = temp_message_content_height + (2 * message_box_padding)
+
+                if temp_message_box_total_height <= max_available_height_for_msg_box_area:
+                    final_wrapped_message = wrapped_message_temp
+                    final_font_random_msg = temp_font
+                    font_found = True
+                    break # Found a font size that fits
+
+                current_font_size -= 1 # Try a smaller font size
+
+            # --- MODIFIED TRUNCATION LOGIC HERE ---
+            # If no font fit even at min_font_size, or if it still overflows at min_font_size,
+            # truncate and add "..."
+            if not font_found:
+                final_font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, random_msg_min_font_size)
+                message_box_padding = 10
+                effective_text_width = message_box_width_for_random_msg - (2 * message_box_padding)
+                if effective_text_width <= 0:
+                    effective_text_width = 1
+
+                wrapped_message_temp = self.wrap_text(random_msg, final_font_random_msg, effective_text_width)
+                
+                # Calculate max lines that can fit at min_font_size within the available height
+                max_content_height_at_min_font = max_available_height_for_msg_box_area - (2 * message_box_padding)
+                max_lines_for_min_font = math.floor(max_content_height_at_min_font / final_font_random_msg.size)
+                
+                if max_lines_for_min_font <= 0: 
+                    # If even one line at min font doesn't fit, show just "..."
+                    final_wrapped_message = ["..."] 
+                elif len(wrapped_message_temp) > max_lines_for_min_font:
+                    # Truncate the last line and add "..."
+                    final_wrapped_message = wrapped_message_temp[:max_lines_for_min_font] # Get all lines that fit
+                    last_line_index = max_lines_for_min_font - 1 # Index of the last line
+                    if last_line_index >= 0:
+                        original_last_line = final_wrapped_message[last_line_index]
+                        truncated_last_line = ""
+                        # Determine the maximum text that can fit on the last line with "..."
+                        ellipsis_width = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), "...", font=final_font_random_msg)[2] - ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), "...", font=final_font_random_msg)[0]
+                        max_text_width_for_last_line = effective_text_width - ellipsis_width
+
+                        for char in original_last_line:
+                            test_line = truncated_last_line + char
+                            test_width = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_line, font=final_font_random_msg)[2] - ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_line, font=final_font_random_msg)[0]
+                            if test_width <= max_text_width_for_last_line:
+                                truncated_last_line += char
+                            else:
+                                break
+                        final_wrapped_message[last_line_index] = truncated_last_line.strip() + "..."
+                    else: # No lines fit at all
+                        final_wrapped_message = ["..."]
+                else:
+                    # It fits at min font size
+                    final_wrapped_message = wrapped_message_temp
+
+            # --- END MODIFIED TRUNCATION LOGIC ---
+
+            # --- FORCE final_message_box_height to align with date bottom or card bottom ---
+            # Use the calculated max_available_height_for_msg_box_area as the explicit height.
+            # This forces the box to be this tall, regardless of how much text it contains,
+            # ensuring it reaches the desired bottom alignment.
+            final_message_box_height = max_available_height_for_msg_box_area
+
+            # Ensure minimum height is still respected even if max_available_height_for_msg_box_area is very small.
+            min_practical_height_for_box = (2 * message_box_padding) + (final_font_random_msg.size if final_font_random_msg else random_msg_min_font_size)
+            final_message_box_height = max(final_message_box_height, min_practical_height_for_box)
 
 
-        max_message_lines = 3
+            # Create the message box image using the determined size and wrapped text
+            message_box = Image.new("RGBA", (message_box_width_for_random_msg, final_message_box_height), (0, 0, 0, 200))
+            message_box_draw = ImageDraw.Draw(message_box)
+            message_box_draw.rounded_rectangle((0, 0, message_box_width_for_random_msg, final_message_box_height), fill=(0, 0, 0, 200), radius=10)
+            
+            # Now, draw the text. The text should be vertically centered within this forced height.
+            total_text_content_height = len(final_wrapped_message) * final_font_random_msg.size
+            
+            # Calculate y_offset for vertical centering of the text within the box
+            # If total_text_content_height is greater than final_message_box_height - (2 * message_box_padding),
+            # it means the text content itself is larger than the available space within the box's padding.
+            # In this scenario, we should not aim for perfect centering but rather start from padding top.
+            if total_text_content_height > (final_message_box_height - (2 * message_box_padding)):
+                message_text_y_start = message_box_padding
+            else:
+                message_text_y_start = (final_message_box_height - total_text_content_height) // 2
+
+            current_text_y = message_text_y_start
+            for i, line in enumerate(final_wrapped_message):
+                display_line = line
+                # Add opening quote to the first line
+                if i == 0:
+                    display_line = "“" + display_line
+                # Add closing quote to the last line
+                if i == len(final_wrapped_message) - 1:
+                    # Make sure not to double-add if it's "..."
+                    if not display_line.endswith("..."):
+                        display_line += "”"
+                    else: # If it ends with "...", place quote before it
+                        display_line = display_line.replace("...", "”...")
+
+                message_text_bbox = message_box_draw.textbbox((0, 0), display_line, font=final_font_random_msg)
+                # Center text within its line for the box
+                message_text_x = (message_box_width_for_random_msg - (message_text_bbox[2] - message_text_bbox[0])) // 2
+                message_box_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
+                current_text_y += final_font_random_msg.size
+        # --- End Dynamic Font Sizing and Truncation for Random Message ---
+
 
         static_card_base = base_card_content.copy()
         static_draw = ImageDraw.Draw(static_card_base)
@@ -294,23 +451,6 @@ class GetMemberCard(commands.Cog):
         label_x_aligned = username_center_x - ((label_bbox[2] - label_bbox[0]) // 2)
         date_value_bbox = static_draw.textbbox((0,0), joined_date_str, font=font_date_value)
         date_value_x_aligned = username_center_x - ((date_value_bbox[2] - date_value_bbox[0]) // 2)
-
-        if random_msg:
-            message_box_padding = 10
-            wrapped_message = self.wrap_text(random_msg, font_random_msg, message_box_width - (2 * message_box_padding))
-            if len(wrapped_message) > max_message_lines:
-                wrapped_message = wrapped_message[:max_message_lines - 1]
-                wrapped_message.append("...")
-            current_message_box_height = len(wrapped_message) * font_random_msg.size + (2 * message_box_padding)
-            message_box = Image.new("RGBA", (message_box_width, current_message_box_height), (0, 0, 0, 200))
-            message_box_draw = ImageDraw.Draw(message_box)
-            message_box_draw.rounded_rectangle((0, 0, message_box_width, current_message_box_height), fill=(0, 0, 0, 200), radius=10)
-            message_text_y = message_box_padding
-            for line in wrapped_message:
-                message_text_bbox = message_box_draw.textbbox((0, 0), line, font=font_random_msg)
-                message_text_x = (message_box_width - (message_text_bbox[2] - message_text_bbox[0])) // 2
-                message_box_draw.text((message_text_x, message_text_y), line, fill=(255, 255, 255), font=font_random_msg)
-                message_text_y += font_random_msg.size
 
         target_hex_color = self.rank_blink_colors.get(rank_str, "#808080")
         rank_color_end = self._hex_to_rgb(target_hex_color)
@@ -352,7 +492,7 @@ class GetMemberCard(commands.Cog):
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
 
                 # Check for line wrap
-                if current_tag_draw_x + tag_width > right_column_x_start + message_box_width:
+                if current_tag_draw_x + tag_width > right_column_x_start + tag_line_available_width:
                     current_tag_draw_x = right_column_x_start
                     current_tag_draw_y += tag_line_height + tag_spacing_y
 
@@ -373,7 +513,7 @@ class GetMemberCard(commands.Cog):
 
                 current_tag_draw_x += tag_width + tag_spacing_x
 
-            if random_msg:
+            if random_msg and message_box: # Only paste if message_box was created and message exists
                 static_card_base.paste(message_box, (right_column_x_start, random_msg_y), message_box)
             static_card_base.save(output, format="PNG")
             output.seek(0)
@@ -403,7 +543,7 @@ class GetMemberCard(commands.Cog):
         gradient = gradient.rotate(45, expand=True)
 
         for i in range(num_frames):
-            frame = static_card_base.copy()
+            frame = static_card_base.copy() # Start with the base content
             draw = ImageDraw.Draw(frame)
             pulse_progress = (math.sin(2 * math.pi * i / num_frames) + 1) / 2
             current_rank_pulse_color = (
@@ -432,7 +572,11 @@ class GetMemberCard(commands.Cog):
                     int(color1[2] + (color2[2] - color1[2]) * segment_progress)
                 )
                 draw.rectangle((0, 0, card_width, card_height), fill=current_color)
-
+                # If there's a background image, redraw it transparently on top of the flashing color
+                if base_card_content:
+                    frame.paste(base_card_content, (0,0), base_card_content) 
+                    draw = ImageDraw.Draw(frame) # Re-get draw object to draw on the updated frame
+                
                 brightness = sum(current_color) / 3
                 current_text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
@@ -446,7 +590,7 @@ class GetMemberCard(commands.Cog):
             visible_banner = banner.crop((max(0, -x), 0, min(banner_width, card_width - x), banner_height))
             frame.paste(visible_banner, (max(0, x), 15), visible_banner)
 
-            if rank_str in ["MF Gilded", "The Real MFrs"]:
+            if rank_str in ["MF Gilded", "The Real Mfrs"]:
                 total_cycle_frames = int(60 / (frame_duration / 1000))
                 cycle_frame = (i * 2) % (total_cycle_frames // num_frames * num_frames)
                 if cycle_frame < 40:
@@ -500,7 +644,7 @@ class GetMemberCard(commands.Cog):
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
 
                 # Check for line wrap
-                if current_tag_draw_x + tag_width > right_column_x_start + message_box_width:
+                if current_tag_draw_x + tag_width > right_column_x_start + tag_line_available_width:
                     current_tag_draw_x = right_column_x_start
                     current_tag_draw_y += tag_line_height + tag_spacing_y
 
@@ -521,8 +665,8 @@ class GetMemberCard(commands.Cog):
 
                 current_tag_draw_x += tag_width + tag_spacing_x
 
-
-            if random_msg:
+            if random_msg and message_box:
+                # Ensure the message_box is pasted correctly, using the pre-calculated message_box variable
                 frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
 
             dithered = frame.convert("P", palette=Image.ADAPTIVE, dither=Image.FLOYDSTEINBERG)
@@ -538,24 +682,27 @@ class GetMemberCard(commands.Cog):
         words = text.split()
         current_line = ""
         for word in words:
-            bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), word, font=font)
-            word_width = bbox[2] - bbox[0]
+            # Check if a single word is longer than max_width, if so, break it down
+            bbox_word = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), word, font=font)
+            word_width = bbox_word[2] - bbox_word[0]
+            
             if word_width > max_width:
-                if current_line:
+                if current_line: # Add any existing partial line first
                     wrapped_lines.append(current_line.strip())
                     current_line = ""
-                temp_word = ""
-                for char in word:
-                    test_temp = temp_word + char
-                    temp_bbox = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_temp, font=font)
-                    if (temp_bbox[2] - temp_bbox[0]) <= max_width:
-                        temp_word += char
+                
+                temp_word_part = ""
+                for char_idx, char in enumerate(word):
+                    test_temp_part = temp_word_part + char
+                    temp_part_bbox = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_temp_part, font=font)
+                    if (temp_part_bbox[2] - temp_part_bbox[0]) <= max_width:
+                        temp_word_part += char
                     else:
-                        wrapped_lines.append(temp_word)
-                        temp_word = char
-                if temp_word:
-                    wrapped_lines.append(temp_word)
-            else:
+                        wrapped_lines.append(temp_word_part)
+                        temp_word_part = char # Start new part with current char
+                if temp_word_part: # Add any remaining part of the word
+                    wrapped_lines.append(temp_word_part)
+            else: # Word fits normally
                 test_line = current_line + word + " "
                 test_bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), test_line, font=font)
                 test_width = test_bbox[2] - test_bbox[0]
@@ -564,7 +711,7 @@ class GetMemberCard(commands.Cog):
                 else:
                     if current_line:
                         wrapped_lines.append(current_line.strip())
-                    current_line = word + " "
+                    current_line = word + " " # Start new line with the current word
         if current_line.strip():
             wrapped_lines.append(current_line.strip())
         return wrapped_lines
@@ -616,16 +763,25 @@ class GetMemberCard(commands.Cog):
 
         message_count = await cog.get_message_count(member)
 
-        random_msg_content = ""
-        random_msg_url = None
+        # --- IMPORTANT: Revert to dynamic fetching here ---
+        random_msg_content = "" # Initialize with empty string
+        random_msg_url = None   # Initialize with None
+
         try:
             retrieved_msg_data = await cog.get_random_message(member)
             if retrieved_msg_data and len(retrieved_msg_data) == 2:
                 random_msg_content, random_msg_url = retrieved_msg_data
+            else:
+                # Set default "no message" content if fetching fails or returns unexpected data
+                random_msg_content = "Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!"
+                # Consider if you want random_msg_url to be None in this case,
+                # or a generic link, but None is usually safer to prevent a broken button.
+                random_msg_url = None
         except Exception as e:
-            print(f"Error calling get_random_message for {member.display_name}: {e}")
-            random_msg_content = ""
+            print(f"Error fetching random message for {member.display_name}: {e}")
+            random_msg_content = "An unexpected error occurred while looking for a message."
             random_msg_url = None
+        # --- End dynamic fetching block ---
 
         last_music = await cog.get_last_finished_music(member)
         server_name = interaction.guild.name if interaction.guild else "Direct Message"
@@ -666,6 +822,11 @@ class GetMemberCard(commands.Cog):
         view = discord.ui.View()
         if release_link:
             view.add_item(discord.ui.Button(label=f"{discord_username}'s Latest Release", style=discord.ButtonStyle.link, url=release_link))
+        # This condition is already good: the button will only show if random_msg_url is not None
+        # and random_msg_content is not one of the default error messages.
+        if random_msg_url and random_msg_content not in ["<MFR", "<MF POINTS", "Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!", "I don't have permission to look through message history in that channel.", "Something went wrong trying to fetch message history. Please try again later!", "An unexpected error occurred while looking for a message."]:
+             view.add_item(discord.ui.Button(label="Source Message", style=discord.ButtonStyle.link, url=random_msg_url))
+
 
         await interaction.followup.send(file=file, view=view)
 
