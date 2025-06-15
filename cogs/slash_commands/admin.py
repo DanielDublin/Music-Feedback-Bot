@@ -1,4 +1,3 @@
-import discord
 import database.db as db
 from discord.ext import commands
 from discord import app_commands
@@ -8,6 +7,7 @@ from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.ctx_class import ContextLike
 from cogs.feedback_threads.modules.embeds import Embeds
 from cogs.feedback_threads.modules.points_logic import PointsLogic
+import discord # Keep this at the very top
 
 
 class Admin(commands.Cog):
@@ -19,13 +19,15 @@ class Admin(commands.Cog):
 
     group = app_commands.Group(name="mfpoints", description="Alter any user's points.", default_permissions=discord.Permissions(administrator=True))
     
-    # Mod give points
+    # Mod give points (Applying the same logic as remove for consistency and correctness)
     @group.command(name='add', description="Use to add more points to a user.\n```/mfpoints add @user/user_id amount(optional)```")
     async def add(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
+            # If not admin, respond immediately and return. This is the ONLY initial response.
+            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif", ephemeral=True)
             return
         
+        # Defer the response AFTER the permission check. This sends the "Bot is thinking..." message.
         await interaction.response.defer(ephemeral=True)
 
         if self.pfp_url == "":
@@ -33,11 +35,12 @@ class Admin(commands.Cog):
             self.pfp_url = creator_user.avatar.url
             
         if points <=0:
-            await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
+            # After deferring, use followup.send for any subsequent messages to the user.
+            await interaction.followup.send(f"You can only use positive numbers.", ephemeral=True)
             return 
         
         # use this class to store the information of the member that is being modded
-        admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.add) # Changed to self.add for logical consistency
 
         # get the user_thread
         feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
@@ -45,7 +48,7 @@ class Admin(commands.Cog):
         # store the information of the target user
         target_user_ctx_like = ContextLike(
             interaction=interaction,
-            command=self.remove,
+            command=self.add, # Changed to self.add
             custom_author=user
         )
         
@@ -55,6 +58,7 @@ class Admin(commands.Cog):
         await db.add_points(str(user.id), points)
         current_points = int(await db.fetch_points(str(user.id)))
 
+        # This is already correct - using followup.send after defer.
         await interaction.followup.send("Done! The thread is here: <#"+str(thread_for_target_user.id)+">", ephemeral=True)
 
         embed = discord.Embed(color=0x7e016f)
@@ -63,7 +67,7 @@ class Admin(commands.Cog):
                               f" They now have **{current_points}** MF point(s).",
                         inline=False)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-        await interaction.channel.send(embed=embed)
+        await interaction.channel.send(embed=embed) # Sending to channel is fine, not an interaction response
 
         mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
         await thread_for_target_user.send(embed=mod_embed)
@@ -72,9 +76,11 @@ class Admin(commands.Cog):
     @group.command(name='remove', description="Use to remove points from a user.\n```/mfpoints remove @user/user_id amount(optional)```")
     async def remove(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
+            # Immediate response for permission check.
+            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif", ephemeral=True)
             return
         
+        # Defer the interaction after the permission check.
         await interaction.response.defer(ephemeral=True)
         
         if self.pfp_url == "":
@@ -82,7 +88,8 @@ class Admin(commands.Cog):
             self.pfp_url = creator_user.avatar.url
 
         if points <=0:
-            await interaction.response.send_message(f"You can only use positive numbers.", ephemeral=True)
+            # Use followup.send because we've already deferred.
+            await interaction.followup.send(f"You can only use positive numbers.", ephemeral=True)
             return
         
         # use this class to store the information of the member that is being modded
@@ -103,6 +110,7 @@ class Admin(commands.Cog):
         
         current_points = int(await db.fetch_points(str(user.id)))
 
+        # This is already correct - using followup.send after defer.
         await interaction.followup.send("Done! The thread is here: <#"+str(thread_for_target_user.id)+">", ephemeral=True)
 
         if current_points - points >= 0:
@@ -124,15 +132,15 @@ class Admin(commands.Cog):
                             value=f"Can't remove points, This member already has **{current_points}** MF points.",
                             inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await interaction.response.send_message("Nope!", ephemeral=True)
-            await interaction.channel.send(embed=embed)
+            # Use followup.send here because defer has already happened.
+            await interaction.followup.send("Nope!", ephemeral=True) 
+            await interaction.channel.send(embed=embed) # This is fine, sending to a channel.
 
-    # Mod clear points
-
+    # Mod clear points (Applying the same logic as remove for consistency and correctness)
     @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
-    async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1):
+    async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1): # `points` argument is unused here, consider removing if not needed.
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif")
+            await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif", ephemeral=True)
             return
         
         await interaction.response.defer(ephemeral=True)
@@ -142,7 +150,7 @@ class Admin(commands.Cog):
             self.pfp_url = creator_user.avatar.url
 
         # use this class to store the information of the member that is being modded
-        admin_ctx_like = ContextLike(interaction=interaction, command=self.remove) 
+        admin_ctx_like = ContextLike(interaction=interaction, command=self.clear) # Changed to self.clear
 
         # get the user_thread
         feedback_cog, user_thread, sqldatabase = await self.helpers.load_threads_cog(admin_ctx_like)
@@ -150,7 +158,7 @@ class Admin(commands.Cog):
         # store the information of the target user
         target_user_ctx_like = ContextLike(
             interaction=interaction,
-            command=self.remove,
+            command=self.clear, # Changed to self.clear
             custom_author=user
         )
         
