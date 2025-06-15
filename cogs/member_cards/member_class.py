@@ -10,6 +10,7 @@ import database.db as db
 from data.constants import SERVER_ID, FINISHED_MUSIC, AOTW_CHANNEL, GENERAL_CHAT_CHANNEL_ID, INTRO_MUSIC
 from discord.ext import commands
 import traceback 
+from typing import Union
 
 load_dotenv()
 token = os.environ.get('DISCORD_TEST_TOKEN') 
@@ -205,7 +206,7 @@ class MemberCards(commands.Cog):
 
         return start_of_day_utc, end_of_day_utc
 
-    async def get_random_message(self, member: discord.Member) -> tuple[str, str | None]:
+    async def get_random_message(self, member: discord.Member) -> tuple[str, Union[str, None]]:
         """
         Retrieves a random message by the member from the general chat channel.
         This function is intended for members who are NOT 'Fans' or 'Artist of the Week',
