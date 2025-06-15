@@ -17,6 +17,18 @@ class MemberCards(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        # --- Define your target RGB colors based on provided HEX codes ---
+        # These need to be accessible within the cog.
+        self.TARGET_MAIN_GENRES = self._hex_to_rgb("#8d8c8c") # Likely your 'Main Genres'
+        self.TARGET_DAW = self._hex_to_rgb("#6155a6") # Likely your 'DAW' roles
+        self.TARGET_INSTRUMENTS = self._hex_to_rgb("#e3abff") # Likely your 'Instruments' roles
+        # You can add more if you have other specific colors to filter by
+        # -------------------------------------------------------------
+
+    # Helper function to convert hex to RGB. Needs to be part of the class.
+    def _hex_to_rgb(self, hex_color):
+        hex_color = hex_color.lstrip('#')
+        return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     
     async def get_username(self, member: discord.Member) -> str:
         """Returns the member's display name."""
@@ -240,6 +252,42 @@ class MemberCards(commands.Cog):
         print(f"Failed to find any random messages for {member.display_name} after all strategies.")
         return f"Couldn't find any random messages by **{member.display_name}** in the general chat. Maybe they haven't posted much, or not in a while!", None
 
+    async def get_roles(self, member: discord.Member):
+        # This function currently returns ALL role names. 
+        # You can keep it if you need all, or remove it if get_roles_by_colors replaces its purpose.
+        return [role.name for role in member.roles]
+
+    # --- NEW FUNCTION TO GET ROLES BY SPECIFIC COLORS ---
+    async def get_roles_by_colors(self, member: discord.Member):
+        main_genres_roles = []
+        daw_roles = []
+        instruments_roles = []
+
+        for role in member.roles:
+            # Skip @everyone role as it has color 0 (black/invisible) and is usually not relevant
+            # Also skip roles that explicitly have no color set (discord.Color.default() is 0)
+            if role.id == member.guild.id or role.color == discord.Color.default():
+                continue
+
+            # Convert discord.Color object to RGB tuple for comparison
+            role_rgb = (role.color.r, role.color.g, role.color.b)
+
+            if role_rgb == self.TARGET_MAIN_GENRES:
+                main_genres_roles.append(role.name)
+            elif role_rgb == self.TARGET_DAW:
+                daw_roles.append(role.name)
+            elif role_rgb == self.TARGET_INSTRUMENTS:
+                instruments_roles.append(role.name)
+            
+            # Add more elif conditions here for other specific colors if needed
+
+        # Optionally sort the lists alphabetically if the order is important for display
+        main_genres_roles.sort()
+        daw_roles.sort()
+        instruments_roles.sort()
+
+        # NOTE: No slicing here, we return the full lists for the card generator to handle display logic.
+        return main_genres_roles, daw_roles, instruments_roles
 
 async def setup(bot):
     await bot.add_cog(MemberCards(bot))

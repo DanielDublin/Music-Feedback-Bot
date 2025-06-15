@@ -12,8 +12,9 @@ from datetime import datetime
 class GetMemberCard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Ensure these paths are correct for your environment
         self.font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Regular.ttf"
-        self.italic_font_path = None
+        self.italic_font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Italic.ttf" # Assuming you have an italic font
         self.background_images_dir = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/"
 
         self.background_map = {
@@ -103,50 +104,69 @@ class GetMemberCard(commands.Cog):
         top_mfr_text_bbox = draw_obj.textbbox((text_x, text_y_centered), top_mfr_text, font=font_top_mfr)
         return top_mfr_text_bbox[2], text_y_centered
 
-    def generate_card(self, pfp_image_pil, discord_username, server_name, rank_str, numeric_points, message_count, join_date, card_size, font_path, animated=True, random_msg="", is_top_feedback=False):
+    def generate_card(self, pfp_image_pil, discord_username, server_name, rank_str, numeric_points, message_count, join_date, card_size, font_path, animated=True, random_msg="", is_top_feedback=False, **kwargs):
         frames = []
-        num_frames = 100  # 100 frames for slower fading (~7.5s per loop)
-        frame_duration = 75  # 75ms per frame
+        num_frames = 100
+        frame_duration = 75
 
+        # --- Font and Size Definitions ---
         font_username = ImageFont.truetype(font_path, 30)
         font_date_label = ImageFont.truetype(font_path, 20)
         font_date_value = ImageFont.truetype(font_path, 25)
-        font_points_messages = ImageFont.truetype(font_path, 25)
         font_rank_blinking = ImageFont.truetype(font_path, 55)
         font_top_mfr = ImageFont.truetype(font_path, 30)
         font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, 18)
+        font_tag = ImageFont.truetype(font_path, 12) # Adjusted font for individual tags
+        # font_extra_roles removed as it's no longer needed
+
+        # Define icon and text padding sizes used in badge drawing and layout
+        top_mfr_icon_size = 30
+        top_mfr_text_padding = 8
+        # --- End Font and Size Definitions ---
+
+        # Retrieve roles data from kwargs
+        genres_to_display = kwargs.get("genres_to_display", [])
+        genres_extra_count = kwargs.get("genres_extra_count", 0)
+        daws_to_display = kwargs.get("daws_to_display", [])
+        daws_extra_count = kwargs.get("daws_extra_count", 0)
+        instruments_to_display = kwargs.get("instruments_to_display", [])
+        instruments_extra_count = kwargs.get("instruments_extra_count", 0)
+
+        tag_text_color = (255, 255, 255) # White text for dark tags
+
+        # Tag dimensions and spacing (ADJUSTED for smaller and closer)
+        tag_horizontal_padding = 8 # Padding inside tag, around text and dot
+        tag_vertical_padding = 4   # Vertical padding inside tag
+        dot_diameter = 7 # Size of the color dot
+        dot_right_margin = 4 # Space between dot and text
+        tag_spacing_x = 5 # Space between tags horizontally
+        tag_spacing_y = 4 # Space between lines of tags vertically
+        tag_line_height = font_tag.size + (2 * tag_vertical_padding)
 
         card_width, card_height = card_size
 
-        # Load the banner (keeping original 800x40px dimensions) and crop 5px from top and bottom
-        banner = Image.open("/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/banner.png").convert("RGBA")  # Original 800x40px
-        banner = banner.crop((0, 5, 800, 35))  # Crop: (left, top, right, bottom) - removes 5px top and 5px bottom
+        banner = Image.open("/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/banner.png").convert("RGBA")
+        banner = banner.crop((0, 5, 800, 35))
         banner_width, banner_height = banner.size
-        amplitude = 50  # Reduced amplitude for less dramatic movement
-        center_x = (card_width // 2) - (banner_width // 2)  # Center the banner (-100px to align 400px with 300px center)
+        amplitude = 50
+        center_x = (card_width // 2) - (banner_width // 2)
 
-        # Define roles for which text should be inverted (white text on dark background)
         inverted_text_roles = ["Owner", "Admins", "Moderators", "Chat Moderators", "Bot Boinker"]
 
-
-        # Custom fading background for Artist of the Week
         if rank_str == "Artist of the Week" and animated:
             base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
-            # New sequence: White -> Color1 -> Color2 -> White
             flash_colors = [
-                (255, 255, 255),  # White
-                self._hex_to_rgb("d585eb"),  # Color 1
-                self._hex_to_rgb("3bc4ed"),  # Color 2
-                (255, 255, 255)   # Back to White
+                (255, 255, 255),
+                self._hex_to_rgb("d585eb"),
+                self._hex_to_rgb("3bc4ed"),
+                (255, 255, 255)
             ]
         else:
             background_image_path = None
             if rank_str in self.background_map:
                 background_filename = self.background_map[rank_str]
-                # Ensure the background filename is 'moderators.png' for the specified roles
                 if rank_str in inverted_text_roles:
-                    # Removed os.path.join as background_images_dir is already part of the path in the class
-                    background_filename = "moderators.png" # Just the filename, not the full path here
+                    background_filename = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/moderators.png"
                 background_image_path = os.path.join(self.background_images_dir, background_filename)
             base_card_content = None
             if background_image_path and os.path.exists(background_image_path):
@@ -169,8 +189,7 @@ class GetMemberCard(commands.Cog):
                     b = int(side_color[2] + (center_color[2] - side_color[2]) * blend_factor)
                     draw_background.line((x, 0, x, card_height), fill=(r, g, b, 255))
 
-        # Shift all elements down by 15px
-        pfp_x, pfp_y = 50, 65  # Increased from 50 to 65
+        pfp_x, pfp_y = 50, 65
         pfp_diameter = 120
         border_thickness = 8
         border_color = (255, 215, 0, 255) if rank_str in ["MF Gilded", "The Real MFrs"] else (0, 0, 0, 255)
@@ -189,25 +208,82 @@ class GetMemberCard(commands.Cog):
         current_left_y += font_date_value.size + 20
 
         right_column_x_start = pfp_x + pfp_diameter + 30
-        rank_y = pfp_y + 10
-        top_mfr_icon_size = 30
-        top_mfr_text_padding = 8
-        top_mfr_block_y = rank_y + font_rank_blinking.size + 10
+        rank_y = pfp_y + 10 # Starting Y for the Rank text
 
+        # Calculate Y position for the start of the "TOP MFR / MF Points" block
+        current_y_for_points_block = rank_y + font_rank_blinking.size + 10 # Padding after rank
+
+        # Determine the effective bottom Y of the points block
+        bottom_of_points_block_y = 0
         if is_top_feedback:
-            top_mfr_content_height = max(top_mfr_icon_size, font_top_mfr.size)
-            random_msg_y = top_mfr_block_y + top_mfr_content_height + 20
+            bottom_of_points_block_y = current_y_for_points_block + max(top_mfr_icon_size, font_top_mfr.size)
         else:
-            random_msg_y = top_mfr_block_y + font_top_mfr.size + 20
+            bottom_of_points_block_y = current_y_for_points_block + font_top_mfr.size
 
-        message_box_width = card_width - right_column_x_start - 30
+        # --- Roles block starts below the points block ---
+        roles_y = bottom_of_points_block_y + 10 # Add padding after roles block
+
+        message_box_width = card_width - right_column_x_start - 30 # Available width for tags and random message
+        tag_bg_color = (40, 40, 40, 200) # Semi-transparent dark grey for tag background
+
+        role_categories = [
+            (genres_to_display, genres_extra_count, self._hex_to_rgb("#8d8c8c")), # TARGET_MAIN_GENRES RGB
+            (daws_to_display, daws_extra_count, self._hex_to_rgb("#6155a6")),    # TARGET_DAW RGB
+            (instruments_to_display, instruments_extra_count, self._hex_to_rgb("#e3abff")) # TARGET_INSTRUMENTS RGB
+        ]
+        
+        # Combine all roles into a single list for continuous flow
+        all_roles_combined = []
+        total_extra_roles_count = 0 
+
+        for roles_list, extra_count, category_dot_color in role_categories:
+            for role_name in roles_list: # roles_list already contains only the first 2
+                all_roles_combined.append({'name': role_name, 'color': category_dot_color})
+            total_extra_roles_count += extra_count # Accumulate extra count
+
+        # Add the combined "+x" tag if there are extra roles
+        if total_extra_roles_count > 0:
+            neutral_extra_color = (128, 128, 128) # Grey for the +x dot
+            all_roles_combined.append({'name': f"+{total_extra_roles_count}", 'color': neutral_extra_color})
+
+
+        # Calculate height of the roles block by performing a dry run of tag layout
+        roles_block_height = 0
+        current_tag_x_dry_run = right_column_x_start
+        current_tag_y_offset_dry_run = 0
+        
+        for tag_data in all_roles_combined:
+            tag_text = tag_data['name']
+            
+            temp_draw = ImageDraw.Draw(Image.new("RGB", (1, 1))) # Dummy draw object
+            text_bbox = temp_draw.textbbox((0, 0), tag_text, font=font_tag)
+            text_width = text_bbox[2] - text_bbox[0]
+            
+            tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
+
+            if current_tag_x_dry_run + tag_width > right_column_x_start + message_box_width:
+                current_tag_x_dry_run = right_column_x_start
+                current_tag_y_offset_dry_run += tag_line_height + tag_spacing_y
+            
+            current_tag_x_dry_run += tag_width + tag_spacing_x
+            
+        # Adjust roles_block_height if no tags were drawn
+        if not all_roles_combined:
+            roles_block_height = 0
+        else:
+            # The last line height and spacing were added. Subtract if only one line, or if the last item caused a wrap.
+            roles_block_height = current_tag_y_offset_dry_run + tag_line_height # Add the height of the last line
+
+
+        # Random message box starts below the roles block
+        random_msg_y = roles_y + roles_block_height + 10 # Add padding after roles block
+
+
         max_message_lines = 3
 
         static_card_base = base_card_content.copy()
         static_draw = ImageDraw.Draw(static_card_base)
 
-        # These elements should always be drawn, regardless of animation or rank
-        # Calculate text positions once
         username_bbox = static_draw.textbbox((0, 0), discord_username, font=font_username)
         username_center_x = pfp_x + (pfp_diameter // 2)
         username_x_aligned = username_center_x - ((username_bbox[2] - username_bbox[0]) // 2)
@@ -219,7 +295,6 @@ class GetMemberCard(commands.Cog):
         date_value_bbox = static_draw.textbbox((0,0), joined_date_str, font=font_date_value)
         date_value_x_aligned = username_center_x - ((date_value_bbox[2] - date_value_bbox[0]) // 2)
 
-
         if random_msg:
             message_box_padding = 10
             wrapped_message = self.wrap_text(random_msg, font_random_msg, message_box_width - (2 * message_box_padding))
@@ -229,7 +304,7 @@ class GetMemberCard(commands.Cog):
             current_message_box_height = len(wrapped_message) * font_random_msg.size + (2 * message_box_padding)
             message_box = Image.new("RGBA", (message_box_width, current_message_box_height), (0, 0, 0, 200))
             message_box_draw = ImageDraw.Draw(message_box)
-            message_box_draw.rounded_rectangle((0, 0, message_box_width, current_message_box_height), fill=(0, 0, 0, 200), radius=50)
+            message_box_draw.rounded_rectangle((0, 0, message_box_width, current_message_box_height), fill=(0, 0, 0, 200), radius=10)
             message_text_y = message_box_padding
             for line in wrapped_message:
                 message_text_bbox = message_box_draw.textbbox((0, 0), line, font=font_random_msg)
@@ -239,38 +314,65 @@ class GetMemberCard(commands.Cog):
 
         target_hex_color = self.rank_blink_colors.get(rank_str, "#808080")
         rank_color_end = self._hex_to_rgb(target_hex_color)
-        
-        # --- THIS IS THE CORRECTED LOGIC FOR rank_color_start ---
-        if rank_str == "Artist of the Week":
-            rank_color_start = (0, 0, 0) # AOTW always starts from black and flashes vibrant
-        elif rank_str in inverted_text_roles:
-            rank_color_start = (255, 255, 255) # Inverted roles fade from white
-        else:
-            rank_color_start = (0, 0, 0) # All other roles fade from black
-        # --- END OF CORRECTED LOGIC ---
+        rank_color_start = (0, 0, 0)
 
-
-        # Determine the base text color (for username, member since, points)
         base_text_color = (255, 255, 255) if rank_str in inverted_text_roles else (0, 0, 0)
 
-
-        if not animated: # For static PNG cards
+        if not animated:
             output = io.BytesIO()
             static_draw.text((right_column_x_start, rank_y), f"{rank_str}", fill=rank_color_end, font=font_rank_blinking)
             static_draw.text((username_x_aligned, username_y), discord_username, fill=base_text_color, font=font_username)
             static_draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
             static_draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
+
+            # Draw MF Points / Top MFR for static card
             if is_top_feedback:
                 top_mfr_static_color = (59, 196, 237)
-                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(static_draw, top_mfr_block_y, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, top_mfr_static_color)
+                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(static_draw, current_y_for_points_block, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, top_mfr_static_color)
                 mf_points_static_text = f" - MF Points: {numeric_points}"
                 mf_points_x = top_mfr_text_end_x + 5
                 mf_points_y = top_mfr_text_y
                 static_draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=base_text_color, font=font_top_mfr)
             else:
                 mf_points_only_text = f"MF Points: {numeric_points}"
-                mf_points_only_y = top_mfr_block_y + (top_mfr_icon_size - font_top_mfr.size) // 2
+                mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
                 static_draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
+
+            # Draw roles for static card (using combined roles)
+            current_tag_draw_x = right_column_x_start
+            current_tag_draw_y = roles_y
+            
+            for tag_data in all_roles_combined:
+                tag_text = tag_data['name']
+                category_dot_color = tag_data['color']
+                
+                text_bbox = static_draw.textbbox((0, 0), tag_text, font=font_tag)
+                text_width = text_bbox[2] - text_bbox[0]
+                
+                tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
+
+                # Check for line wrap
+                if current_tag_draw_x + tag_width > right_column_x_start + message_box_width:
+                    current_tag_draw_x = right_column_x_start
+                    current_tag_draw_y += tag_line_height + tag_spacing_y
+
+                # Draw rounded rectangle background
+                tag_rect = (current_tag_draw_x, current_tag_draw_y,
+                            current_tag_draw_x + tag_width, current_tag_draw_y + tag_line_height)
+                static_draw.rounded_rectangle(tag_rect, radius=tag_line_height // 2, fill=tag_bg_color)
+
+                # Draw color dot
+                dot_x = current_tag_draw_x + tag_horizontal_padding
+                dot_y = current_tag_draw_y + (tag_line_height - dot_diameter) // 2
+                static_draw.ellipse((dot_x, dot_y, dot_x + dot_diameter, dot_y + dot_diameter), fill=category_dot_color)
+
+                # Draw tag text
+                text_x = dot_x + dot_diameter + dot_right_margin
+                text_y = current_tag_draw_y + tag_vertical_padding - 1 # Adjusted for visual centering
+                static_draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
+
+                current_tag_draw_x += tag_width + tag_spacing_x
+
             if random_msg:
                 static_card_base.paste(message_box, (right_column_x_start, random_msg_y), message_box)
             static_card_base.save(output, format="PNG")
@@ -289,19 +391,17 @@ class GetMemberCard(commands.Cog):
         reveal_frames = int(num_frames * 0.5)
         blink_frames = num_frames - reveal_frames
 
-        # Create gradient for shiny effect (transparent-white-transparent)
-        gradient_width = int(math.sqrt(card_width**2 + card_height**2)) * 2  # Diagonal length
-        gradient_height = 100  # Width of the flash band
+        gradient_width = int(math.sqrt(card_width**2 + card_height**2)) * 2
+        gradient_height = 100
         gradient = Image.new("RGBA", (gradient_width, gradient_height), (0, 0, 0, 0))
         gradient_draw = ImageDraw.Draw(gradient)
         for x in range(gradient_width):
             alpha = 0
             if x > gradient_width // 3 and x < 2 * gradient_width // 3:
-                alpha = int(128 * math.sin(math.pi * (x - gradient_width // 3) / (gradient_width // 3)))  # Peak at 128
+                alpha = int(128 * math.sin(math.pi * (x - gradient_width // 3) / (gradient_width // 3)))
             gradient_draw.line((x, 0, x, gradient_height), fill=(255, 255, 255, alpha))
         gradient = gradient.rotate(45, expand=True)
 
-        # Animation loop
         for i in range(num_frames):
             frame = static_card_base.copy()
             draw = ImageDraw.Draw(frame)
@@ -312,17 +412,15 @@ class GetMemberCard(commands.Cog):
                 int(rank_color_start[2] + (rank_color_end[2] - rank_color_start[2]) * pulse_progress)
             )
 
-            # Custom fading background for Artist of the Week
+            current_text_color = base_text_color
+
             if rank_str == "Artist of the Week" and animated:
-                # Calculate the segment of the animation we are in
                 segment_length = num_frames / (len(flash_colors) - 1)
                 segment_index = int(i / segment_length)
-                
-                # Ensure segment_index does not exceed valid indices
-                if segment_index >= len(flash_colors) - 1:
-                    segment_index = len(flash_colors) - 2 
 
-                # Calculate progress within the current segment
+                if segment_index >= len(flash_colors) - 1:
+                    segment_index = len(flash_colors) - 2
+
                 segment_progress = (i % segment_length) / segment_length
 
                 color1 = flash_colors[segment_index]
@@ -335,35 +433,22 @@ class GetMemberCard(commands.Cog):
                 )
                 draw.rectangle((0, 0, card_width, card_height), fill=current_color)
 
-                # Dynamically determine text color based on background brightness for AOTW
-                brightness = sum(current_color) / 3  # Average of RGB
-                text_color_dynamic = (0, 0, 0) if brightness > 128 else (255, 255, 255)
-                draw.text((username_x_aligned, username_y), discord_username, fill=text_color_dynamic, font=font_username)
-                draw.text((label_x_aligned, member_since_label_y), joined_label, fill=text_color_dynamic, font=font_date_label)
-                draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=text_color_dynamic, font=font_date_value)
-                if random_msg:
-                    frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
-            else: # For all other ranks (non-AOTW animated cards)
-                # Apply the determined base_text_color here
-                draw.text((username_x_aligned, username_y), discord_username, fill=base_text_color, font=font_username)
-                draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
-                draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
-                if random_msg:
-                    frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
+                brightness = sum(current_color) / 3
+                current_text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
+            draw.text((username_x_aligned, username_y), discord_username, fill=current_text_color, font=font_username)
+            draw.text((label_x_aligned, member_since_label_y), joined_label, fill=current_text_color, font=font_date_label)
+            draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=current_text_color, font=font_date_value)
 
-            # Animate the banner with centered and reduced movement, shifted down 15px
-            progress = i / num_frames  # 0 to 1 over the cycle
-            x_offset = int(amplitude * math.sin(2 * math.pi * progress))  # Oscillate within 50px range
-            x = center_x + x_offset  # Adjust position based on center
-            # Crop to card width (600px) by pasting only the visible portion
+            progress = i / num_frames
+            x_offset = int(amplitude * math.sin(2 * math.pi * progress))
+            x = center_x + x_offset
             visible_banner = banner.crop((max(0, -x), 0, min(banner_width, card_width - x), banner_height))
-            frame.paste(visible_banner, (max(0, x), 15), visible_banner)  # Shift down by 15px
+            frame.paste(visible_banner, (max(0, x), 15), visible_banner)
 
-            # Shiny effect for "MF Gilded" and "The Real MFrs"
             if rank_str in ["MF Gilded", "The Real MFrs"]:
-                total_cycle_frames = int(60 / (frame_duration / 1000))  # 15s in frames
-                cycle_frame = (i * 2) % (total_cycle_frames // num_frames * num_frames)  # Slow down flash cycle
+                total_cycle_frames = int(60 / (frame_duration / 1000))
+                cycle_frame = (i * 2) % (total_cycle_frames // num_frames * num_frames)
                 if cycle_frame < 40:
                     flash_progress = cycle_frame / 40
                     offset_x = int(-gradient.size[0] + flash_progress * (gradient.size[0] + card_width))
@@ -384,21 +469,61 @@ class GetMemberCard(commands.Cog):
             else:
                 draw.text((right_column_x_start, rank_y), rank_display_text, fill=current_rank_pulse_color, font=font_rank_blinking)
 
+            # Draw MF Points / Top MFR
             if is_top_feedback:
                 current_top_mfr_pulse_color = (
                     int(top_mfr_color_start[0] + (top_mfr_color_end[0] - top_mfr_color_start[0]) * pulse_progress),
                     int(top_mfr_color_start[1] + (top_mfr_color_end[1] - top_mfr_color_start[1]) * pulse_progress),
                     int(top_mfr_color_start[2] + (top_mfr_color_end[2] - top_mfr_color_start[2]) * pulse_progress)
                 )
-                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(draw, top_mfr_block_y, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, current_top_mfr_pulse_color)
+                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(draw, current_y_for_points_block, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, current_top_mfr_pulse_color)
                 mf_points_static_text = f" - MF Points: {numeric_points}"
                 mf_points_x = top_mfr_text_end_x + 5
                 mf_points_y = top_mfr_text_y
-                draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=base_text_color, font=font_top_mfr)
+                draw.text((mf_points_x, mf_points_y), mf_points_static_text, fill=current_text_color, font=font_top_mfr)
             else:
                 mf_points_only_text = f"MF Points: {numeric_points}"
-                mf_points_only_y = top_mfr_block_y + (top_mfr_icon_size - font_top_mfr.size) // 2
-                draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
+                mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
+                draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=current_text_color, font=font_top_mfr)
+
+            # Draw roles for animated card (using combined roles)
+            current_tag_draw_x = right_column_x_start
+            current_tag_draw_y = roles_y
+            
+            for tag_data in all_roles_combined:
+                tag_text = tag_data['name']
+                category_dot_color = tag_data['color']
+                
+                text_bbox = draw.textbbox((0, 0), tag_text, font=font_tag)
+                text_width = text_bbox[2] - text_bbox[0]
+                
+                tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
+
+                # Check for line wrap
+                if current_tag_draw_x + tag_width > right_column_x_start + message_box_width:
+                    current_tag_draw_x = right_column_x_start
+                    current_tag_draw_y += tag_line_height + tag_spacing_y
+
+                # Draw rounded rectangle background
+                tag_rect = (current_tag_draw_x, current_tag_draw_y,
+                            current_tag_draw_x + tag_width, current_tag_draw_y + tag_line_height)
+                draw.rounded_rectangle(tag_rect, radius=tag_line_height // 2, fill=tag_bg_color)
+
+                # Draw color dot
+                dot_x = current_tag_draw_x + tag_horizontal_padding
+                dot_y = current_tag_draw_y + (tag_line_height - dot_diameter) // 2
+                draw.ellipse((dot_x, dot_y, dot_x + dot_diameter, dot_y + dot_diameter), fill=category_dot_color)
+
+                # Draw tag text
+                text_x = dot_x + dot_diameter + dot_right_margin
+                text_y = current_tag_draw_y + tag_vertical_padding - 1 # Adjusted for visual centering
+                draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
+
+                current_tag_draw_x += tag_width + tag_spacing_x
+
+
+            if random_msg:
+                frame.paste(message_box, (right_column_x_start, random_msg_y), message_box)
 
             dithered = frame.convert("P", palette=Image.ADAPTIVE, dither=Image.FLOYDSTEINBERG)
             frames.append(dithered)
@@ -413,15 +538,33 @@ class GetMemberCard(commands.Cog):
         words = text.split()
         current_line = ""
         for word in words:
-            test_line = current_line + word + " "
-            test_bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), test_line, font=font)
-            test_width = test_bbox[2] - test_bbox[0]
-            if test_width <= max_width:
-                current_line = test_line
-            else:
+            bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), word, font=font)
+            word_width = bbox[2] - bbox[0]
+            if word_width > max_width:
                 if current_line:
                     wrapped_lines.append(current_line.strip())
-                current_line = word + " "
+                    current_line = ""
+                temp_word = ""
+                for char in word:
+                    test_temp = temp_word + char
+                    temp_bbox = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_temp, font=font)
+                    if (temp_bbox[2] - temp_bbox[0]) <= max_width:
+                        temp_word += char
+                    else:
+                        wrapped_lines.append(temp_word)
+                        temp_word = char
+                if temp_word:
+                    wrapped_lines.append(temp_word)
+            else:
+                test_line = current_line + word + " "
+                test_bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), test_line, font=font)
+                test_width = test_bbox[2] - test_bbox[0]
+                if test_width <= max_width:
+                    current_line = test_line
+                else:
+                    if current_line:
+                        wrapped_lines.append(current_line.strip())
+                    current_line = word + " "
         if current_line.strip():
             wrapped_lines.append(current_line.strip())
         return wrapped_lines
@@ -432,18 +575,23 @@ class GetMemberCard(commands.Cog):
         await interaction.response.defer()
         if member == None:
             member = interaction.user
+
         cog = self.bot.get_cog("MemberCards")
         if not cog:
             return await interaction.followup.send("MemberCards cog is not loaded. Please ensure it's loaded.", ephemeral=True)
+
         discord_username = member.display_name
         pfp_url = await cog.get_pfp(member)
         join_date = await cog.get_join_date(member)
+
         if isinstance(join_date, str):
             try:
                 join_date = datetime.strptime(join_date, "%Y-%m-%d")
             except ValueError:
                 join_date = datetime.now()
+
         rank_str = await cog.get_rank(member)
+
         is_top_feedback, numeric_points = False, 0
         try:
             is_top_feedback, numeric_points = await cog.get_points(member)
@@ -451,7 +599,23 @@ class GetMemberCard(commands.Cog):
             print(f"Error calling get_points for {member.display_name}: {e}")
             is_top_feedback = False
             numeric_points = 0
+
+        # Retrieve all roles for each category
+        all_main_genres_roles, all_daw_roles, all_instruments_roles = await self.bot.get_cog("MemberCards").get_roles_by_colors(member)
+        
+        # Prepare roles to display and count of extra roles
+        # Only allow 2 of each in each division
+        genres_to_display = all_main_genres_roles[:2]
+        genres_extra_count = max(0, len(all_main_genres_roles) - 2)
+
+        daws_to_display = all_daw_roles[:2]
+        daws_extra_count = max(0, len(all_daw_roles) - 2)
+
+        instruments_to_display = all_instruments_roles[:2]
+        instruments_extra_count = max(0, len(all_instruments_roles) - 2)
+
         message_count = await cog.get_message_count(member)
+
         random_msg_content = ""
         random_msg_url = None
         try:
@@ -462,12 +626,16 @@ class GetMemberCard(commands.Cog):
             print(f"Error calling get_random_message for {member.display_name}: {e}")
             random_msg_content = ""
             random_msg_url = None
+
         last_music = await cog.get_last_finished_music(member)
         server_name = interaction.guild.name if interaction.guild else "Direct Message"
+
         release_link = None
         if last_music and (last_music.startswith("http://") or last_music.startswith("https://")):
             release_link = last_music
+
         img_width, img_height = 600, 300
+
         async with aiohttp.ClientSession() as session:
             async with session.get(pfp_url) as resp:
                 if resp.status != 200:
@@ -476,20 +644,29 @@ class GetMemberCard(commands.Cog):
                 else:
                     pfp_data = io.BytesIO(await resp.read())
                     pfp = Image.open(pfp_data).convert("RGBA").resize((120, 120), Image.Resampling.LANCZOS)
+
         mask = Image.new('L', pfp.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *pfp.size), fill=255)
         pfp.putalpha(mask)
+
         animated = True
+
         card_buffer, file_ext = self.generate_card(
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
             (img_width, img_height), self.font_path, animated=animated, random_msg=random_msg_content,
-            is_top_feedback=is_top_feedback
+            is_top_feedback=is_top_feedback,
+            genres_to_display=genres_to_display, genres_extra_count=genres_extra_count,
+            daws_to_display=daws_to_display, daws_extra_count=daws_extra_count,
+            instruments_to_display=instruments_to_display, instruments_extra_count=instruments_extra_count
         )
+
         filename = f"{discord_username}_mf_card.{file_ext}"
         file = discord.File(card_buffer, filename=filename)
+
         view = discord.ui.View()
         if release_link:
             view.add_item(discord.ui.Button(label=f"{discord_username}'s Latest Release", style=discord.ButtonStyle.link, url=release_link))
+
         await interaction.followup.send(file=file, view=view)
 
 async def setup(bot):
