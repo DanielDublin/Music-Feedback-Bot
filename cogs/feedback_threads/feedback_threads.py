@@ -4,7 +4,7 @@ from discord.ext import commands
 # Assuming these paths are correct
 from database.threads_db import SQLiteDatabase # Or from database.db import SQLiteDatabase
 from .modules.threads_manager import ThreadsManager
-from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL, AUDIO_FEEDBACK, LYRIC_FEEDBACK
+from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
 from .modules.points_logic import PointsLogic
 from .modules.helpers import DiscordHelpers 
 from .modules.embeds import Embeds 
@@ -40,8 +40,8 @@ class FeedbackThreads(commands.Cog):
     async def on_message_edit(self, before, after):
         if before.author.bot:
             return
-        
-        if before.channel.id == AUDIO_FEEDBACK or before.channel.id == LYRIC_FEEDBACK:
+
+        if before.channel.id == FEEDBACK_CHANNEL_ID:
 
             before_content_normalized = before.content.strip().lower()
             after_content_normalized = after.content.strip().lower()

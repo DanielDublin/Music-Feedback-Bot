@@ -2,7 +2,7 @@ import discord
 import database.db as db
 from .embeds import Embeds
 from .helpers import DiscordHelpers
-from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
+from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID
 
 class PointsLogic:
     def __init__(self, bot, user_thread):
@@ -79,7 +79,7 @@ class PointsLogic:
         # send information to user in the original channel
         await after.channel.send( 
             f"{after.author.mention} edited their message from `<MFS` to `<MFR` and gained **{points_to_add}** MF Points. You now have **{total_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>.")
+            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
         # send ticket
         embed = await self.embeds.MFS_to_MFR_embed(
@@ -109,41 +109,28 @@ class PointsLogic:
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, thread, ticket_counter):
 
-        print("MFR_to_MFS_edit")
-
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
 
-        print(f"self.pfp_url: {self.pfp_url}")
-
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         shortened_before_content = await self.helpers.shorten_message(before.content, 1000)
         shortened_after_content = await self.helpers.shorten_message(after.content, 1000)
-
-        print("shortened_before_content:", shortened_before_content)
-        print("shortened_after_content:", shortened_after_content)
         
         user_id = str(after.author.id)
         points_to_remove = 2
-
-        print("points_to_remove:", points_to_remove)
 
         points_available = int(await db.fetch_points(str(user_id)))
         await self.helpers.remove_points_for_edits(user_id, points_to_remove)
         total_points = int(await db.fetch_points(str(user_id)))
 
-        print("points_available:", points_available)
-
         # if the user has greater than the points that need to be removed, it's a valid edit
         if points_available >= points_to_remove:
-
-            print("points_available >= points_to_remove")
 
             # send information to user in the original channel
             await after.channel.send( 
                 f"{after.author.mention} edited their message from `<MFR` to `<MFS` and used **{points_to_remove}** MF Points. You now have **{total_points}** MF Points."
-                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>.")
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
 
             # send ticket
             embed = await self.embeds.MFR_to_MFS_embed(
@@ -184,7 +171,7 @@ class PointsLogic:
             # send information to user
             await after.channel.send( 
                 f"{after.author.mention}, this system is 1-for-1 and you do not have enough MF Points available to use. Give feedback first."
-                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>." )
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>." )
             
             # send ticket
             embed = await self.embeds.MFR_to_MFS_with_no_points_embed(

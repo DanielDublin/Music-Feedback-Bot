@@ -89,8 +89,8 @@ initial_extensions = [
     'cogs.owner_utilities',
     'cogs.help_command',
     'modules.scan_delete_intro_messages',
-    'cogs.feedback_threads.feedback_threads',
-    'cogs.member_cards.member_class'
+    'cogs.feedback_threads.feedback_threads'
+    # 'cogs.member_cards.member_class'
     # Add more cogs as needed
 ]
 
@@ -99,8 +99,8 @@ slash_extensions = [
     # 'cogs.slash_commands.timer_cogs.timer',
     'cogs.slash_commands.admin',
     'cogs.slash_commands.rank_commands',
-    'cogs.slash_commands.threads',
-    'cogs.slash_commands.get_member_card'
+    'cogs.slash_commands.threads'
+    # 'cogs.slash_commands.get_member_card'
     # Add more slash command cogs as needed
 ]
 
