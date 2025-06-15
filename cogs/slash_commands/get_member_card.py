@@ -14,11 +14,18 @@ import emoji
 class GetMemberCard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        # Ensure these paths are correct for your environment
-        # IMPORTANT: Replace these with the actual paths on YOUR system
-        self.font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Regular.ttf"
-        self.italic_font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Italic.ttf" # Assuming you have an italic font
-        self.background_images_dir = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/"
+        
+        current_script_dir = os.path.dirname(__file__)
+
+        base_media_dir = os.path.abspath(os.path.join(current_script_dir, "../../media/Bebas_Neue/"))
+
+        self.font_path = os.path.join(base_media_dir, "BebasNeue-Regular.ttf")
+        self.background_images_dir = os.path.join(base_media_dir, "images/")
+
+        # IMPORTANT: Also update the hardcoded path for the banner image later in generate_card
+        # We will define it here so it can be used later.
+        self._banner_image_path = os.path.join(self.background_images_dir, "banner.png")
+
 
         self.background_map = {
             "Owner": "moderators.png",
@@ -61,14 +68,9 @@ class GetMemberCard(commands.Cog):
 
         if not os.path.exists(self.font_path):
             raise FileNotFoundError(f"Font file not found: {self.font_path}")
-        if self.italic_font_path and not os.path.exists(self.italic_font_path):
-            print(f"WARNING: Italic font file not found: {self.italic_font_path}. Random messages will not be italic.")
-            self.italic_font_path = None
 
         try:
             _ = ImageFont.truetype(self.font_path, 10)
-            if self.italic_font_path:
-                _ = ImageFont.truetype(self.italic_font_path, 10)
         except IOError:
             raise IOError(f"Could not load font from: {self.font_path}. Check file permissions or corruption.")
 
@@ -143,7 +145,7 @@ class GetMemberCard(commands.Cog):
 
         card_width, card_height = card_size
 
-        banner = Image.open("/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/banner.png").convert("RGBA")
+        banner = Image.open(self._banner_image_path).convert("RGBA")
         banner = banner.crop((0, 5, 800, 35))
         banner_width, banner_height = banner.size
         amplitude = 50
@@ -164,7 +166,7 @@ class GetMemberCard(commands.Cog):
             if rank_str in self.background_map:
                 background_filename = self.background_map[rank_str]
                 if rank_str in inverted_text_roles:
-                    background_filename = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/moderators.png"
+                    background_filename = os.path.join(self.background_images_dir, "moderators.png")
                 background_image_path = os.path.join(self.background_images_dir, background_filename)
             base_card_content = None
             if background_image_path and os.path.exists(background_image_path):
@@ -372,14 +374,14 @@ class GetMemberCard(commands.Cog):
                  max_available_height_for_msg_box_area = max(min_practical_height, 0)
             
             # Initialize final_font_random_msg to a default in case no text fits
-            final_font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, random_msg_min_font_size)
+            final_font_random_msg = ImageFont.truetype(font_path, random_msg_min_font_size)
             final_wrapped_message = [] 
             
             current_font_size = random_msg_initial_font_size
             font_found = False
 
             while current_font_size >= random_msg_min_font_size:
-                temp_font = ImageFont.truetype(self.italic_font_path or font_path, current_font_size)
+                temp_font = ImageFont.truetype(font_path, current_font_size)
                 message_box_padding = 10 # Padding inside the message box
 
                 effective_text_width = message_box_width_for_random_msg - (2 * message_box_padding)
@@ -403,7 +405,7 @@ class GetMemberCard(commands.Cog):
             # If no font fit even at min_font_size, or if it still overflows at min_font_size,
             # truncate and add "..."
             if not font_found:
-                final_font_random_msg = ImageFont.truetype(self.italic_font_path or font_path, random_msg_min_font_size)
+                final_font_random_msg = ImageFont.truetype(font_path, random_msg_min_font_size)
                 message_box_padding = 10
                 effective_text_width = message_box_width_for_random_msg - (2 * message_box_padding)
                 if effective_text_width <= 0:
