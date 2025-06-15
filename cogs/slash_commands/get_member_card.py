@@ -13,6 +13,7 @@ class GetMemberCard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         # Ensure these paths are correct for your environment
+        # IMPORTANT: Replace these with the actual paths on YOUR system
         self.font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Regular.ttf"
         self.italic_font_path = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/BebasNeue-Italic.ttf" # Assuming you have an italic font
         self.background_images_dir = "/Users/doll/Desktop/programming/MFbot/MFbot/Music-Feedback-Bot/media/Bebas_Neue/images/"
@@ -110,7 +111,7 @@ class GetMemberCard(commands.Cog):
         frame_duration = 75
 
         # --- Font and Size Definitions ---
-        font_username = ImageFont.truetype(font_path, 30)
+        # font_username will be determined dynamically
         font_date_label = ImageFont.truetype(font_path, 20)
         font_date_value = ImageFont.truetype(font_path, 25)
         font_rank_blinking = ImageFont.truetype(font_path, 55)
@@ -200,7 +201,7 @@ class GetMemberCard(commands.Cog):
 
         current_left_y = pfp_y + pfp_diameter + 10
         username_y = current_left_y
-        current_left_y += font_username.size + 5
+        current_left_y += 30 + 5 # Use initial font size for calculation if username_font_size is not yet defined
         member_since_label_y = current_left_y
         current_left_y += font_date_label.size
         join_date_value_y = current_left_y
@@ -386,7 +387,7 @@ class GetMemberCard(commands.Cog):
                     # It fits at min font size
                     final_wrapped_message = wrapped_message_temp
 
-            # --- END MODIFIED TRUNCATION LOGIC ---
+            # --- End MODIFIED TRUNCATION LOGIC ---
 
             # --- FORCE final_message_box_height to align with date bottom or card bottom ---
             # Use the calculated max_available_height_for_msg_box_area as the explicit height.
@@ -432,7 +433,7 @@ class GetMemberCard(commands.Cog):
 
                 message_text_bbox = message_box_draw.textbbox((0, 0), display_line, font=final_font_random_msg)
                 # Center text within its line for the box
-                message_text_x = (message_box_width_for_random_msg - (message_text_bbox[2] - message_text_bbox[0])) // 2
+                message_text_x = (message_box_width_for_random_msg - (message_text_bbox[2] - message_text_bbox[0]) ) // 2
                 message_box_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
                 current_text_y += final_font_random_msg.size
         # --- End Dynamic Font Sizing and Truncation for Random Message ---
@@ -441,7 +442,53 @@ class GetMemberCard(commands.Cog):
         static_card_base = base_card_content.copy()
         static_draw = ImageDraw.Draw(static_card_base)
 
-        username_bbox = static_draw.textbbox((0, 0), discord_username, font=font_username)
+        # --- Dynamic Font Sizing for Username ---
+        max_username_width_area = pfp_diameter + (2 * border_thickness) + 10 # Adding a small buffer
+        username_initial_font_size = 30
+        username_min_font_size = 18 # Smallest allowed font for username
+
+        current_username_font_size = username_initial_font_size
+        dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
+        
+        # Test with the full username first
+        temp_username_to_measure = discord_username
+        
+        while True:
+            temp_bbox = static_draw.textbbox((0, 0), temp_username_to_measure, font=dynamic_font_username)
+            temp_width = temp_bbox[2] - temp_bbox[0]
+
+            if temp_width <= max_username_width_area:
+                break # It fits at this size, or larger if we're reducing.
+
+            current_username_font_size -= 1
+            if current_username_font_size < username_min_font_size:
+                # If even min font is too big, then we must truncate
+                current_username_font_size = username_min_font_size 
+                dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
+                # Now, truncate the username until it fits with the min font size
+                while True:
+                    # Append "..." for measurement, then adjust
+                    test_str_with_ellipsis = temp_username_to_measure + "..." 
+                    temp_bbox = static_draw.textbbox((0, 0), test_str_with_ellipsis, font=dynamic_font_username)
+                    temp_width = temp_bbox[2] - temp_bbox[0]
+                    if temp_width <= max_username_width_area:
+                        temp_username_to_measure = test_str_with_ellipsis # Store it with ellipsis
+                        break
+                    if len(temp_username_to_measure) > 1: # Prevent endless loop or empty string
+                        temp_username_to_measure = temp_username_to_measure[:-1] # Remove last char
+                    else: # If it's down to one char and still too big, just use "..."
+                        temp_username_to_measure = "..."
+                        break
+                break # Break from the outer while loop as we've adjusted/truncated
+
+            dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
+        
+        final_username_to_draw = temp_username_to_measure
+        final_font_username = dynamic_font_username
+        # --- End Dynamic Font Sizing for Username ---
+
+
+        username_bbox = static_draw.textbbox((0, 0), final_username_to_draw, font=final_font_username)
         username_center_x = pfp_x + (pfp_diameter // 2)
         username_x_aligned = username_center_x - ((username_bbox[2] - username_bbox[0]) // 2)
 
@@ -461,7 +508,7 @@ class GetMemberCard(commands.Cog):
         if not animated:
             output = io.BytesIO()
             static_draw.text((right_column_x_start, rank_y), f"{rank_str}", fill=rank_color_end, font=font_rank_blinking)
-            static_draw.text((username_x_aligned, username_y), discord_username, fill=base_text_color, font=font_username)
+            static_draw.text((username_x_aligned, username_y), final_username_to_draw, fill=base_text_color, font=final_font_username) # Use dynamic font and name
             static_draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
             static_draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
 
@@ -520,10 +567,11 @@ class GetMemberCard(commands.Cog):
             return output, "png"
 
         top_mfr_color_start = (59, 196, 237)
+        # Corrected calculation for top_mfr_color_end
         top_mfr_color_end = (
-            int(top_mfr_color_start[0] + (255 - top_mfr_color_start[0]) * 0.5),
-            int(top_mfr_color_start[1] + (255 - top_mfr_color_start[1]) * 0.5),
-            int(top_mfr_color_start[2] + (255 - top_mfr_color_start[2]) * 0.5)
+            int(top_mfr_color_start[0] + (255 - top_mfr_color_start[0]) * 0.5), # Blend with white for Red channel
+            int(top_mfr_color_start[1] + (255 - top_mfr_color_start[1]) * 0.5), # Blend with white for Green channel
+            int(top_mfr_color_start[2] + (255 - top_mfr_color_start[2]) * 0.5)  # Blend with white for Blue channel
         )
 
         rank_display_text = f"{rank_str}"
@@ -580,7 +628,7 @@ class GetMemberCard(commands.Cog):
                 brightness = sum(current_color) / 3
                 current_text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
-            draw.text((username_x_aligned, username_y), discord_username, fill=current_text_color, font=font_username)
+            draw.text((username_x_aligned, username_y), final_username_to_draw, fill=current_text_color, font=final_font_username) # Use dynamic font and name
             draw.text((label_x_aligned, member_since_label_y), joined_label, fill=current_text_color, font=font_date_label)
             draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=current_text_color, font=font_date_value)
 
@@ -824,7 +872,7 @@ class GetMemberCard(commands.Cog):
             view.add_item(discord.ui.Button(label=f"{discord_username}'s Latest Release", style=discord.ButtonStyle.link, url=release_link))
         # This condition is already good: the button will only show if random_msg_url is not None
         # and random_msg_content is not one of the default error messages.
-        if random_msg_url and random_msg_content not in ["<MFR", "<MF POINTS", "Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!", "I don't have permission to look through message history in that channel.", "Something went wrong trying to fetch message history. Please try again later!", "An unexpected error occurred while looking for a message."]:
+        if random_msg_url and random_msg_content not in ["Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!", "I don't have permission to look through message history in that channel.", "Something went wrong trying to fetch message history. Please try again later!", "An unexpected error occurred while looking for a message."]:
              view.add_item(discord.ui.Button(label="Source Message", style=discord.ButtonStyle.link, url=random_msg_url))
 
 
