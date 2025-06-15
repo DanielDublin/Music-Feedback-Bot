@@ -818,6 +818,9 @@ class GetMemberCard(commands.Cog):
             wrapped_lines.append(current_line.strip())
         return wrapped_lines
 
+
+    ALLOWED_ROLES = ["Admins", "Moderators", "Chat Moderators"]
+    @app_commands.checks.has_any_role(*ALLOWED_ROLES)
     @mf_card_group.command(name="card", description="View a member's MF Card.")
     @app_commands.describe(member="The member whose MF Card you want to view (defaults to you).")
     async def view_mf_card(self, interaction: discord.Interaction, member: discord.Member = None):
