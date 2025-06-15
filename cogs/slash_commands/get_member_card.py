@@ -8,6 +8,8 @@ import traceback
 import math
 from datetime import datetime
 import aiohttp
+from pilmoji import Pilmoji 
+import emoji
 
 class GetMemberCard(commands.Cog):
     def __init__(self, bot):
@@ -124,13 +126,10 @@ class GetMemberCard(commands.Cog):
         top_mfr_text_padding = 8
         # --- End Font and Size Definitions ---
 
-        # Retrieve roles data from kwargs
-        genres_to_display = kwargs.get("genres_to_display", [])
-        genres_extra_count = kwargs.get("genres_extra_count", 0)
-        daws_to_display = kwargs.get("daws_to_display", [])
-        daws_extra_count = kwargs.get("daws_extra_count", 0)
-        instruments_to_display = kwargs.get("instruments_to_display", [])
-        instruments_extra_count = kwargs.get("instruments_extra_count", 0)
+        # Retrieve all roles for each category from kwargs
+        all_genres_roles = kwargs.get("all_genres_roles", [])
+        all_daws_roles = kwargs.get("all_daws_roles", [])
+        all_instruments_roles = kwargs.get("all_instruments_roles", [])
 
         tag_text_color = (255, 255, 255) # White text for dark tags
 
@@ -140,7 +139,6 @@ class GetMemberCard(commands.Cog):
         dot_diameter = 7 # Size of the color dot
         dot_right_margin = 4 # Space between dot and text
         tag_spacing_x = 5 # Space between tags horizontally
-        tag_spacing_y = 4 # Space between lines of tags vertically
         tag_line_height = font_tag.size + (2 * tag_vertical_padding)
 
         card_width, card_height = card_size
@@ -221,7 +219,7 @@ class GetMemberCard(commands.Cog):
             bottom_of_points_block_y = current_y_for_points_block + font_top_mfr.size
 
         # --- Roles block starts below the points block ---
-        roles_y = bottom_of_points_block_y + 10 # Add padding after roles block
+        roles_y = bottom_of_points_block_y + 10 # Add padding after points block
 
         # The random message box should be as wide as it was before the previous change.
         # This is the full available width of the right column.
@@ -231,52 +229,110 @@ class GetMemberCard(commands.Cog):
         tag_line_available_width = card_width - right_column_x_start - 30 
         tag_bg_color = (40, 40, 40, 200) # Semi-transparent dark grey for tag background
 
-        role_categories = [
-            (genres_to_display, genres_extra_count, self._hex_to_rgb("#8d8c8c")), # TARGET_MAIN_GENRES RGB
-            (daws_to_display, daws_extra_count, self._hex_to_rgb("#6155a6")),    # TARGET_DAW RGB
-            (instruments_to_display, instruments_extra_count, self._hex_to_rgb("#e3abff")) # TARGET_INSTRUMENTS RGB
-        ]
-        
-        # Combine all roles into a single list for continuous flow
-        all_roles_combined = []
-        total_extra_roles_count = 0 
+        # --- REVISED ROLE LOGIC ---
+        displayed_roles_raw = [] # Store tuples of (role_name, color)
+        total_hidden_count = 0
 
-        for roles_list, extra_count, category_dot_color in role_categories:
-            for role_name in roles_list: # roles_list already contains only the first 2
-                all_roles_combined.append({'name': role_name, 'color': category_dot_color})
-            total_extra_roles_count += extra_count # Accumulate extra count
+        # Add up to 2 genres
+        if all_genres_roles:
+            for role_name in all_genres_roles[:2]:
+                displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#8d8c8c")})
+            total_hidden_count += max(0, len(all_genres_roles) - 2)
 
-        # Add the combined "+x" tag if there are extra roles
-        if total_extra_roles_count > 0:
-            neutral_extra_color = (128, 128, 128) # Grey for the +x dot
-            all_roles_combined.append({'name': f"+{total_extra_roles_count}", 'color': neutral_extra_color})
+        # Add up to 2 DAWs
+        if all_daws_roles:
+            for role_name in all_daws_roles[:2]:
+                displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#6155a6")})
+            total_hidden_count += max(0, len(all_daws_roles) - 2)
 
+        # Add up to 2 Instruments
+        if all_instruments_roles:
+            for role_name in all_instruments_roles[:2]:
+                displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#e3abff")})
+            total_hidden_count += max(0, len(all_instruments_roles) - 2)
 
-        # Calculate height of the roles block by performing a dry run of tag layout
-        roles_block_height = 0
-        current_tag_x_dry_run = right_column_x_start
-        current_tag_y_offset_dry_run = 0
-        
-        for tag_data in all_roles_combined:
+        # Remove duplicates from the initially selected roles (e.g., if a role is both genre and DAW)
+        seen_displayed_roles = set()
+        displayed_roles_final = []
+        for role_data in displayed_roles_raw:
+            if role_data['name'] not in seen_displayed_roles:
+                displayed_roles_final.append(role_data)
+                seen_displayed_roles.add(role_data['name'])
+            # Note: If a role name appears multiple times (e.g., in different categories),
+            # this logic ensures it's only *displayed* once. The `total_hidden_count`
+            # still reflects the original count from each category. This is generally
+            # the desired behavior for a compact display.
+
+        # Prepare for potential "+X" tag
+        temp_draw_for_measurement = ImageDraw.Draw(Image.new("RGB", (1,1)))
+        neutral_extra_color = (128, 128, 128) # Grey for the +x dot
+
+        final_displayed_roles = []
+        current_tags_width = 0
+
+        # Determine if a "+X" tag is needed and its estimated width
+        plus_x_tag_data = None
+        plus_x_tag_width_estimate = 0
+        if total_hidden_count > 0:
+            plus_x_text = f"+{total_hidden_count}"
+            plus_x_text_bbox = temp_draw_for_measurement.textbbox((0,0), plus_x_text, font=font_tag)
+            plus_x_text_width = plus_x_text_bbox[2] - plus_x_text_bbox[0]
+            plus_x_tag_width_estimate = dot_diameter + dot_right_margin + plus_x_text_width + (2 * tag_horizontal_padding) + tag_spacing_x
+            plus_x_tag_data = {'name': plus_x_text, 'color': neutral_extra_color}
+
+        # Iterate through `displayed_roles_final` to fit roles, leaving space for "+X"
+        for i, tag_data in enumerate(displayed_roles_final):
             tag_text = tag_data['name']
-            
-            temp_draw = ImageDraw.Draw(Image.new("RGB", (1, 1))) # Dummy draw object
-            text_bbox = temp_draw.textbbox((0, 0), tag_text, font=font_tag)
+            text_bbox = temp_draw_for_measurement.textbbox((0, 0), tag_text, font=font_tag)
             text_width = text_bbox[2] - text_bbox[0]
-            
-            tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
+            tag_full_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding) + tag_spacing_x
 
-            if current_tag_x_dry_run + tag_width > right_column_x_start + tag_line_available_width:
-                current_tag_x_dry_run = right_column_x_start
-                current_tag_y_offset_dry_run += tag_line_height + tag_spacing_y
+            # Check if this tag fits, considering the remaining space must also accommodate the "+X" tag
+            # If no +X tag is needed, then we use the full available width.
+            remaining_space_for_tags = tag_line_available_width - current_tags_width
             
-            current_tag_x_dry_run += tag_width + tag_spacing_x
-            
-        # Adjust roles_block_height if no tags were drawn
-        if not all_roles_combined:
-            roles_block_height = 0
-        else:
-            roles_block_height = current_tag_y_offset_dry_run + tag_line_height # Add the height of the last line
+            if plus_x_tag_data: # If a +X tag is expected
+                if tag_full_width + plus_x_tag_width_estimate <= remaining_space_for_tags:
+                    final_displayed_roles.append(tag_data)
+                    current_tags_width += tag_full_width
+                else:
+                    # This role doesn't fit if we need to reserve space for +X
+                    # We already know total_hidden_count, so no need to increment it here.
+                    break 
+            else: # No +X tag expected, so just fit as many as possible
+                if tag_full_width <= remaining_space_for_tags:
+                    final_displayed_roles.append(tag_data)
+                    current_tags_width += tag_full_width
+                else:
+                    break
+
+
+        # Finally, append the "+X" tag if needed and it fits
+        if plus_x_tag_data and (current_tags_width + plus_x_tag_width_estimate <= tag_line_available_width):
+            final_displayed_roles.append(plus_x_tag_data)
+        elif plus_x_tag_data:
+            # If the +X tag itself doesn't fit even with all prior tags removed,
+            # this indicates an extreme case where the line is too short.
+            # In a very rare scenario, this might leave no roles shown if the +X tag
+            # itself is larger than the line, but it should generally fit if the line
+            # is long enough for at least one small tag.
+            # We ensure the +X is shown by clearing previous tags if needed.
+            # This loop makes sure the +X tag is *always* attempted to be displayed if `total_hidden_count > 0`
+            # even if it means removing all other tags.
+            while final_displayed_roles and (current_tags_width + plus_x_tag_width_estimate > tag_line_available_width):
+                removed_tag = final_displayed_roles.pop()
+                removed_tag_text_bbox = temp_draw_for_measurement.textbbox((0,0), removed_tag['name'], font=font_tag)
+                removed_tag_width = dot_diameter + dot_right_margin + (removed_tag_text_bbox[2] - removed_tag_text_bbox[0]) + (2 * tag_horizontal_padding) + tag_spacing_x
+                current_tags_width -= removed_tag_width
+
+            if (current_tags_width + plus_x_tag_width_estimate <= tag_line_available_width):
+                final_displayed_roles.append(plus_x_tag_data)
+            # If it still doesn't fit, there's likely a layout issue where the line is too short even for "+1".
+            # For this context, we assume it will eventually fit or it's a critical layout problem.
+
+
+        roles_block_height = tag_line_height if final_displayed_roles else 0
+        # --- End REVISED ROLE LOGIC ---
 
 
         # Random message box starts below the roles block
@@ -285,7 +341,7 @@ class GetMemberCard(commands.Cog):
         # --- Dynamic Font Sizing and Truncation for Random Message ---
         message_box = None # Initialize message_box outside the if block
         if random_msg:
-            random_msg_initial_font_size = 18
+            random_msg_initial_font_size = 20
             random_msg_min_font_size = font_tag.size # Smallest allowed, 12
             
             # Calculate the effective bottom Y coordinate of the "member since date" block
@@ -307,7 +363,7 @@ class GetMemberCard(commands.Cog):
                 max_available_height_for_msg_box_area = min(height_if_align_to_date_bottom, max_height_to_card_bottom)
             else: 
                 # Message box starts below the date's bottom, so just use card bottom limit
-                max_available_height_for_msg_box_area = max_height_to_card_bottom
+                max_available_height_for_msg_box_area = max(max_height_to_card_bottom, 0) # Ensure it's not negative
 
             # Ensure there's at least a minimal height for content/padding if a message is present.
             # This prevents issues if calculated max_available_height is too small or negative.
@@ -402,40 +458,46 @@ class GetMemberCard(commands.Cog):
 
             # Create the message box image using the determined size and wrapped text
             message_box = Image.new("RGBA", (message_box_width_for_random_msg, final_message_box_height), (0, 0, 0, 200))
-            message_box_draw = ImageDraw.Draw(message_box)
-            message_box_draw.rounded_rectangle((0, 0, message_box_width_for_random_msg, final_message_box_height), fill=(0, 0, 0, 200), radius=10)
             
-            # Now, draw the text. The text should be vertically centered within this forced height.
-            total_text_content_height = len(final_wrapped_message) * final_font_random_msg.size
-            
-            # Calculate y_offset for vertical centering of the text within the box
-            # If total_text_content_height is greater than final_message_box_height - (2 * message_box_padding),
-            # it means the text content itself is larger than the available space within the box's padding.
-            # In this scenario, we should not aim for perfect centering but rather start from padding top.
-            if total_text_content_height > (final_message_box_height - (2 * message_box_padding)):
-                message_text_y_start = message_box_padding
-            else:
-                message_text_y_start = (final_message_box_height - total_text_content_height) // 2
+            # Use Pilmoji for drawing text with emojis
+            with Pilmoji(message_box) as pilmoji_draw:
+                # Draw the rounded rectangle background *before* text
+                ImageDraw.Draw(message_box).rounded_rectangle((0, 0, message_box_width_for_random_msg, final_message_box_height), fill=(0, 0, 0, 200), radius=10)
+                
+                # Now, draw the text. The text should be vertically centered within this forced height.
+                total_text_content_height = len(final_wrapped_message) * final_font_random_msg.size
+                
+                # Calculate y_offset for vertical centering of the text within the box
+                # If total_text_content_height is greater than final_message_box_height - (2 * message_box_padding),
+                # it means the text content itself is larger than the available space within the box's padding.
+                # In this scenario, we should not aim for perfect centering but rather start from padding top.
+                if total_text_content_height > (final_message_box_height - (2 * message_box_padding)):
+                    message_text_y_start = message_box_padding
+                else:
+                    message_text_y_start = (final_message_box_height - total_text_content_height) // 2
 
-            current_text_y = message_text_y_start
-            for i, line in enumerate(final_wrapped_message):
-                display_line = line
-                # Add opening quote to the first line
-                if i == 0:
-                    display_line = "“" + display_line
-                # Add closing quote to the last line
-                if i == len(final_wrapped_message) - 1:
-                    # Make sure not to double-add if it's "..."
-                    if not display_line.endswith("..."):
-                        display_line += "”"
-                    else: # If it ends with "...", place quote before it
-                        display_line = display_line.replace("...", "”...")
+                current_text_y = message_text_y_start
+                for i, line in enumerate(final_wrapped_message):
+                    display_line = line
+                    # Add opening quote to the first line
+                    if i == 0:
+                        display_line = "“" + display_line
+                    # Add closing quote to the last line
+                    if i == len(final_wrapped_message) - 1:
+                        # Make sure not to double-add if it's "..."
+                        if not display_line.endswith("..."):
+                            display_line += "”"
+                        else: # If it ends with "...", place quote before it
+                            display_line = display_line.replace("...", "”...")
 
-                message_text_bbox = message_box_draw.textbbox((0, 0), display_line, font=final_font_random_msg)
-                # Center text within its line for the box
-                message_text_x = (message_box_width_for_random_msg - (message_text_bbox[2] - message_text_bbox[0]) ) // 2
-                message_box_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
-                current_text_y += final_font_random_msg.size
+                    # Use temporary ImageDraw for textbbox to ensure accurate centering, as Pilmoji's textbbox
+                    # might behave slightly differently for composite glyphs.
+                    temp_bbox_for_centering = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), display_line, font=final_font_random_msg)
+                    message_text_x = (message_box_width_for_random_msg - (temp_bbox_for_centering[2] - temp_bbox_for_centering[0])) // 2
+
+                    # Use pilmoji_draw.text instead of message_box_draw.text
+                    pilmoji_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
+                    current_text_y += final_font_random_msg.size
         # --- End Dynamic Font Sizing and Truncation for Random Message ---
 
 
@@ -525,11 +587,11 @@ class GetMemberCard(commands.Cog):
                 mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
                 static_draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
 
-            # Draw roles for static card (using combined roles)
+            # Draw roles for static card (using final_displayed_roles)
             current_tag_draw_x = right_column_x_start
-            current_tag_draw_y = roles_y
+            current_tag_draw_y = roles_y # This remains fixed for single line
             
-            for tag_data in all_roles_combined:
+            for tag_data in final_displayed_roles:
                 tag_text = tag_data['name']
                 category_dot_color = tag_data['color']
                 
@@ -537,11 +599,6 @@ class GetMemberCard(commands.Cog):
                 text_width = text_bbox[2] - text_bbox[0]
                 
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
-
-                # Check for line wrap
-                if current_tag_draw_x + tag_width > right_column_x_start + tag_line_available_width:
-                    current_tag_draw_x = right_column_x_start
-                    current_tag_draw_y += tag_line_height + tag_spacing_y
 
                 # Draw rounded rectangle background
                 tag_rect = (current_tag_draw_x, current_tag_draw_y,
@@ -678,11 +735,11 @@ class GetMemberCard(commands.Cog):
                 mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
                 draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=current_text_color, font=font_top_mfr)
 
-            # Draw roles for animated card (using combined roles)
+            # Draw roles for animated card (using final_displayed_roles)
             current_tag_draw_x = right_column_x_start
-            current_tag_draw_y = roles_y
+            current_tag_draw_y = roles_y # This remains fixed for single line
             
-            for tag_data in all_roles_combined:
+            for tag_data in final_displayed_roles:
                 tag_text = tag_data['name']
                 category_dot_color = tag_data['color']
                 
@@ -690,11 +747,6 @@ class GetMemberCard(commands.Cog):
                 text_width = text_bbox[2] - text_bbox[0]
                 
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
-
-                # Check for line wrap
-                if current_tag_draw_x + tag_width > right_column_x_start + tag_line_available_width:
-                    current_tag_draw_x = right_column_x_start
-                    current_tag_draw_y += tag_line_height + tag_spacing_y
 
                 # Draw rounded rectangle background
                 tag_rect = (current_tag_draw_x, current_tag_draw_y,
@@ -795,20 +847,12 @@ class GetMemberCard(commands.Cog):
             is_top_feedback = False
             numeric_points = 0
 
-        # Retrieve all roles for each category
+        # Retrieve ALL roles for each category - this is important for correct counting
         all_main_genres_roles, all_daw_roles, all_instruments_roles = await self.bot.get_cog("MemberCards").get_roles_by_colors(member)
         
-        # Prepare roles to display and count of extra roles
-        # Only allow 2 of each in each division
-        genres_to_display = all_main_genres_roles[:2]
-        genres_extra_count = max(0, len(all_main_genres_roles) - 2)
-
-        daws_to_display = all_daw_roles[:2]
-        daws_extra_count = max(0, len(all_daw_roles) - 2)
-
-        instruments_to_display = all_instruments_roles[:2]
-        instruments_extra_count = max(0, len(all_instruments_roles) - 2)
-
+        # Pass all roles for calculation in generate_card
+        # No more 'roles_to_display' or 'extra_count' here, logic is fully in generate_card
+        
         message_count = await cog.get_message_count(member)
 
         # --- IMPORTANT: Revert to dynamic fetching here ---
@@ -859,9 +903,9 @@ class GetMemberCard(commands.Cog):
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
             (img_width, img_height), self.font_path, animated=animated, random_msg=random_msg_content,
             is_top_feedback=is_top_feedback,
-            genres_to_display=genres_to_display, genres_extra_count=genres_extra_count,
-            daws_to_display=daws_to_display, daws_extra_count=daws_extra_count,
-            instruments_to_display=instruments_to_display, instruments_extra_count=instruments_extra_count
+            all_genres_roles=all_main_genres_roles, # Pass all roles
+            all_daws_roles=all_daw_roles,
+            all_instruments_roles=all_instruments_roles
         )
 
         filename = f"{discord_username}_mf_card.{file_ext}"
@@ -873,7 +917,7 @@ class GetMemberCard(commands.Cog):
         # This condition is already good: the button will only show if random_msg_url is not None
         # and random_msg_content is not one of the default error messages.
         if random_msg_url and random_msg_content not in ["Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!", "I don't have permission to look through message history in that channel.", "Something went wrong trying to fetch message history. Please try again later!", "An unexpected error occurred while looking for a message."]:
-             view.add_item(discord.ui.Button(label="Source Message", style=discord.ButtonStyle.link, url=random_msg_url))
+             view.add_item(discord.ui.Button(label=emoji.emojize(":rocket:"), style=discord.ButtonStyle.link, url=random_msg_url))
 
 
         await interaction.followup.send(file=file, view=view)
