@@ -97,7 +97,7 @@ class MemberCards(commands.Cog):
 
         # Helper to extract URL from a message
         # UPDATED: Prioritize message.jump_url if attachments exist
-        def extract_url_from_message(message: discord.Message) -> str | None:
+        def extract_url_from_message(message: discord.Message) -> Union[str, None]:
             if message.attachments:
                 return str(message.jump_url) # Redirect to the message if it has an attachment
             
