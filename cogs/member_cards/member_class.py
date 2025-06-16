@@ -112,18 +112,11 @@ class MemberCards(commands.Cog):
             print(f"Checking AOTW channel ({aotw_channel.name}) for {member.display_name}...")
             try:
                 async for message in aotw_channel.history(limit=5):
-                    if message.author.id == member.id:
-                        url = extract_url_from_message(message)
-                        if url:
-                            print(f"Found AOTW message with URL: {url}")
-                            return url
-                        else:
-                            # If AOTW message has no direct link/attachment, provide its jump URL as fallback
-                            print(f"Found AOTW message but no direct URL/attachment, returning jump_url: {message.jump_url}")
-                            return str(message.jump_url)
-                
-                print(f"No AOTW message by {member.display_name} found in AOTW channel.")
-                return "AOTW release coming soon!"
+                    url = extract_url_from_message(message)
+                    if url:
+                        print(f"Found AOTW message with URL: {url}")
+                        return url
+
             except discord.Forbidden:
                 print(f"Bot lacks permissions to read AOTW channel history.")
                 return "Cannot access AOTW channel to find release."
@@ -221,7 +214,7 @@ class MemberCards(commands.Cog):
 
         async def search_general_chat_for_random_message(channel: discord.TextChannel, join_date: datetime):
             # Strategy 1: Try 10 random days
-            random_day_attempts = 10
+            random_day_attempts = 5
             print(f"Attempting {random_day_attempts} random days for {member.display_name} in {channel.name}...")
             for attempt in range(random_day_attempts):
                 start_of_day, end_of_day = await self.generate_random_date_range(join_date)
