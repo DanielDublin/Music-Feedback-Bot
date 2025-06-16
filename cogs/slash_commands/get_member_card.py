@@ -565,7 +565,10 @@ class GetMemberCard(commands.Cog):
 
         target_hex_color = self.rank_blink_colors.get(rank_str, "#808080")
         rank_color_end = self._hex_to_rgb(target_hex_color)
-        rank_color_start = (0, 0, 0)
+        if rank_str in inverted_text_roles:
+            rank_color_start = (255, 255, 255) # White for static display
+        else:
+            rank_color_start = (0, 0, 0) 
 
         base_text_color = (255, 255, 255) if rank_str in inverted_text_roles else (0, 0, 0)
 
