@@ -870,7 +870,7 @@ class GetMemberCard(commands.Cog):
                 random_msg_content, random_msg_url = retrieved_msg_data
             else:
                 # Set default "no message" content if fetching fails or returns unexpected data
-                random_msg_content = "Couldn't find any random messages by **member** in the general chat. Maybe they haven't posted much, or not in a while!"
+                random_msg_content = "A true MFR"
                 # Consider if you want random_msg_url to be None in this case,
                 # or a generic link, but None is usually safer to prevent a broken button.
                 random_msg_url = None

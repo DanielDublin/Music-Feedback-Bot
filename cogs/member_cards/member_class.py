@@ -41,8 +41,12 @@ class MemberCards(commands.Cog):
     async def get_rank(self, member: discord.Member) -> str:
         aotw = "Artist of the Week"
         fans_role_name = "Fans" 
+        roles_to_ignore = ["POO CAFE", "kangaroo"]
 
         for role in reversed(member.roles): 
+            if role.name in roles_to_ignore:
+                continue
+            
             if role.name != "@everyone" and not role.is_bot_managed() and not role.is_integration():
                 if role.name == aotw:
                     return aotw
