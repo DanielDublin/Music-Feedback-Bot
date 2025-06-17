@@ -10,6 +10,7 @@ import database.db as db
 from data.constants import SERVER_ID, FINISHED_MUSIC, AOTW_CHANNEL, GENERAL_CHAT_CHANNEL_ID, INTRO_MUSIC
 from discord.ext import commands
 import traceback 
+from typing import Optional, Tuple
 
 load_dotenv()
 token = os.environ.get('DISCORD_TEST_TOKEN') 
@@ -100,7 +101,7 @@ class MemberCards(commands.Cog):
 
         # Helper to extract URL from a message
         # UPDATED: Prioritize message.jump_url if attachments exist
-        def extract_url_from_message(message: discord.Message) -> str | None:
+        def extract_url_from_message(message: discord.Message) -> Optional[str]:
             if message.attachments:
                 return str(message.jump_url) # Redirect to the message if it has an attachment
             
@@ -202,7 +203,7 @@ class MemberCards(commands.Cog):
 
         return start_of_day_utc, end_of_day_utc
 
-    async def get_random_message(self, member: discord.Member) -> tuple[str, str | None]:
+    async def get_random_message(self, member: discord.Member) -> Tuple[str, Optional[str]]:
         """
         Retrieves a random message by the member from the general chat channel.
         This function is intended for members who are NOT 'Fans' or 'Artist of the Week',
