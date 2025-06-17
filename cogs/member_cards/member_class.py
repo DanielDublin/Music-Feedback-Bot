@@ -42,8 +42,12 @@ class MemberCards(commands.Cog):
     async def get_rank(self, member: discord.Member) -> str:
         aotw = "Artist of the Week"
         fans_role_name = "Fans" 
+        roles_to_ignore = ["POO CAFE", "kangaroo"]
 
         for role in reversed(member.roles): 
+            if role.name in roles_to_ignore:
+                continue
+            
             if role.name != "@everyone" and not role.is_bot_managed() and not role.is_integration():
                 if role.name == aotw:
                     return aotw
@@ -113,18 +117,11 @@ class MemberCards(commands.Cog):
             print(f"Checking AOTW channel ({aotw_channel.name}) for {member.display_name}...")
             try:
                 async for message in aotw_channel.history(limit=5):
-                    if message.author.id == member.id:
-                        url = extract_url_from_message(message)
-                        if url:
-                            print(f"Found AOTW message with URL: {url}")
-                            return url
-                        else:
-                            # If AOTW message has no direct link/attachment, provide its jump URL as fallback
-                            print(f"Found AOTW message but no direct URL/attachment, returning jump_url: {message.jump_url}")
-                            return str(message.jump_url)
-                
-                print(f"No AOTW message by {member.display_name} found in AOTW channel.")
-                return "AOTW release coming soon!"
+                    url = extract_url_from_message(message)
+                    if url:
+                        print(f"Found AOTW message with URL: {url}")
+                        return url
+
             except discord.Forbidden:
                 print(f"Bot lacks permissions to read AOTW channel history.")
                 return "Cannot access AOTW channel to find release."
@@ -222,7 +219,7 @@ class MemberCards(commands.Cog):
 
         async def search_general_chat_for_random_message(channel: discord.TextChannel, join_date: datetime):
             # Strategy 1: Try 10 random days
-            random_day_attempts = 10
+            random_day_attempts = 5
             print(f"Attempting {random_day_attempts} random days for {member.display_name} in {channel.name}...")
             for attempt in range(random_day_attempts):
                 start_of_day, end_of_day = await self.generate_random_date_range(join_date)
@@ -291,7 +288,7 @@ class MemberCards(commands.Cog):
                     traceback.print_exc() 
                     return "An unexpected error occurred while looking for a recent message.", None
             
-            return f"Couldn't find any random messages by **{member.display_name}** in the {channel.name} channel. Maybe they haven't posted much there, or not in a while!", None
+            return f"A true MFR", None
         
         return await search_general_chat_for_random_message(general_chat_channel, member_join_date_dt)
 
