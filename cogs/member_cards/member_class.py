@@ -287,7 +287,7 @@ class MemberCards(commands.Cog):
                     traceback.print_exc() 
                     return "An unexpected error occurred while looking for a recent message.", None
             
-            return f"Couldn't find any random messages by **{member.display_name}** in the {channel.name} channel. Maybe they haven't posted much there, or not in a while!", None
+            return f"A true MFR", None
         
         return await search_general_chat_for_random_message(general_chat_channel, member_join_date_dt)
 
