@@ -164,11 +164,10 @@ class MemberCards(commands.Cog):
                             if url:
                                 print(f"Found last finished music link for {member.display_name}: {url}")
                                 return url
+                            elif message.attachments:
+                                return str(message.jump_url)
                             else:
-                                # If no direct link/attachment, return message jump URL as fallback
-                                print(f"Found finished music message but no direct URL/attachment, returning jump_url: {message.jump_url}")
-                                return str(message.jump_url) 
-                    
+                                continue
                     print(f"No recent finished music message found for {member.display_name}.")
                     return "No music finished yet."
                 except discord.Forbidden:
