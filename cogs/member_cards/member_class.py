@@ -42,7 +42,7 @@ class MemberCards(commands.Cog):
     async def get_rank(self, member: discord.Member) -> str:
         aotw = "Artist of the Week"
         fans_role_name = "Fans" 
-        roles_to_ignore = ["POO CAFE", "kangaroo"]
+        roles_to_ignore = ["POO CAFE", "kangaroo", "emo nemo", "Event Host"]
 
         for role in reversed(member.roles): 
             if role.name in roles_to_ignore:
@@ -134,7 +134,7 @@ class MemberCards(commands.Cog):
             if intro_music_channel and isinstance(intro_music_channel, discord.TextChannel):
                 print(f"Checking Intro Music channel ({intro_music_channel.name}) for {member.display_name} (Fans)...")
                 try:
-                    async for message in intro_music_channel.history(limit=200): 
+                    async for message in intro_music_channel.history(limit=100): 
                         if message.author.id == member.id:
                             url = extract_url_from_message(message)
                             if url:
@@ -158,7 +158,7 @@ class MemberCards(commands.Cog):
             if finished_music_channel and isinstance(finished_music_channel, discord.TextChannel):
                 print(f"Checking Finished Music channel ({finished_music_channel.name}) for {member.display_name} (Default)...")
                 try:
-                    async for message in finished_music_channel.history(limit=200): 
+                    async for message in finished_music_channel.history(limit=100): 
                         if message.author.id == member.id:
                             url = extract_url_from_message(message)
                             if url:
@@ -228,7 +228,7 @@ class MemberCards(commands.Cog):
 
                 messages_by_member_on_day = []
                 try:
-                    async for message in channel.history(limit=200, after=start_of_day, before=end_of_day):
+                    async for message in channel.history(limit=100, after=start_of_day, before=end_of_day):
                         if message.author.id == member.id:
                             if message.content and message.content.strip():
                                 messages_by_member_on_day.append(message)
@@ -266,7 +266,7 @@ class MemberCards(commands.Cog):
 
                 messages_by_member_on_day = []
                 try:
-                    async for message in channel.history(limit=200, after=start_of_day, before=end_of_day):
+                    async for message in channel.history(limit=100, after=start_of_day, before=end_of_day):
                         if message.author.id == member.id:
                             if message.content and message.content.strip():
                                 messages_by_member_on_day.append(message)

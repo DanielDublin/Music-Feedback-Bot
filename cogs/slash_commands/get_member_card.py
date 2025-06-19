@@ -22,8 +22,8 @@ class GetMemberCard(commands.Cog):
         self._banner_image_path = os.path.join(self.background_images_dir, "banner.png")
 
         self.background_map = {
-            "Owner": "moderators.png",
-            "Admins": "moderators.png",
+            "Owner": "admins.png",
+            "Admins": "admins.png",
             "Moderators": "moderators.png",
             "Chat Moderators": "moderators.png",
             "Bot Boinker": "moderators.png",
@@ -141,19 +141,13 @@ class GetMemberCard(commands.Cog):
         relevant_roles = kwargs.get("relevant_roles", [])
         has_collab_role = COLLAB_ROLE in relevant_roles
 
-        # Debug prints for role checking
-        print(f"DEBUG: generate_card called for '{discord_username}' (Rank: {rank_str})")
-        print(f"DEBUG: 'animated' parameter value: {animated}")
-        print(f"DEBUG: 'has_collab_role' value: {has_collab_role}")
-        print(f"DEBUG: relevant_roles: {relevant_roles}")
-
         banner = Image.open(self._banner_image_path).convert("RGBA")
         banner = banner.crop((0, 5, 800, 35))
         banner_width, banner_height = banner.size
         amplitude = 50
         center_x = (card_width // 2) - (banner_width // 2)
 
-        inverted_text_roles = ["Owner", "Admins", "Moderators", "Chat Moderators", "Bot Boinker"]
+        inverted_text_roles = ["Moderators", "Chat Moderators", "Bot Boinker"]
 
         if rank_str == "Artist of the Week" and animated:
             base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
@@ -167,7 +161,9 @@ class GetMemberCard(commands.Cog):
             background_image_path = None
             if rank_str in self.background_map:
                 background_filename = self.background_map[rank_str]
-                if rank_str in inverted_text_roles:
+                if rank_str in ["Owner", "Admins"]:
+                    background_filename = os.path.join(self.background_images_dir, "admins.png")
+                elif rank_str in inverted_text_roles:
                     background_filename = os.path.join(self.background_images_dir, "moderators.png")
                 background_image_path = os.path.join(self.background_images_dir, background_filename)
             base_card_content = None
