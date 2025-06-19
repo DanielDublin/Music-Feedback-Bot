@@ -23,8 +23,8 @@ class GetMemberCard(commands.Cog):
         self._banner_image_path = os.path.join(self.background_images_dir, "banner.png")
 
         self.background_map = {
-            "Owner": "moderators.png",
-            "Admins": "moderators.png",
+            "Owner": "admins.png",
+            "Admins": "admins.png",
             "Moderators": "moderators.png",
             "Chat Moderators": "moderators.png",
             "Bot Boinker": "moderators.png",
@@ -104,30 +104,48 @@ class GetMemberCard(commands.Cog):
         top_mfr_text_bbox = draw_obj.textbbox((text_x, text_y_centered), top_mfr_text, font=font_top_mfr)
         return top_mfr_text_bbox[2], text_y_centered
 
+    def get_text_bbox(self, text, font, max_width=None):
+        """
+        Calculate the bounding box of text (including emojis) by rendering it into a temporary image.
+        Returns (x0, y0, x1, y1) tuple.
+        """
+        font_size = font.size
+        est_width = max(len(text) * font_size, 100)
+        est_height = font_size * 2
+        temp_image = Image.new("RGBA", (est_width, est_height), (0, 0, 0, 0))
+        
+        with Pilmoji(temp_image) as pilmoji_draw:
+            pilmoji_draw.text((0, 0), text, fill=(255, 255, 255), font=font)
+        
+        bbox = temp_image.getbbox()
+        if bbox:
+            x0, y0, x1, y1 = bbox
+            return (x0, y0 - font_size // 2, x1, y1 + font_size // 2)
+        else:
+            return (0, 0, 0, font_size)
+
     def generate_card(self, pfp_image_pil, discord_username, server_name, rank_str, numeric_points, message_count, join_date, card_size, font_path, animated=True, random_msg="", is_top_feedback=False, **kwargs):
         frames = []
         num_frames = 100
         frame_duration = 75
 
-        # --- Font and Size Definitions ---
-        font_username = None  # Will be determined dynamically
         font_date_label = ImageFont.truetype(font_path, 20)
         font_date_value = ImageFont.truetype(font_path, 25)
         font_rank_blinking = ImageFont.truetype(font_path, 50)
         font_top_mfr = ImageFont.truetype(font_path, 25)
         font_tag = ImageFont.truetype(font_path, 12)
-        font_collab = ImageFont.truetype(font_path, 15)  # Font for "COLLAB" text
+        font_collab = ImageFont.truetype(font_path, 15)
 
         top_mfr_icon_size = 30
         top_mfr_text_padding = 8
         tag_text_color = (255, 255, 255)
-        collab_circle_diameter = 45  # Diameter of the yellow circle
-        collab_circle_color = (213, 213, 79)  # Mustard yellow color for the circle outline
-        collab_text_color = (0, 0, 0)  # Black text for "COLLAB"
-        collab_circle_y_offset = 25  # Vertical offset below banner
-        collab_text_bg_color = (213, 213, 79)  # Yellow background for text, matching circle outline
-        collab_black_border_color = (193, 193, 72)  # Black color for the outer border
-        collab_black_border_width = 1  # Thin black border width
+        collab_circle_diameter = 45
+        collab_circle_color = (213, 213, 79)
+        collab_text_color = (0, 0, 0)
+        collab_circle_y_offset = 25
+        collab_text_bg_color = (213, 213, 79)
+        collab_black_border_color = (193, 193, 72)
+        collab_black_border_width = 1
 
         tag_horizontal_padding = 6
         tag_vertical_padding = 4
@@ -138,15 +156,8 @@ class GetMemberCard(commands.Cog):
 
         card_width, card_height = card_size
 
-        # Check if COLLAB_ROLE is in relevant_roles
         relevant_roles = kwargs.get("relevant_roles", [])
         has_collab_role = COLLAB_ROLE in relevant_roles
-
-        # Debug prints for role checking
-        print(f"DEBUG: generate_card called for '{discord_username}' (Rank: {rank_str})")
-        print(f"DEBUG: 'animated' parameter value: {animated}")
-        print(f"DEBUG: 'has_collab_role' value: {has_collab_role}")
-        print(f"DEBUG: relevant_roles: {relevant_roles}")
 
         banner = Image.open(self._banner_image_path).convert("RGBA")
         banner = banner.crop((0, 5, 800, 35))
@@ -154,7 +165,7 @@ class GetMemberCard(commands.Cog):
         amplitude = 50
         center_x = (card_width // 2) - (banner_width // 2)
 
-        inverted_text_roles = ["Owner", "Admins", "Moderators", "Chat Moderators", "Bot Boinker"]
+        inverted_text_roles = ["Moderators", "Chat Moderators", "Bot Boinker"]
 
         if rank_str == "Artist of the Week" and animated:
             base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
@@ -168,8 +179,6 @@ class GetMemberCard(commands.Cog):
             background_image_path = None
             if rank_str in self.background_map:
                 background_filename = self.background_map[rank_str]
-                if rank_str in inverted_text_roles:
-                    background_filename = os.path.join(self.background_images_dir, "moderators.png")
                 background_image_path = os.path.join(self.background_images_dir, background_filename)
             base_card_content = None
             if background_image_path and os.path.exists(background_image_path):
@@ -219,19 +228,15 @@ class GetMemberCard(commands.Cog):
         tag_line_available_width = card_width - right_column_x_start - 20
         tag_bg_color = (40, 40, 40, 200)
 
-        # --- Role Logic for Display ---
         all_genres_roles = kwargs.get("all_genres_roles", [])
         all_daws_roles = kwargs.get("all_daws_roles", [])
         all_instruments_roles = kwargs.get("all_instruments_roles", [])
 
         displayed_roles_raw = []
-
         for role_name in all_genres_roles[:3]:
             displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#8d8c8c")})
-
         for role_name in all_daws_roles[:3]:
             displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#6155a6")})
-
         for role_name in all_instruments_roles[:3]:
             displayed_roles_raw.append({'name': role_name, 'color': self._hex_to_rgb("#e3abff")})
 
@@ -242,7 +247,6 @@ class GetMemberCard(commands.Cog):
                 displayed_roles_final.append(role_data)
                 seen_displayed_roles.add(role_data['name'])
 
-        temp_draw_for_measurement = ImageDraw.Draw(Image.new("RGB", (1,1)))
         final_displayed_roles = []
         first_line_roles = []
         second_line_roles = []
@@ -251,7 +255,7 @@ class GetMemberCard(commands.Cog):
 
         for tag_data in displayed_roles_final:
             tag_text = tag_data['name']
-            text_bbox = temp_draw_for_measurement.textbbox((0, 0), tag_text, font=font_tag)
+            text_bbox = self.get_text_bbox(tag_text, font_tag)
             text_width = text_bbox[2] - text_bbox[0]
             tag_full_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding) + tag_spacing_x
 
@@ -270,7 +274,6 @@ class GetMemberCard(commands.Cog):
 
         random_msg_y = roles_y + roles_block_height + 10
 
-        # --- Dynamic Font Sizing and Truncation for Random Message ---
         message_box = None
         if random_msg:
             random_msg_initial_font_size = 20
@@ -321,11 +324,13 @@ class GetMemberCard(commands.Cog):
                     if last_line_index >= 0:
                         original_last_line = final_wrapped_message[last_line_index]
                         truncated_last_line = ""
-                        ellipsis_width = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), "...", font=final_font_random_msg)[2]
+                        ellipsis_bbox = self.get_text_bbox("...", final_font_random_msg)
+                        ellipsis_width = ellipsis_bbox[2] - ellipsis_bbox[0]
                         max_text_width_for_last_line = effective_text_width - ellipsis_width
                         for char in original_last_line:
                             test_line = truncated_last_line + char
-                            test_width = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_line, font=final_font_random_msg)[2]
+                            test_bbox = self.get_text_bbox(test_line, final_font_random_msg)
+                            test_width = test_bbox[2] - test_bbox[0]
                             if test_width <= max_text_width_for_last_line:
                                 truncated_last_line += char
                             else:
@@ -350,15 +355,14 @@ class GetMemberCard(commands.Cog):
                         display_line = "“" + display_line
                     if i == len(final_wrapped_message) - 1:
                         display_line = display_line.replace("...", "”...") if display_line.endswith("...") else display_line + "”"
-                    temp_bbox_for_centering = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), display_line, font=final_font_random_msg)
-                    message_text_x = (message_box_width_for_random_msg - (temp_bbox_for_centering[2] - temp_bbox_for_centering[0])) // 2
+                    temp_bbox = self.get_text_bbox(display_line, final_font_random_msg)
+                    message_text_x = (message_box_width_for_random_msg - (temp_bbox[2] - temp_bbox[0])) // 2
                     pilmoji_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
                     current_text_y += final_font_random_msg.size
 
         static_card_base = base_card_content.copy()
         static_draw = ImageDraw.Draw(static_card_base)
 
-        # --- Dynamic Font Sizing for Username ---
         max_username_width_area = pfp_diameter + (2 * border_thickness) + 10
         username_initial_font_size = 30
         username_min_font_size = 18
@@ -367,7 +371,8 @@ class GetMemberCard(commands.Cog):
         temp_username_to_measure = discord_username
 
         while True:
-            temp_bbox = static_draw.textbbox((0, 0), temp_username_to_measure, font=dynamic_font_username)
+            dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
+            temp_bbox = self.get_text_bbox(temp_username_to_measure, dynamic_font_username)
             temp_width = temp_bbox[2] - temp_bbox[0]
             if temp_width <= max_username_width_area:
                 break
@@ -377,30 +382,31 @@ class GetMemberCard(commands.Cog):
                 dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
                 while True:
                     test_str_with_ellipsis = temp_username_to_measure + "..."
-                    temp_bbox = static_draw.textbbox((0, 0), test_str_with_ellipsis, font=dynamic_font_username)
+                    temp_bbox = self.get_text_bbox(test_str_with_ellipsis, dynamic_font_username)
                     temp_width = temp_bbox[2] - temp_bbox[0]
                     if temp_width <= max_username_width_area:
                         temp_username_to_measure = test_str_with_ellipsis
                         break
                     if len(temp_username_to_measure) > 1:
                         temp_username_to_measure = temp_username_to_measure[:-1]
+                        while emoji.is_emoji(temp_username_to_measure[-1:]) and len(temp_username_to_measure) > 1:
+                            temp_username_to_measure = temp_username_to_measure[:-1]
                     else:
                         temp_username_to_measure = "..."
                         break
                 break
-            dynamic_font_username = ImageFont.truetype(font_path, current_username_font_size)
 
         final_username_to_draw = temp_username_to_measure
         final_font_username = dynamic_font_username
-        username_bbox = static_draw.textbbox((0, 0), final_username_to_draw, font=final_font_username)
+        username_bbox = self.get_text_bbox(final_username_to_draw, final_font_username)
         username_center_x = pfp_x + (pfp_diameter // 2)
         username_x_aligned = username_center_x - ((username_bbox[2] - username_bbox[0]) // 2)
 
         joined_label = "MEMBER SINCE:"
         joined_date_str = join_date.strftime('%B %d, %Y')
-        label_bbox = static_draw.textbbox((0,0), joined_label, font=font_date_label)
+        label_bbox = static_draw.textbbox((0, 0), joined_label, font=font_date_label)
         label_x_aligned = username_center_x - ((label_bbox[2] - label_bbox[0]) // 2)
-        date_value_bbox = static_draw.textbbox((0,0), joined_date_str, font=font_date_value)
+        date_value_bbox = static_draw.textbbox((0, 0), joined_date_str, font=font_date_value)
         date_value_x_aligned = username_center_x - ((date_value_bbox[2] - date_value_bbox[0]) // 2)
 
         target_hex_color = self.rank_blink_colors.get(rank_str, "#808080")
@@ -410,12 +416,12 @@ class GetMemberCard(commands.Cog):
 
         if not animated:
             output = io.BytesIO()
+            with Pilmoji(static_card_base) as pilmoji_draw:
+                pilmoji_draw.text((username_x_aligned, username_y), final_username_to_draw, fill=base_text_color, font=final_font_username)
             static_draw.text((right_column_x_start, rank_y), f"{rank_str}", fill=rank_color_end, font=font_rank_blinking)
-            static_draw.text((username_x_aligned, username_y), final_username_to_draw, fill=base_text_color, font=final_font_username)
             static_draw.text((label_x_aligned, member_since_label_y), joined_label, fill=base_text_color, font=font_date_label)
             static_draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=base_text_color, font=font_date_value)
 
-            # Draw profile picture with border
             static_card_base.paste(pfp_image_pil, (pfp_x, pfp_y), pfp_image_pil)
             static_draw.ellipse(
                 (border_bbox_x1, border_bbox_y1, border_bbox_x2, border_bbox_y2),
@@ -423,7 +429,6 @@ class GetMemberCard(commands.Cog):
                 width=border_thickness
             )
 
-            # Draw banner
             static_card_base.paste(banner, (center_x, 15), banner)
 
             if is_top_feedback:
@@ -438,50 +443,43 @@ class GetMemberCard(commands.Cog):
                 mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
                 static_draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=base_text_color, font=font_top_mfr)
 
-            # Draw yellow "COLLAB" circle outline if COLLAB_ROLE is present
             if has_collab_role:
-                collab_x = card_width - collab_circle_diameter - 10  # 10px from right edge
-                collab_y = banner_height + collab_circle_y_offset  # Below banner's bottom edge
-                # Draw yellow circle outline
+                collab_x = card_width - collab_circle_diameter - 10
+                collab_y = banner_height + collab_circle_y_offset
                 static_draw.ellipse(
                     (collab_x, collab_y, collab_x + collab_circle_diameter, collab_y + collab_circle_diameter),
                     outline=collab_circle_color,
                     width=4
                 )
-                # Draw thin black outer border
                 static_draw.ellipse(
                     (collab_x - collab_black_border_width, collab_y - collab_black_border_width, 
                      collab_x + collab_circle_diameter + collab_black_border_width, collab_y + collab_circle_diameter + collab_black_border_width),
                     outline=collab_black_border_color,
                     width=collab_black_border_width
                 )
-                # Draw yellow rectangle behind text
                 collab_text = "COLLAB"
                 text_bbox = static_draw.textbbox((0, 0), collab_text, font=font_collab)
                 text_width = text_bbox[2] - text_bbox[0]
                 text_height = text_bbox[3] - text_bbox[1]
-                text_x = collab_x + (collab_circle_diameter - text_width) / 2
-                text_y = collab_y + (collab_circle_diameter - text_height) / 2 - 2  # Move text up by 2 pixels
-                # Rectangle extends to the inner edge of the circle (accounting for outline width)
-                rect_left = collab_x + 2  # Inner edge (circle x + half outline width)
-                rect_right = text_x + text_width + 4  # Right edge with padding
-                rect_top = collab_y + (collab_circle_diameter / 2) - (text_height + 8) / 2  # Center vertically
-                rect_bottom = rect_top + text_height + 8  # Height with padding
+                text_x = collab_x + (collab_circle_diameter - text_width) // 2
+                text_y = collab_y + (collab_circle_diameter - text_height) // 2 - 2
+                rect_left = collab_x + 2
+                rect_right = text_x + text_width + 4
+                rect_top = collab_y + (collab_circle_diameter / 2) - (text_height + 8) / 2
+                rect_bottom = rect_top + text_height + 8
                 static_draw.rectangle(
                     (rect_left, rect_top, rect_right, rect_bottom),
                     fill=collab_text_bg_color
                 )
-                # Draw "COLLAB" text
                 static_draw.text((text_x, text_y), collab_text, fill=collab_text_color, font=font_collab)
 
-            # Draw roles for static card with extra vertical gap
             current_tag_draw_x = right_column_x_start
             current_tag_draw_y = roles_y
             extra_vertical_gap = 5
             for i, tag_data in enumerate(final_displayed_roles):
                 tag_text = tag_data['name']
                 category_dot_color = tag_data['color']
-                text_bbox = static_draw.textbbox((0, 0), tag_text, font=font_tag)
+                text_bbox = self.get_text_bbox(tag_text, font_tag)
                 text_width = text_bbox[2] - text_bbox[0]
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
                 if i == len(first_line_roles):
@@ -494,7 +492,8 @@ class GetMemberCard(commands.Cog):
                 static_draw.ellipse((dot_x, dot_y, dot_x + dot_diameter, dot_y + dot_diameter), fill=category_dot_color)
                 text_x = dot_x + dot_diameter + dot_right_margin
                 text_y = current_tag_draw_y + tag_vertical_padding - 1
-                static_draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
+                with Pilmoji(static_card_base) as pilmoji_draw:
+                    pilmoji_draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
                 current_tag_draw_x += tag_width + tag_spacing_x
 
             if random_msg and message_box:
@@ -504,7 +503,6 @@ class GetMemberCard(commands.Cog):
             output.seek(0)
             return output, "png"
 
-        # --- ANIMATED CARD GENERATION ---
         top_mfr_color_start = (59, 196, 237)
         top_mfr_color_end = (
             int(top_mfr_color_start[0] + (255 - top_mfr_color_start[0]) * 0.5),
@@ -554,12 +552,13 @@ class GetMemberCard(commands.Cog):
                 )
                 draw.rectangle((0, 0, card_width, card_height), fill=current_color)
                 if base_card_content:
-                    frame.paste(base_card_content, (0,0), base_card_content)
+                    frame.paste(base_card_content, (0, 0), base_card_content)
                     draw = ImageDraw.Draw(frame)
                 brightness = sum(current_color) / 3
                 current_text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
-            draw.text((username_x_aligned, username_y), final_username_to_draw, fill=current_text_color, font=final_font_username)
+            with Pilmoji(frame) as pilmoji_draw:
+                pilmoji_draw.text((username_x_aligned, username_y), final_username_to_draw, fill=current_text_color, font=final_font_username)
             draw.text((label_x_aligned, member_since_label_y), joined_label, fill=current_text_color, font=font_date_label)
             draw.text((date_value_x_aligned, join_date_value_y), joined_date_str, fill=current_text_color, font=font_date_value)
 
@@ -598,7 +597,10 @@ class GetMemberCard(commands.Cog):
                     int(top_mfr_color_start[1] + (top_mfr_color_end[1] - top_mfr_color_start[1]) * pulse_progress),
                     int(top_mfr_color_start[2] + (top_mfr_color_end[2] - top_mfr_color_start[2]) * pulse_progress)
                 )
-                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(draw, current_y_for_points_block, right_column_x_start, font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, current_top_mfr_color)
+                top_mfr_text_end_x, top_mfr_text_y = self._draw_top_mfr_badge(
+                    draw, current_y_for_points_block, right_column_x_start, 
+                    font_top_mfr, top_mfr_icon_size, top_mfr_text_padding, current_top_mfr_color
+                )
                 mf_points_static_text = f" - MF Points: {numeric_points}"
                 mf_points_x = top_mfr_text_end_x + 5
                 mf_points_y = top_mfr_text_y
@@ -608,50 +610,43 @@ class GetMemberCard(commands.Cog):
                 mf_points_only_y = current_y_for_points_block + (top_mfr_icon_size - font_top_mfr.size) // 2
                 draw.text((right_column_x_start, mf_points_only_y), mf_points_only_text, fill=current_text_color, font=font_top_mfr)
 
-            # Draw yellow "COLLAB" circle outline if COLLAB_ROLE is present
             if has_collab_role:
-                collab_x = card_width - collab_circle_diameter - 10  # 10px from right edge
-                collab_y = banner_height + collab_circle_y_offset  # Below banner's bottom edge
-                # Draw yellow circle outline
+                collab_x = card_width - collab_circle_diameter - 10
+                collab_y = banner_height + collab_circle_y_offset
                 draw.ellipse(
                     (collab_x, collab_y, collab_x + collab_circle_diameter, collab_y + collab_circle_diameter),
                     outline=collab_circle_color,
                     width=4
                 )
-                # Draw thin black outer border
                 draw.ellipse(
                     (collab_x - collab_black_border_width, collab_y - collab_black_border_width, 
                      collab_x + collab_circle_diameter + collab_black_border_width, collab_y + collab_circle_diameter + collab_black_border_width),
                     outline=collab_black_border_color,
                     width=collab_black_border_width
                 )
-                # Draw yellow rectangle behind text
                 collab_text = "COLLAB"
                 text_bbox = draw.textbbox((0, 0), collab_text, font=font_collab)
                 text_width = text_bbox[2] - text_bbox[0]
                 text_height = text_bbox[3] - text_bbox[1]
-                text_x = collab_x + (collab_circle_diameter - text_width) / 2
-                text_y = collab_y + (collab_circle_diameter - text_height) / 2 - 2  # Move text up by 2 pixels
-                # Rectangle extends to the inner edge of the circle (accounting for outline width)
-                rect_left = collab_x + 2  # Inner edge (circle x + half outline width)
-                rect_right = text_x + text_width + 4  # Right edge with padding
-                rect_top = collab_y + (collab_circle_diameter / 2) - (text_height + 8) / 2  # Center vertically
-                rect_bottom = rect_top + text_height + 8  # Height with padding
+                text_x = collab_x + (collab_circle_diameter - text_width) // 2
+                text_y = collab_y + (collab_circle_diameter - text_height) // 2 - 2
+                rect_left = collab_x + 2
+                rect_right = text_x + text_width + 4
+                rect_top = collab_y + (collab_circle_diameter / 2) - (text_height + 8) / 2
+                rect_bottom = rect_top + text_height + 8
                 draw.rectangle(
                     (rect_left, rect_top, rect_right, rect_bottom),
                     fill=collab_text_bg_color
                 )
-                # Draw "COLLAB" text
                 draw.text((text_x, text_y), collab_text, fill=collab_text_color, font=font_collab)
 
-            # Draw roles for animated card with extra vertical gap
             current_tag_draw_x = right_column_x_start
             current_tag_draw_y = roles_y
             extra_vertical_gap = 5
             for i, tag_data in enumerate(final_displayed_roles):
                 tag_text = tag_data['name']
                 category_dot_color = tag_data['color']
-                text_bbox = draw.textbbox((0, 0), tag_text, font=font_tag)
+                text_bbox = self.get_text_bbox(tag_text, font_tag)
                 text_width = text_bbox[2] - text_bbox[0]
                 tag_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding)
                 if i == len(first_line_roles):
@@ -664,7 +659,8 @@ class GetMemberCard(commands.Cog):
                 draw.ellipse((dot_x, dot_y, dot_x + dot_diameter, dot_y + dot_diameter), fill=category_dot_color)
                 text_x = dot_x + dot_diameter + dot_right_margin
                 text_y = current_tag_draw_y + tag_vertical_padding - 1
-                draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
+                with Pilmoji(frame) as pilmoji_draw:
+                    pilmoji_draw.text((text_x, text_y), tag_text, fill=tag_text_color, font=font_tag)
                 current_tag_draw_x += tag_width + tag_spacing_x
 
             if random_msg and message_box:
@@ -684,16 +680,16 @@ class GetMemberCard(commands.Cog):
         words = text.split()
         current_line = ""
         for word in words:
-            bbox_word = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), word, font=font)
+            bbox_word = self.get_text_bbox(word, font)
             word_width = bbox_word[2] - bbox_word[0]
             if word_width > max_width:
                 if current_line:
                     wrapped_lines.append(current_line.strip())
                     current_line = ""
                 temp_word_part = ""
-                for char_idx, char in enumerate(word):
+                for char in word:
                     test_temp_part = temp_word_part + char
-                    temp_part_bbox = ImageDraw.Draw(Image.new("RGB", (1,1))).textbbox((0,0), test_temp_part, font=font)
+                    temp_part_bbox = self.get_text_bbox(test_temp_part, font)
                     if (temp_part_bbox[2] - temp_part_bbox[0]) <= max_width:
                         temp_word_part += char
                     else:
@@ -703,7 +699,7 @@ class GetMemberCard(commands.Cog):
                     wrapped_lines.append(temp_word_part)
             else:
                 test_line = current_line + word + " "
-                test_bbox = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), test_line, font=font)
+                test_bbox = self.get_text_bbox(test_line, font)
                 test_width = test_bbox[2] - test_bbox[0]
                 if test_width <= max_width:
                     current_line = test_line
@@ -743,7 +739,7 @@ class GetMemberCard(commands.Cog):
         try:
             is_top_feedback, numeric_points = await cog.get_points(member)
         except Exception as e:
-            print(f"Error calling get_points for {member.display_name}: {e}")
+            print(f"Error calling get_points for {member.display_name}: {str(e)}")
             is_top_feedback = False
             numeric_points = 0
 
@@ -760,7 +756,7 @@ class GetMemberCard(commands.Cog):
                 random_msg_content = "A true MFR"
                 random_msg_url = None
         except Exception as e:
-            print(f"Error fetching random message for {member.display_name}: {e}")
+            print(f"Error fetching random message for {member.display_name}: {str(e)}")
             random_msg_content = "An unexpected error occurred while looking for a message."
             random_msg_url = None
 
@@ -779,7 +775,7 @@ class GetMemberCard(commands.Cog):
                     pfp_data = io.BytesIO(await resp.read())
                     pfp = Image.open(pfp_data).convert("RGBA").resize((120, 120), Image.Resampling.LANCZOS)
 
-        mask = Image.new('L', pfp.size, 0)
+        mask = Image.new("L", pfp.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *pfp.size), fill=255)
         pfp.putalpha(mask)
 
@@ -788,7 +784,7 @@ class GetMemberCard(commands.Cog):
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
             (img_width, img_height), self.font_path, animated=animated, random_msg=random_msg_content,
             is_top_feedback=is_top_feedback,
-            relevant_roles=[role.name for role in member.roles],  # Pass all member roles
+            relevant_roles=[role.name for role in member.roles],
             all_genres_roles=all_main_genres_roles,
             all_daws_roles=all_daw_roles,
             all_instruments_roles=all_instruments_roles
@@ -798,7 +794,6 @@ class GetMemberCard(commands.Cog):
         file = discord.File(card_buffer, filename=filename)
 
         view = discord.ui.View()
-        print(release_link)
         if release_link:
             view.add_item(discord.ui.Button(label=f"{discord_username}'s Latest Release", style=discord.ButtonStyle.link, url=release_link))
         if random_msg_url and random_msg_content not in ["A true MFR"]:
