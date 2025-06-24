@@ -1,13 +1,17 @@
 import discord
+import asyncio
 from discord.ext import commands
 from discord import app_commands
 from database.google_sheet import GoogleSheet
+from data.constants import GENERAL_CHAT_CHANNEL_ID
+from cogs.feedback_threads.modules.add_rank_member_card import AddRankMemberCard
 
 class RankCommands(commands.Cog):
     def __init__(self, bot, google_sheet):
         self.bot = bot
         self.pfp_url = ""
         self.google_sheet = google_sheet
+        self.add_rank_member_card = AddRankMemberCard(bot)
 
     # able to be used by admins + mods
     group = app_commands.Group(name="ranks", description="View the rank interface and commands")
@@ -72,6 +76,15 @@ class RankCommands(commands.Cog):
                 # checks if the roles to remove list is empty, and removes if present
                 if roles_to_remove:
                     await user.remove_roles(*roles_to_remove)
+
+                # send the member card with info in gen chat
+                try:
+                    # needed to refresh user else it takes last role
+                    user = await user.guild.fetch_member(user.id)
+                    await self.add_rank_member_card.send_rank_member_card(user, role)
+                except Exception as e:
+                    print(f"Error sending rank member card: {e}")
+
 
     # removes role from member
     @app_commands.checks.has_any_role('Admins', 'Moderators')

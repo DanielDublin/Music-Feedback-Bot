@@ -359,7 +359,11 @@ class GetMemberCard(commands.Cog):
                     pilmoji_draw.text((message_text_x, current_text_y), display_line, fill=(255, 255, 255), font=final_font_random_msg)
                     current_text_y += final_font_random_msg.size
 
-        static_card_base = base_card_content.copy()
+        try:
+            static_card_base = base_card_content.copy()
+        except Exception as e:
+            print(str(e))
+
         static_draw = ImageDraw.Draw(static_card_base)
 
         max_username_width_area = pfp_diameter + (2 * border_thickness) + 10
@@ -526,7 +530,12 @@ class GetMemberCard(commands.Cog):
         gradient = gradient.rotate(45, expand=True)
 
         for i in range(num_frames):
-            frame = static_card_base.copy()
+
+            try:
+                frame = static_card_base.copy()
+            except Exception as e:
+                print(f"Error copying static_card_base: {str(e)}")
+                
             draw = ImageDraw.Draw(frame)
             pulse_progress = (math.sin(2 * math.pi * i / num_frames) + 1) / 2
             current_rank_pulse_color = (
