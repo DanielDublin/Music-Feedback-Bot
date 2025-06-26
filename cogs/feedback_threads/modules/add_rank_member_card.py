@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from cogs.slash_commands.get_member_card import GetMemberCard
-from data.constants import GENERAL_CHAT_CHANNEL_ID
+from data.constants import GENERAL_CHAT_CHANNEL_ID, AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY
 import aiohttp
 from PIL import Image, ImageDraw
 import io
@@ -111,6 +111,138 @@ class AddRankMemberCard(commands.Cog):
             print(f"Member card sent to general chat for {user.display_name}")
         else:
             print("General chat channel not found.")
+
+    async def rank_message(self, user, role):
+
+        general_chat_channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
+
+        if role.name == "Stagehands":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **Stagehands** role!",
+                color=discord.Color.from_rgb(178, 222, 236)
+            )
+            embed.add_field(
+                name="",
+                value="""
+                You've been an active member for at least 2-3 days in the server.
+
+                You can now:
+                ♫ - Submit your music to <#{}>
+                ♫ - Have full access to <#{}>
+
+                """.format(AOTW_SUBMISSIONS, FINISHED_MUSIC),
+                inline=False
+            )
+            embed.set_footer(text="MF Ranks are based on activity in the server. Deranking occurs after 1 month of inactivity.")
+
+            await general_chat_channel.send(embed=embed)
+
+        if role.name == "Supporting Acts":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **Supporting Acts** role!",
+                color=discord.Color.from_rgb(250, 220, 170)
+            )
+            embed.add_field(
+                name="", 
+                value="""
+                You've been an active member for at least 1-2 weeks and have participated in events in the server.
+
+                You can now:
+                ♫ - Submit your music to <#{}>
+                ♫ - Have full access to <#{}>
+                ♫ - Submit your new music to <#{}>
+                """.format(AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY),
+                inline=False
+            )
+            embed.set_footer(text="MF Ranks are based on activity in the server. Deranking occurs after 1 month of inactivity.")
+
+            await general_chat_channel.send(embed=embed)
+
+        if role.name == "Ultimate Fans":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **Ultimate Fans** role!",
+                color=discord.Color.from_rgb(202, 114, 144)
+            )
+            embed.add_field(
+                name="", 
+                value="""
+                You've been an active member for at least 1-2 weeks and have participated in events in the server, but do not make music.
+                """,
+                inline=False
+            )
+            embed.set_footer(text="MF Ranks are based on activity in the server. Deranking occurs after 1 month of inactivity.")
+
+            await general_chat_channel.send(embed=embed)
+
+        if role.name == "Headliners":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **Headliners** role!",
+                color=discord.Color.from_rgb(179, 153, 212)
+            )
+            embed.add_field(
+                name="", 
+                value="""
+                Thank you for making this server what it is! You've been an active member for at least 3-4 weeks and have participated in events and feedback in the server.
+
+                You have full access to the server and can now:
+                ♫ - Submit your music to <#{}>
+                ♫ - Have full access to <#{}>
+                ♫ - Submit your new music to <#{}>
+                """.format(AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY),
+                inline=False
+            )
+            embed.set_footer(text="MF Ranks are based on activity in the server. Deranking occurs after 1 month of inactivity.")
+
+            await general_chat_channel.send(embed=embed)
+
+        if role.name == "MF Gilded":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **MF Gilded** role!",
+                color=discord.Color.from_rgb(140, 50, 230)
+            )
+            embed.add_field(
+                name="",
+                value="""
+                Thank you for making this server what it is! You've been an active member for at least 6 months and have participated in events and feedback in the server.
+
+                You have full access to the server and can now:
+                ♫ - Submit your music to <#{}>
+                ♫ - Have full access to <#{}>
+                ♫ - Submit your new music to <#{}>
+                """.format(AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY),
+                inline=False
+            )
+            embed.set_footer(text="This is a permanent role. You will be given the rank again if you leave the server.")
+
+            await general_chat_channel.send(embed=embed)
+
+
+        if role.name == "The Real MFrs":
+            embed = discord.Embed(
+                title=f"🎉 Congrats, {user.display_name}!",
+                description=f"Leveled up to the **The Real MFrs** role!",
+                color=discord.Color.from_rgb(62, 53, 255)
+            )
+            embed.add_field(
+                name="", 
+                value="""
+                Thank you for making this server what it is! You're an active member that truly embodies the mission of the server to help and teach music. You make an impact by being involved in events and feedback, as well as answering questions and welcoming new members.
+
+                You have full access to the server and can now:
+                ♫ - Submit your music to <#{}>
+                ♫ - Have full access to <#{}>
+                ♫ - Submit your new music to <#{}>
+                """.format(AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY),
+                inline=False
+            )
+            embed.set_footer(text="MF Ranks are based on activity in the server. Deranking occurs after 1 month of inactivity.")
+
+            await general_chat_channel.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(AddRankMemberCard(bot))

@@ -82,6 +82,10 @@ class RankCommands(commands.Cog):
                     # needed to refresh user else it takes last role
                     user = await user.guild.fetch_member(user.id)
                     await self.add_rank_member_card.send_rank_member_card(user, role)
+                    try:
+                        await self.add_rank_member_card.rank_message(user, role)
+                    except Exception as e:      
+                        print(f"Error sending rank message: {e}")
                 except Exception as e:
                     print(f"Error sending rank member card: {e}")
 
