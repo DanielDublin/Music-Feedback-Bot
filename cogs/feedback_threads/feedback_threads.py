@@ -61,6 +61,32 @@ class FeedbackThreads(commands.Cog):
 
                 await self.points_logic.MFR_to_MFS_edit(before, after, thread, ticket_counter)
 
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        if message.author.bot:
+            return
+        
+        if message.channel.id == FEEDBACK_CHANNEL_ID:
+
+            message_content_normalized = message.content.strip().lower()
+
+            user_id = message.author.id
+            thread_info = self.user_thread.get(user_id)
+            thread_id, ticket_counter = thread_info
+            thread = await self.bot.fetch_channel(thread_id)
+
+            # if mfr is in content that was deleted, take away the points
+            if "<mfr" in message_content_normalized:
+                try:
+                    await self.points_logic.MFR_delete(message, thread, ticket_counter)
+                except Exception as e:
+                    print(f"Error in MFR_delete: {e}")
+
+            #else if mfs is in content deleted, send message that the user needs more points/contact mods if a mistake
+            elif "<mfs" in message_content_normalized:
+                pass
+                
+
 
 
 async def setup(bot):

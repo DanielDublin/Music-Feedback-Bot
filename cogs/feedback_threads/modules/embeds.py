@@ -154,3 +154,37 @@ class Embeds:
         embed.add_field(name="After", value=f"{shortened_message}", inline=False)
 
         return embed
+    
+    async def MFR_to_delete_embed(self, deleted_content, ctx, thread, ticket_counter, points_removed, total_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter} - Deletion",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFR` feedback deleted",
+            value=f"Deleted their submitted feedback and used **{points_removed}** points. They now have **{total_points}** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Deleted", value=f"{deleted_content}", inline=False)
+
+        return embed
+    
+    async def MFR_to_delete_embed_with_no_points(self, deleted_content, ctx, thread, ticket_counter, points_removed, total_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter} - Deletion",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFR` feedback deleted without enough points",
+            value=f"Deleted their submitted feedback and used **{points_removed}** points, but might have submitted a song for feedback in the meantime. They now have **{total_points}** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Deleted", value=f"{deleted_content}", inline=False)
+
+        return embed

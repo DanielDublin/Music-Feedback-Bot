@@ -199,6 +199,108 @@ class PointsLogic:
             log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=log_embed)
 
+    
+    async def MFR_delete(self, message: discord.Message, thread: discord.Thread, ticket_counter: int):
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            if creator_user and creator_user.avatar:
+                self.pfp_url = creator_user.avatar.url
+
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if not channel:
+            return
+
+        deleted_content = await self.helpers.shorten_message(message.content, 1000)
+
+        user_id = str(message.author.id)
+        points_to_remove = 1
+
+        points_available = await db.fetch_points(user_id)
+        await self.helpers.remove_points_for_edits(user_id, points_to_remove)
+        total_points = await db.fetch_points(user_id)
+
+        # if a user deletes an MFR message (1 points available) after sending a MFS message (0 points available), then moderators should be tagged due to chances of submitting feedback with technically 0 points
+
+        # if points available before removing the points is 0, then they used that 1 point somewhere
+        # we can't look at total points being 0 because this would trigger to be true if they just did MFR and then deleted
+
+        if points_available > 0:
+
+            await message.channel.send(
+                f"{message.author.mention} deleted their feedback and lost **{points_to_remove}** MF Points. You now have **{total_points}** MF Points.\n\n"
+                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_CHANNEL_ID}> for more information."
+            )
+
+            embed = await self.embeds.MFR_to_delete_embed(
+                deleted_content=deleted_content,
+                ctx=message.channel,
+                thread=thread,
+                ticket_counter=ticket_counter,
+                points_removed=points_to_remove,
+                total_points=total_points
+            )
+            try:
+                await thread.send(embed=embed)
+            except Exception as e:
+                print(e)
+                
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(
+                name=f"Feedback Deletion - {self.helpers.get_formatted_time()}",
+                value=(
+                    f"<@{user_id}> has **deleted** their feedback containing `<MFR`. "
+                    f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                ),
+                inline=False
+            )
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=embed)
+
+        elif points_available == 0:
+
+            # prevent points going negative
+            await db.reset_points(user_id)
+            total_points = int(await db.fetch_points(str(user_id)))
+
+            await channel.send(f"<@&{ADMINS_ROLE_ID}>")
+
+            await message.channel.send(
+                f"{message.author.mention} deleted their feedback but didn't have **{points_to_remove}** MF Points to use. You may have submitted a song since giving feedback.\n\n"
+                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_CHANNEL_ID}> for more information."
+            )
+
+            embed = await self.embeds.MFR_to_delete_embed_with_no_points(
+            deleted_content=deleted_content,
+            ctx=message.channel,
+            thread=thread,
+            ticket_counter=ticket_counter,
+            points_removed=points_to_remove,
+            total_points=total_points
+            )
+            await thread.send(embed=embed)
+
+            embed = discord.Embed(color=0x7e016f)
+            embed.add_field(
+                name=f"Feedback Deletion - {self.helpers.get_formatted_time()}",
+                value=(
+                    f"<@{user_id}> has **deleted** their feedback containing `<MFR` without enough points. "
+                    f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                ),
+                inline=False
+            )
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            await channel.send(embed=embed)
+
+
+
+
+
+
+        
+
 
 
 
