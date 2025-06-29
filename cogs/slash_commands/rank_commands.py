@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord import app_commands
 from database.google_sheet import GoogleSheet
 from data.constants import GENERAL_CHAT_CHANNEL_ID
-from cogs.feedback_threads.modules.add_rank_member_card import AddRankMemberCard
+from cogs.member_cards.add_rank_member_card import AddRankMemberCard
 
 class RankCommands(commands.Cog):
     def __init__(self, bot, google_sheet):
