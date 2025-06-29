@@ -100,7 +100,8 @@ class PointsLogic:
             value=(
                 f"<@{user_id}> has **edited** their message from `<MFS` to `<MFR`. "
                 f"They gained **{points_to_add}** points and now have **{total_points}** MF points.\n\n"
-                f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url}) - Edited Message: {after.jump_url}"
+                f"🔗 [Edited Feedback]({after.jump_url})\n"
+                f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
             ),
             inline=False
         )
@@ -151,7 +152,8 @@ class PointsLogic:
                 value=(
                     f"<@{user_id}> has **edited** their message from `<MFR` to `<MFS`. "
                     f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
-                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url}) - Edited Message: {after.jump_url}"
+                    f"🔗 [Edited Feedback]({after.jump_url})\n"
+                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
                 ),
                 inline=False
             )

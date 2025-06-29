@@ -168,6 +168,7 @@ class General(commands.Cog):
             name=f"Feedback Notice - {self.helpers.get_formatted_time()}",
             value=(
                 f"{mention} has **given feedback** and now has **{points}** MF point(s).\n\n"
+                f"🔗 [Feedback Reply]({ctx.message.jump_url})\n"
                 f"🟢 [Ticket #{ticket_counter}]({thread.jump_url})"
             ),
             inline=False
@@ -231,6 +232,7 @@ class General(commands.Cog):
             embed.add_field(name=f"Feedback Notice - {self.helpers.get_formatted_time()}",
                             value=(
                                 f"{mention} has **submitted** a work for feedback and now has **{points}** MF point(s).\n\n"
+                                f"🔗 [Feedback Submission]({ctx.message.jump_url})\n"
                                 f"🔴 [Ticket #{ticket_counter}]({thread.jump_url})"
                             ),
                             inline=False)

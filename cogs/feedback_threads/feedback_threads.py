@@ -1,7 +1,5 @@
 import discord
 from discord.ext import commands
-
-# Assuming these paths are correct
 from database.threads_db import SQLiteDatabase # Or from database.db import SQLiteDatabase
 from .modules.threads_manager import ThreadsManager
 from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
@@ -77,6 +75,7 @@ class FeedbackThreads(commands.Cog):
 
             # if mfr is in content that was deleted, take away the points
             if "<mfr" in message_content_normalized:
+
                 try:
                     await self.points_logic.MFR_delete(message, thread, ticket_counter)
                 except Exception as e:
