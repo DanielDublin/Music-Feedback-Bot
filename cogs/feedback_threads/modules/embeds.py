@@ -188,3 +188,20 @@ class Embeds:
         embed.add_field(name="Deleted", value=f"{deleted_content}", inline=False)
 
         return embed
+    
+    async def MFS_to_delete_embed(self, deleted_content, ctx, thread, ticket_counter, total_points):
+
+        embed = discord.Embed(
+            title=f"Ticket #{ticket_counter} - Deletion",
+            description=f"{self.helpers.get_formatted_time()}",
+            color=discord.Color.yellow()
+        )
+
+        embed.add_field(
+            name="⚠️ `<MFS` submission deleted",
+            value=f"Deleted their submission. They will need to resubmit feedback or contact Mods. They now have **{total_points}** MF points.",
+            inline=True
+        )
+        embed.add_field(name="Deleted", value=f"{deleted_content}", inline=False)
+
+        return embed

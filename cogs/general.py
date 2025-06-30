@@ -16,6 +16,7 @@ class General(commands.Cog):
         self.bot = bot
         self.pfp_url =""
         self.helpers = DiscordHelpers(self.bot)
+        self.deleted_messages = set() # store the messages deleted when mfs with 0 points
 
         
     def guild_only(ctx):
@@ -256,7 +257,10 @@ class General(commands.Cog):
                                        f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)
-
+                
+            # store the message id so that we can ensure it was deleted due to actually having 0 points
+            self.deleted_messages.add(ctx.message.id)
+            
             await ctx.message.delete()
 
             # Check if user has a feedback thread

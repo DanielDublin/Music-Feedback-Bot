@@ -296,12 +296,58 @@ class PointsLogic:
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await channel.send(embed=embed)
 
+    async def MFS_delete(self, message: discord.Message, thread: discord.Thread, ticket_counter: int):
 
+        if self.pfp_url == "":
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            if creator_user and creator_user.avatar:
+                self.pfp_url = creator_user.avatar.url
 
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
+        if not channel:
+            return
 
+        deleted_content = await self.helpers.shorten_message(message.content, 1000)
 
+        user_id = str(message.author.id)
+        # don't need to remove any points since <MFS handled that; no points given in return 
+        total_points = await db.fetch_points(user_id)
 
+        await message.channel.send(
+            f"{message.author.mention} deleted their submission.\n\n"
+            f"You will need to give feedback again or contact Moderators to restore your point."
+            )
         
+        embed = await self.embeds.MFS_to_delete_embed(
+        deleted_content=deleted_content,
+        ctx=message.channel,
+        thread=thread,
+        ticket_counter=ticket_counter,
+        total_points=total_points
+        )
+        await thread.send(embed=embed)
+
+        embed = discord.Embed(color=0x7e016f)
+        embed.add_field(
+            name=f"Feedback Deletion - {self.helpers.get_formatted_time()}",
+            value=(
+                f"<@{user_id}> has **deleted** their feedback containing `<MFS`."
+                f"They can either resubmit feedback or contact Mods.\n\n"
+                f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+            ),
+            inline=False
+        )
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        await channel.send(embed=embed)
+
+
+
+
+
+
+
+
+
 
 
 

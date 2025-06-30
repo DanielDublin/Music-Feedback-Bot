@@ -1,4 +1,5 @@
 import discord
+import database.db as db
 from discord.ext import commands
 from database.threads_db import SQLiteDatabase # Or from database.db import SQLiteDatabase
 from .modules.threads_manager import ThreadsManager
@@ -6,6 +7,7 @@ from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
 from .modules.points_logic import PointsLogic
 from .modules.helpers import DiscordHelpers 
 from .modules.embeds import Embeds 
+from ..general import General
 
 class FeedbackThreads(commands.Cog):
     def __init__(self, bot):
@@ -16,8 +18,7 @@ class FeedbackThreads(commands.Cog):
 
         self.points_logic = PointsLogic(bot, self.user_thread) # Initialize PointsLogic here
         self.discord_helpers = DiscordHelpers(bot) # Initialize DiscordHelpers here
-
-
+        self.general = bot.get_cog('General')
          
     async def initialize_sqldb(self):
 
@@ -76,14 +77,19 @@ class FeedbackThreads(commands.Cog):
             # if mfr is in content that was deleted, take away the points
             if "<mfr" in message_content_normalized:
 
-                try:
-                    await self.points_logic.MFR_delete(message, thread, ticket_counter)
-                except Exception as e:
-                    print(f"Error in MFR_delete: {e}")
+                await self.points_logic.MFR_delete(message, thread, ticket_counter)
 
             #else if mfs is in content deleted, send message that the user needs more points/contact mods if a mistake
             elif "<mfs" in message_content_normalized:
-                pass
+
+                # check if the message id is due to manual deletion of the else statement in MFS
+                if message.id in self.general.deleted_messages:
+                    # if it is, this means that the message was manually deleted and to not throw this embed; delete the id
+                    self.general.deleted_messages.discard(message.id)
+                    return
+                
+                else:
+                    await self.points_logic.MFS_delete(message, thread, ticket_counter)
                 
 
 
