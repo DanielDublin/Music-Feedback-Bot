@@ -23,7 +23,7 @@ class PointsLogic:
         elif ctx.command.name == "S":
 
             if called_from_zero:
-                await self.handle_zero_points_submission(ctx, thread, ticket_counter)
+                await self.handle_zero_points_submission(ctx.message, thread, ticket_counter)
             
             elif not called_from_zero:
                 await self.handle_mfs_submissions(ctx, thread, ticket_counter)
@@ -39,7 +39,7 @@ class PointsLogic:
         elif ctx.command.name == "S":
 
             if called_from_zero:
-                await self.handle_zero_points_submission(ctx, thread, ticket_counter)
+                await self.handle_zero_points_submission(ctx.message, thread, ticket_counter)
             
             elif not called_from_zero:
                 await self.handle_mfs_submissions(ctx, thread, ticket_counter)
@@ -54,9 +54,14 @@ class PointsLogic:
         embed = await self.embeds.mfs(ctx, ticket_counter, thread)
         await thread.send(embed=embed)
 
-    async def handle_zero_points_submission(self, ctx, thread, ticket_counter):
+    async def handle_zero_points_submission(self, message: discord.Message, thread, ticket_counter: int):
 
-        embed = await self.embeds.mfs_with_zero_points(ctx, ticket_counter, thread)
+        deleted_content = await self.helpers.shorten_message(message.content, 1000)
+        
+        try:
+            embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, thread, deleted_content)
+        except Exception as e:
+            print(e)
         await thread.send(f"<@&{ADMINS_ROLE_ID}>")
         await thread.send(embed=embed)
 

@@ -41,7 +41,7 @@ class Embeds:
 
         return embed
 
-    async def mfs_with_zero_points(self, ctx, ticket_counter, thread=None):
+    async def mfs_with_zero_points(self, message: discord.Message, ticket_counter: int, thread, deleted_content: str):
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -49,8 +49,9 @@ class Embeds:
         color=discord.Color.yellow()
         )
 
-        embed.add_field(name="⚠️ <MFS", value=f"Used <MFS with no points available in <#{ctx.channel.id}>.", inline=True)
-        embed.set_footer(text=f"Feedback by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+        embed.add_field(name="⚠️ <MFS", value=f"Used <MFS with no points available in <#{message.channel.id}>.", inline=True)
+        embed.add_field(name="Deleted", value=f"{deleted_content}", inline=False)
+        embed.set_footer(text=f"Feedback by {message.author.display_name}", icon_url=message.author.display_avatar.url)
 
         return embed
     
