@@ -3,7 +3,7 @@ import database.db as db
 from discord.ext import commands
 from database.threads_db import SQLiteDatabase # Or from database.db import SQLiteDatabase
 from .modules.threads_manager import ThreadsManager
-from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL
+from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL, FEEDBACK_CATEGORY_ID
 from .modules.points_logic import PointsLogic
 from .modules.helpers import DiscordHelpers 
 from .modules.embeds import Embeds 
@@ -65,7 +65,7 @@ class FeedbackThreads(commands.Cog):
         if message.author.bot:
             return
         
-        if message.channel.id == FEEDBACK_CHANNEL_ID:
+        if message.channel.category_id == FEEDBACK_CATEGORY_ID:
 
             message_content_normalized = message.content.strip().lower()
 
