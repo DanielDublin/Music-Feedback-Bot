@@ -2,7 +2,7 @@ import discord
 import database.db as db
 from .embeds import Embeds
 from .helpers import DiscordHelpers
-from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID
+from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
 
 class PointsLogic:
     def __init__(self, bot, user_thread):
@@ -84,7 +84,7 @@ class PointsLogic:
         # send information to user in the original channel
         await after.channel.send( 
             f"{after.author.mention} edited their message from `<MFS` to `<MFR` and gained **{points_to_add}** MF Points. You now have **{total_points}** MF Points."
-            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+            f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>.")
 
         # send ticket
         embed = await self.embeds.MFS_to_MFR_embed(
@@ -136,7 +136,7 @@ class PointsLogic:
             # send information to user in the original channel
             await after.channel.send( 
                 f"{after.author.mention} edited their message from `<MFR` to `<MFS` and used **{points_to_remove}** MF Points. You now have **{total_points}** MF Points."
-                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>.")
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>.")
 
             # send ticket
             embed = await self.embeds.MFR_to_MFS_embed(
@@ -178,7 +178,7 @@ class PointsLogic:
             # send information to user
             await after.channel.send( 
                 f"{after.author.mention}, this system is 1-for-1 and you do not have enough MF Points available to use. Give feedback first."
-                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_CHANNEL_ID}>." )
+                f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>." )
             
             # send ticket
             embed = await self.embeds.MFR_to_MFS_with_no_points_embed(
@@ -235,7 +235,7 @@ class PointsLogic:
 
             await message.channel.send(
                 f"{message.author.mention} deleted their feedback and lost **{points_to_remove}** MF Points. You now have **{total_points}** MF Points.\n\n"
-                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_CHANNEL_ID}> for more information."
+                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_ACCESS_CHANNEL_ID}> for more information."
             )
 
             embed = await self.embeds.MFR_to_delete_embed(
@@ -275,7 +275,7 @@ class PointsLogic:
 
             await message.channel.send(
                 f"{message.author.mention} deleted their feedback but didn't have **{points_to_remove}** MF Points to use. You may have submitted a song since giving feedback.\n\n"
-                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_CHANNEL_ID}> for more information."
+                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_ACCESS_CHANNEL_ID}> for more information."
             )
 
             embed = await self.embeds.MFR_to_delete_embed_with_no_points(
