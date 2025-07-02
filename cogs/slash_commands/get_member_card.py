@@ -13,12 +13,17 @@ from data.constants import COLLAB_ROLE
 from typing import Optional
 import time
 
+# Define the Discord channel ID for logging (replace with your actual channel ID)
+LOG_CHANNEL_ID = 1103427357781528597  # Placeholder; set to your logging channel ID
+
 def time_it(func):
     async def wrapper(*args, **kwargs):
         start_time = time.time()
         result = await func(*args, **kwargs)
         end_time = time.time()
-        print(f"{func.__name__} took {end_time - start_time:.4f} seconds")
+        # Only log major functions
+        if func.__name__ in ["render_animated_frames", "generate_card", "view_mf_card"]:
+            kwargs.get("log_collector", []).append(f"{func.__name__} took {end_time - start_time:.4f} seconds")
         return result
     return wrapper
 
@@ -84,6 +89,28 @@ class GetMemberCard(commands.Cog):
         if not os.path.exists(self.background_images_dir):
             print(f"WARNING: Background images directory not found at: {self.background_images_dir}. Card backgrounds might default to gradient.")
 
+    async def send_log_to_discord(self, logs, guild):
+        """Send collected logs to the designated Discord channel."""
+        if not logs:
+            return
+        try:
+            log_channel = guild.get_channel(LOG_CHANNEL_ID)
+            if not log_channel:
+                print(f"Log channel with ID {LOG_CHANNEL_ID} not found.")
+                return
+            log_message = "\n".join(logs)
+            await log_channel.send(f"```log\n{log_message}\n```")
+        except discord.errors.HTTPException as e:
+            if e.code == 429:  # Rate limit
+                retry_after = e.retry_after
+                print(f"Rate limited. Retrying after {retry_after} seconds.")
+                await discord.utils.sleep_until(time.time() + retry_after)
+                await log_channel.send(f"```log\n{log_message}\n```")
+            else:
+                print(f"Error sending log to Discord: {e}")
+        except Exception as e:
+            print(f"Unexpected error sending log to Discord: {e}")
+
     def _hex_to_rgb(self, hex_color):
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
@@ -104,7 +131,6 @@ class GetMemberCard(commands.Cog):
         return points
 
     def _draw_top_mfr_badge(self, draw_obj, y_pos, x_pos, font_top_mfr, icon_size, text_padding, text_color):
-        start_time = time.time()
         star_color = (255, 215, 0)
         top_mfr_text = "TOP MFR"
         star_center_x = x_pos + icon_size // 2
@@ -115,12 +141,9 @@ class GetMemberCard(commands.Cog):
         text_y_centered = y_pos + (icon_size - font_top_mfr.size) // 2
         draw_obj.text((text_x, text_y_centered), top_mfr_text, fill=text_color, font=font_top_mfr)
         top_mfr_text_bbox = draw_obj.textbbox((text_x, text_y_centered), top_mfr_text, font=font_top_mfr)
-        end_time = time.time()
-        print(f"_draw_top_mfr_badge took {end_time - start_time:.4f} seconds")
         return top_mfr_text_bbox[2], text_y_centered
 
     def get_text_bbox(self, text, font, max_width=None):
-        start_time = time.time()
         font_size = font.size
         est_width = max(len(text) * font_size, 100)
         est_height = font_size * 2
@@ -132,16 +155,13 @@ class GetMemberCard(commands.Cog):
         bbox = temp_image.getbbox()
         if bbox:
             x0, y0, x1, y1 = bbox
-            end_time = time.time()
-            print(f"get_text_bbox took {end_time - start_time:.4f} seconds")
             return (x0, y0 - font_size // 2, x1, y1 + font_size // 2)
         else:
-            end_time = time.time()
-            print(f"get_text_bbox took {end_time - start_time:.4f} seconds")
             return (0, 0, 0, font_size)
 
     def generate_card(self, pfp_image_pil, discord_username, server_name, rank_str, numeric_points, message_count, join_date, card_size, font_path, animated=True, random_msg="", is_top_feedback=False, **kwargs):
         start_time_total = time.time()
+        log_collector = []  # Collect major logs
         frames = []
         num_frames = 100
         frame_duration = 75
@@ -152,7 +172,9 @@ class GetMemberCard(commands.Cog):
                     start = time.time()
                     result = func(*args, **kwargs)
                     end = time.time()
-                    print(f"{section_name} took {end - start:.4f} seconds")
+                    # Only log major sections
+                    if section_name in ["Render Animated Frames", "Prepare Static Card", "Process Roles", "Process Random Message", "Setup Background", "Load Banner"]:
+                        log_collector.append(f"{section_name} took {end - start:.4f} seconds")
                     return result
                 return wrapper
             return decorator
@@ -227,7 +249,7 @@ class GetMemberCard(commands.Cog):
                         background_image = Image.open(background_image_path).convert("RGBA")
                         base_card_content = background_image.resize((card_width, card_height), Image.Resampling.LANCZOS)
                     except Exception as e:
-                        print(f"Error loading background image '{background_image_path}': {e}. Falling back to gradient.")
+                        log_collector.append(f"Error loading background image '{background_image_path}': {e}. Falling back to gradient.")
                         base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
                         draw_background = ImageDraw.Draw(base_card_content)
                         center_color = (179, 153, 212)
@@ -318,7 +340,7 @@ class GetMemberCard(commands.Cog):
                         text_bbox = self.get_text_bbox(tag_text, font_tag)
                         text_width = text_bbox[2] - text_bbox[0]
                     except Exception as e:
-                        print(f"Error calculating text bbox for role '{tag_text}': {e}")
+                        log_collector.append(f"Error calculating text bbox for role '{tag_text}': {e}")
                         continue
                     tag_full_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding) + tag_spacing_x
 
@@ -336,7 +358,7 @@ class GetMemberCard(commands.Cog):
                 final_displayed_roles = first_line_roles + second_line_roles
                 return final_displayed_roles, len_first_line_roles
             except Exception as e:
-                print(f"Error in process_roles: {e}")
+                log_collector.append(f"Error in process_roles: {e}")
                 return [], 0
 
         final_displayed_roles, len_first_line_roles = process_roles()
@@ -440,7 +462,7 @@ class GetMemberCard(commands.Cog):
             try:
                 static_card_base = base_card_content.copy()
             except Exception as e:
-                print(str(e))
+                log_collector.append(str(e))
                 static_card_base = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
 
             static_draw = ImageDraw.Draw(static_card_base)
@@ -628,8 +650,8 @@ class GetMemberCard(commands.Cog):
 
             output, file_ext = render_static_card()
             end_time_total = time.time()
-            print(f"Total generate_card (static) took {end_time_total - start_time_total:.4f} seconds")
-            return output, file_ext
+            log_collector.append(f"Total generate_card (static) took {end_time_total - start_time_total:.4f} seconds")
+            return output, file_ext, log_collector
 
         top_mfr_color_start = (59, 196, 237)
         top_mfr_color_end = (
@@ -668,7 +690,7 @@ class GetMemberCard(commands.Cog):
                 try:
                     frame = static_card_base.copy()
                 except Exception as e:
-                    print(f"Error copying static_card_base: {str(e)}")
+                    log_collector.append(f"Error copying static_card_base: {str(e)}")
                     frame = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
                 
                 draw = ImageDraw.Draw(frame)
@@ -861,15 +883,14 @@ class GetMemberCard(commands.Cog):
             if frames:
                 frames[0].save(output, format="GIF", save_all=True, append_images=frames[1:], duration=frame_duration, loop=0)
             output.seek(0)
-            return output, "gif"
+            return output, "gif", log_collector
 
-        output, file_ext = render_animated_frames()
+        output, file_ext, log_collector = render_animated_frames()
         end_time_total = time.time()
-        print(f"Total generate_card (animated) took {end_time_total - start_time_total:.4f} seconds")
-        return output, file_ext
+        log_collector.append(f"Total generate_card (animated) took {end_time_total - start_time_total:.4f} seconds")
+        return output, file_ext, log_collector
 
     def wrap_text(self, text, font, max_width):
-        start_time = time.time()
         wrapped_lines = []
         words = text.split()
         current_line = ""
@@ -903,22 +924,24 @@ class GetMemberCard(commands.Cog):
                     current_line = word + " "
         if current_line.strip():
             wrapped_lines.append(current_line.strip())
-        end_time = time.time()
-        print(f"wrap_text took {end_time - start_time:.4f} seconds")
         return wrapped_lines
 
-    ALLOWED_ROLES = ["Admins", "Moderators", "Chat Moderators"]
-    @app_commands.checks.has_any_role(*ALLOWED_ROLES)
+    @time_it
+    @app_commands.checks.has_any_role(*["Admins", "Moderators", "Chat Moderators"])
     @mf_card_group.command(name="card", description="View a member's MF Card.")
     @app_commands.describe(member="The member whose MF Card you want to view (defaults to you).")
     async def view_mf_card(self, interaction: discord.Interaction, member: Optional[discord.Member] = None):
         await interaction.response.defer()
+        log_collector = []
         if member is None:
             member = interaction.user
 
         cog = self.bot.get_cog("MemberCards")
         if not cog:
-            return await interaction.followup.send("MemberCards cog is not loaded. Please ensure it's loaded.", ephemeral=True)
+            log_collector.append("MemberCards cog is not loaded. Please ensure it's loaded.")
+            await interaction.followup.send("MemberCards cog is not loaded. Please ensure it's loaded.", ephemeral=True)
+            await self.send_log_to_discord(log_collector, interaction.guild)
+            return
 
         discord_username = member.display_name
         pfp_url = await cog.get_pfp(member)
@@ -929,13 +952,14 @@ class GetMemberCard(commands.Cog):
                 join_date = datetime.strptime(join_date, "%Y-%m-%d")
             except ValueError:
                 join_date = datetime.now()
+                log_collector.append(f"Invalid join date format for {discord_username}. Using current date.")
 
         rank_str = await cog.get_rank(member)
         is_top_feedback, numeric_points = False, 0
         try:
             is_top_feedback, numeric_points = await cog.get_points(member)
         except Exception as e:
-            print(f"Error calling get_points for {member.display_name}: {str(e)}")
+            log_collector.append(f"Error calling get_points for {discord_username}: {str(e)}")
             is_top_feedback = False
             numeric_points = 0
 
@@ -952,7 +976,7 @@ class GetMemberCard(commands.Cog):
                 random_msg_content = "A true MFR"
                 random_msg_url = None
         except Exception as e:
-            print(f"Error fetching random message for {member.display_name}: {str(e)}")
+            log_collector.append(f"Error fetching random message for {discord_username}: {str(e)}")
             random_msg_content = "An unexpected error occurred while looking for a message."
             random_msg_url = None
 
@@ -965,7 +989,7 @@ class GetMemberCard(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async with session.get(pfp_url) as resp:
                 if resp.status != 200:
-                    print(f"Failed to fetch PFP for {member.display_name}. Status: {resp.status}")
+                    log_collector.append(f"Failed to fetch PFP for {discord_username}. Status: {resp.status}")
                     pfp = Image.new("RGBA", (120, 120), (100, 100, 100, 255))
                 else:
                     pfp_data = io.BytesIO(await resp.read())
@@ -976,14 +1000,15 @@ class GetMemberCard(commands.Cog):
         pfp.putalpha(mask)
 
         animated = True
-        card_buffer, file_ext = self.generate_card(
+        card_buffer, file_ext, log_collector = self.generate_card(
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
             (img_width, img_height), self.font_path, animated=animated, random_msg=random_msg_content,
             is_top_feedback=is_top_feedback,
             relevant_roles=[role.name for role in member.roles],
             all_genres_roles=all_main_genres_roles,
             all_daws_roles=all_daw_roles,
-            all_instruments_roles=all_instruments_roles
+            all_instruments_roles=all_instruments_roles,
+            log_collector=log_collector
         )
 
         filename = f"{discord_username}_mf_card.{file_ext}"
@@ -995,6 +1020,8 @@ class GetMemberCard(commands.Cog):
         if random_msg_url and random_msg_content not in ["A true MFR"]:
             view.add_item(discord.ui.Button(label=emoji.emojize(":rocket:"), style=discord.ButtonStyle.link, url=random_msg_url))
 
+        log_collector.append(f"Member card sent to general chat for {discord_username}")
+        await self.send_log_to_discord(log_collector, interaction.guild)
         await interaction.followup.send(file=file, view=view)
 
 async def setup(bot):
