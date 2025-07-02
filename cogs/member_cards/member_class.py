@@ -300,28 +300,22 @@ class MemberCards(commands.Cog):
         return relevant_roles
 
     async def get_roles_by_colors(self, member: discord.Member) -> tuple[list[str], list[str], list[str]]:
-        main_genres_roles = []
-        daw_roles = []
-        instruments_roles = []
+        color_map = {
+            self.TARGET_MAIN_GENRES: [],
+            self.TARGET_DAW: [],
+            self.TARGET_INSTRUMENTS: []
+        }
+        relevant_roles = [role for role in member.roles if not (role.id == member.guild.id or role.color == discord.Color.default() or role.is_bot_managed() or role.is_integration())]
+        max_roles_per_category = 3
 
-        for role in member.roles:
-            if role.id == member.guild.id or role.color == discord.Color.default() or role.is_bot_managed() or role.is_integration():
-                continue
-
+        for role in relevant_roles:
             role_rgb = (role.color.r, role.color.g, role.color.b)
+            if role_rgb in color_map and len(color_map[role_rgb]) < max_roles_per_category:
+                color_map[role_rgb].append(role.name)
 
-            if role_rgb == self.TARGET_MAIN_GENRES:
-                main_genres_roles.append(role.name)
-            elif role_rgb == self.TARGET_DAW:
-                daw_roles.append(role.name)
-            elif role_rgb == self.TARGET_INSTRUMENTS:
-                instruments_roles.append(role.name)
-            
-        main_genres_roles.sort()
-        daw_roles.sort()
-        instruments_roles.sort()
-
-        return main_genres_roles, daw_roles, instruments_roles
+        return (sorted(color_map[self.TARGET_MAIN_GENRES]),
+                sorted(color_map[self.TARGET_DAW]),
+                sorted(color_map[self.TARGET_INSTRUMENTS]))
 
 async def setup(bot):
     await bot.add_cog(MemberCards(bot))
