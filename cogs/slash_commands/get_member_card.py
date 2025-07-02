@@ -163,7 +163,7 @@ class GetMemberCard(commands.Cog):
         start_time_total = time.time()
         log_collector = []  # Collect major logs
         frames = []
-        num_frames = 100
+        num_frames = 75 # 100
         frame_duration = 75
 
         def time_section(section_name):
