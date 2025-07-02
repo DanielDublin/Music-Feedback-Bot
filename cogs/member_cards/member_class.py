@@ -308,7 +308,7 @@ class MemberCards(commands.Cog):
         relevant_roles = [role for role in member.roles if not (role.id == member.guild.id or role.color == discord.Color.default() or role.is_bot_managed() or role.is_integration())]
         max_roles_per_category = 3
 
-        for role in relevant_roles:
+        for role in reversed(relevant_roles):
             role_rgb = (role.color.r, role.color.g, role.color.b)
             if role_rgb in color_map and len(color_map[role_rgb]) < max_roles_per_category:
                 color_map[role_rgb].append(role.name)
