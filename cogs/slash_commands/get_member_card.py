@@ -14,7 +14,7 @@ from typing import Optional
 import time
 
 # Define the Discord channel ID for logging (replace with your actual channel ID)
-LOG_CHANNEL_ID = 1103427357781528597  # Placeholder; set to your logging channel ID
+LOG_CHANNEL_ID = 993597439594479747  # Placeholder; set to your logging channel ID
 
 def time_it(func):
     async def wrapper(*args, **kwargs):
