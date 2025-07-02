@@ -218,7 +218,7 @@ class MemberCards(commands.Cog):
 
         async def search_general_chat_for_random_message(channel: discord.TextChannel, join_date: datetime):
             # Strategy 1: Try 10 random days
-            random_day_attempts = 5
+            random_day_attempts = 15
             print(f"Attempting {random_day_attempts} random days for {member.display_name} in {channel.name}...")
             for attempt in range(random_day_attempts):
                 start_of_day, end_of_day = await self.generate_random_date_range(join_date)
