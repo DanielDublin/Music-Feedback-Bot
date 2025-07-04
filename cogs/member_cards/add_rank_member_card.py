@@ -109,7 +109,7 @@ class AddRankMemberCard(commands.Cog):
         """Send a member card to the general chat channel."""
         guild = user.guild  # Use user's guild instead of relying on interaction
         file_to_send, view_to_send = await self.generate_mf_card(user, guild)
-        general_chat_channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+        general_chat_channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
         if general_chat_channel:
             await general_chat_channel.send(file=file_to_send, view=view_to_send)
             print(f"Member card sent to general chat for {user.display_name}")
@@ -118,7 +118,7 @@ class AddRankMemberCard(commands.Cog):
 
     async def rank_message(self, user, role):
 
-        general_chat_channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+        general_chat_channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
 
         if role.name == "Stagehands":
             embed = discord.Embed(

@@ -13,7 +13,7 @@ import traceback
 from typing import Union
 
 load_dotenv()
-token = os.environ.get('DISCORD_TEST_TOKEN') 
+token = os.environ.get('DISCORD_TOKEN') 
 
 class MemberCards(commands.Cog):
 
