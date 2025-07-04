@@ -39,20 +39,20 @@ class AddRankMemberCard(commands.Cog):
         all_main_genres_roles, all_daw_roles, all_instruments_roles = await cog.get_roles_by_colors(member)
         message_count = await cog.get_message_count(member)
 
-        random_msg_content = ""
+        random_msg_content = "A true MFR"
         random_msg_url = None
         try:
             retrieved_msg_data = await cog.get_random_message(member)
-            if retrieved_msg_data and len(retrieved_msg_data) == 2:
-                random_msg_content, random_msg_url = retrieved_msg_data
+            if retrieved_msg_data and isinstance(retrieved_msg_data, (tuple, list)) and len(retrieved_msg_data) >= 2:
+                random_msg_content, random_msg_url = retrieved_msg_data[:2]
             else:
-                random_msg_content = "A true MFR"
-                random_msg_url = None
+                print(f"Debug: Invalid retrieved_msg_data for {member.display_name}: {retrieved_msg_data}")
         except Exception as e:
             print(f"Error fetching random message for {member.display_name}: {str(e)}")
             random_msg_content = "An unexpected error occurred while looking for a message."
 
         last_music = await cog.get_last_finished_music(member)
+
         server_name = guild.name
         release_link = last_music if last_music and (last_music.startswith("http://") or last_music.startswith("https://")) else None
 
@@ -72,7 +72,7 @@ class AddRankMemberCard(commands.Cog):
         pfp.putalpha(mask)
 
         animated = True
-        card_buffer, file_ext = self.get_member_card.generate_card(
+        card_buffer, file_ext, log_collector = self.get_member_card.generate_card(  # Updated unpacking
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
             (img_width, img_height), self.get_member_card.font_path, animated=animated, random_msg=random_msg_content,
             is_top_feedback=is_top_feedback,
@@ -88,8 +88,12 @@ class AddRankMemberCard(commands.Cog):
         view = discord.ui.View()
         if release_link:
             view.add_item(discord.ui.Button(label=f"{discord_username}'s Latest Release", style=discord.ButtonStyle.link, url=release_link))
-        if random_msg_url and random_msg_content not in ["A true MFR"]:
+        if random_msg_url and random_msg_content not in ["A true MFR", "An unexpected error occurred while looking for a message."]:
             view.add_item(discord.ui.Button(label=emoji.emojize(":rocket:"), style=discord.ButtonStyle.link, url=random_msg_url))
+
+        # Send logs to Discord if LOG_CHANNEL_ID is set
+        if log_collector:
+            await self.get_member_card.send_log_to_discord(log_collector, guild)
 
         return file, view
 
