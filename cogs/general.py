@@ -223,6 +223,25 @@ class General(commands.Cog):
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
                                    delete_after=4)
             
+
+
+            # create feedback request insert
+            try:
+                request_id = await db.create_feedback_request_mfs(
+                    message_id=ctx.message.id,
+                    points_offered=1
+                )
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return  # Exit if database insert fails
+
+            await ctx.channel.send(
+                f"{mention} used 1 MF point. You now have **{points}** MF point(s).\n"
+                f"**Request Code: #{request_id}**",
+                delete_after=4
+            )
+
+            
             # Check if user has a feedback thread
             # Called_from_zero used to flag if the member is using <MFS with no points
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)

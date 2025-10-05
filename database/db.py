@@ -251,6 +251,35 @@ async def add_points(user_id, points: int):
         if "lost connection" in str(e).lower():
             await init_database()
             add_points(user_id, points)
+
+
+# used to insert feedback message information when <MFS is used
+async def create_feedback_request_mfs(message_id, points_offered):
+    global pool
+    
+    if pool is None:
+        await init_database()
+    
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # insert the message info into the db
+                await cursor.execute("""
+                    INSERT INTO feedback_requests_mfs 
+                    (message_id, points_requested_to_use, points_remaining, status)
+                    VALUES (%s, %s, %s, 'open')
+                """, (str(message_id), points_offered, points_offered))
+                
+                await conn.commit()
+                
+                request_id = cursor.lastrowid  # Gets the auto-incremented request_id
+                return request_id
+                
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return await create_feedback_request_mfs(message_id, points_offered)
+        raise e
           
             
 # Add a kick to a user
