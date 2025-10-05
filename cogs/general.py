@@ -236,9 +236,7 @@ class General(commands.Cog):
                 return  # Exit if database insert fails
 
             await ctx.channel.send(
-                f"{mention} used 1 MF point. You now have **{points}** MF point(s).\n"
                 f"**Request Code: #{request_id}**",
-                delete_after=4
             )
 
             
