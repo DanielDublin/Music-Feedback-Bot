@@ -280,6 +280,24 @@ async def create_feedback_request_mfs(message_id, points_offered):
             await init_database()
             return await create_feedback_request_mfs(message_id, points_offered)
         raise e
+    
+async def get_feedback_requests_mfs():
+    global pool
+    
+    if pool is None:
+        await init_database()
+    
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # pull all open feedback requests that are younger than 7 days
+                await cursor.execute("SELECT * FROM feedback_requests_mfs WHERE status = 'open' AND created_at > NOW() - INTERVAL 7 DAY")
+                return await cursor.fetchall()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return await get_feedback_requests_mfs()
+        raise e
           
             
 # Add a kick to a user

@@ -91,7 +91,8 @@ initial_extensions = [
     'modules.scan_delete_intro_messages',
     'cogs.feedback_threads.feedback_threads',
     'cogs.member_cards.member_class',
-    'cogs.recent_feedback.embeds'
+    'cogs.recent_feedback.embeds',
+    'cogs.recent_feedback.tracker',
     # Add more cogs as needed
 ]
 

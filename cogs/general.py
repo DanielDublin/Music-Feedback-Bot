@@ -238,6 +238,7 @@ class General(commands.Cog):
             await ctx.channel.send(
                 f"**Request Code: #{request_id}**",
             )
+            print(f"Command message ID: {ctx.message.id}, Content: {ctx.message.content}")
 
             
             # Check if user has a feedback thread
