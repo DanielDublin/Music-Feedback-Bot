@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from .tracker import Tracker
+from .embed_pagination import EmbedPagination
 import asyncio
 
 class FeedbackChannelEmbeds(commands.Cog):
@@ -41,41 +42,11 @@ class FeedbackChannelEmbeds(commands.Cog):
             except discord.errors.NotFound:
                 pass  # Ignore if the old embed was already deleted
 
-        embed = discord.Embed(
-            title="Recent Feedback Requests",
-            description="""
-            __YOU MUST GIVE FEEDBACK FIRST__\n
-            Use `<MFR` to give feedback.\n
-            Use `<MFS` to submit your song for feedback.\n
-            Use #⁠feedback-discussion for conversation.
-            """,
-            color=discord.Color.green()
-        )
 
-        if requests:
-            for req in requests:
-                username = req["user_name"].strip("[]")
-                message_link = req["message_link"]
-                request_id = req["request_id"]
-                points_requested = req["points_requested"]
-                points_remaining = req["points_remaining"]
-                
-                # Calculate feedbacks received
-                feedbacks_received = points_requested - points_remaining
-                
-                embed.add_field(
-                    name="",
-                    value=f"**#{request_id}** - [{username}]({message_link}) ({feedbacks_received}/{points_requested} feedback received)",
-                    inline=False
-                )
-        else:
-            embed.add_field(
-                name="No Requests",
-                value="No open feedback requests found.",
-                inline=False
-            )
+        pagination = EmbedPagination(self.bot, requests, items_per_page=5)
+        embed = pagination.create_embed()
 
-        self.old_sticky_embed = await feedback_channel.send(embed=embed)
+        self.old_sticky_embed = await feedback_channel.send(embed=embed, view=pagination)
         await self.bot.process_commands(message)
 
 async def setup(bot):
