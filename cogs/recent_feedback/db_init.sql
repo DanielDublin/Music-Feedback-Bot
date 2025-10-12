@@ -8,3 +8,9 @@ CREATE TABLE feedback_requests_mfs (
 );
 
 ALTER TABLE feedback_requests_mfs AUTO_INCREMENT = 1000;
+
+
+
+
+
+DROP TABLE IF EXISTS feedback_requests_mfs;

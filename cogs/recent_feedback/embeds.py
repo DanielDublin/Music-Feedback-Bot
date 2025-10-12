@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from data.constants import FEEDBACK_CHANNEL_ID
 from .tracker import Tracker
+import asyncio
 
 class FeedbackChannelEmbeds(commands.Cog):
     def __init__(self, bot):
@@ -22,6 +23,9 @@ class FeedbackChannelEmbeds(commands.Cog):
         except Exception as e:
             print(f"Tracker cog not found: {e}")
             return
+        
+        # prevent race condition; allows db to update before sending embed
+        await asyncio.sleep(0.5)
 
         try:
             requests = await tracker_cog.pull_db_feedback()
@@ -50,9 +54,18 @@ class FeedbackChannelEmbeds(commands.Cog):
 
         if requests:
             for req in requests:
+                username = req["user_name"].strip("[]")
+                message_link = req["message_link"]
+                request_id = req["request_id"]
+                points_requested = req["points_requested"]
+                points_remaining = req["points_remaining"]
+                
+                # Calculate feedbacks received
+                feedbacks_received = points_requested - points_remaining
+                
                 embed.add_field(
-                    name=f"[{req['user_name']}]({req['message_link']}) (ID: {req['message_id']})",
-                    value=f"Points Requested: {req['points_requested']} | Points Remaining: {req['points_remaining']}",
+                    name="",
+                    value=f"**#{request_id}** - [{username}]({message_link}) ({feedbacks_received}/{points_requested} feedback received)",
                     inline=False
                 )
         else:
