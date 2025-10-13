@@ -139,7 +139,7 @@ class General(commands.Cog):
     @commands.command(name="R",
                       help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def MFR_command(self, ctx: discord.Message):
+    async def MFR_command(self, ctx: discord.Message, request_id: int):
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -149,6 +149,26 @@ class General(commands.Cog):
         mention = ctx.author.mention    
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
+        
+
+        # check request id in message
+        if request_id:
+            # check if that request id is in the db
+            try:
+                request = await db.check_request_id(request_id)
+            except Exception as e:
+                print(e)
+            if request is None:
+                # if entered the wrong request, send what the message contained
+                await ctx.channel.send(f"You may have used an invalid request id. Check the sticky for the correct id. Your feedback was: ", delete_after=4)
+                return
+            
+            #if entered correct, then continue update that reference number for points_remaining
+            try:
+                await db.update_points_remaining(request_id)
+            except Exception as e:
+                print(e)
+            
 
         await db.add_points(str(ctx.author.id), 1)
         
@@ -229,7 +249,7 @@ class General(commands.Cog):
             try:
                 request_id = await db.create_feedback_request_mfs(
                     message_id=ctx.message.id,
-                    points_offered=1
+                    points_offered=2
                 )
             except Exception as e:
                 print(f"An error occurred: {e}")

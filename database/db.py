@@ -267,8 +267,8 @@ async def create_feedback_request_mfs(message_id, points_offered):
                 await cursor.execute("""
                     INSERT INTO feedback_requests_mfs 
                     (message_id, points_requested_to_use, points_remaining, status)
-                    VALUES (%s, %s, %s, 'open')
-                """, (str(message_id), points_offered, points_offered))
+                    VALUES (%s, 2, %s, 'open')
+                """, (str(message_id),points_offered))
                 
                 await conn.commit()
                 
@@ -297,6 +297,65 @@ async def get_feedback_requests_mfs():
         if "lost connection" in str(e).lower():
             await init_database()
             return await get_feedback_requests_mfs()
+        raise e
+    
+async def check_request_id(request_id: int):
+
+    if pool is None:
+        await init_database()
+    
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # see if request in db
+                await cursor.execute("SELECT * FROM feedback_requests_mfs WHERE request_id = %s", (request_id,))
+                return await cursor.fetchone()
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return await check_request_id()
+        raise e
+    
+async def update_points_remaining(request_id: int):
+    global pool
+    
+    if pool is None:
+        await init_database()
+    
+    try:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # Fetch the request to validate status and points_remaining
+                request = await check_request_id(request_id)
+                if request is None:
+                    logging.info(f"Request {request_id} not found in feedback_requests_mfs")
+                    return
+                if request["status"] == "closed" or request["points_remaining"] <= 0:
+                    logging.info(f"Skipped update for request_id={request_id}: status={request['status']}, points_remaining={request['points_remaining']}")
+                    return
+                
+                # Update points_remaining
+                await cursor.execute("UPDATE feedback_requests_mfs SET points_remaining = points_remaining - 1 WHERE request_id = %s", (request_id,))
+                
+                # Get updated points_remaining and points_requested_to_use
+                await cursor.execute("SELECT points_remaining, points_requested_to_use FROM feedback_requests_mfs WHERE request_id = %s", (request_id,))
+                result = await cursor.fetchone()
+                points_remaining = result["points_remaining"]
+                points_requested_to_use = result["points_requested_to_use"]
+                
+                logging.info(f"Updated request_id={request_id}: points_remaining={points_remaining}, points_requested_to_use={points_requested_to_use}")
+                
+                if points_remaining == 0:
+                    await cursor.execute("UPDATE feedback_requests_mfs SET status = 'closed' WHERE request_id = %s", (request_id,))
+                    logging.info(f"Closed request_id={request_id}: points_remaining={points_remaining}")
+                
+                await conn.commit()
+    
+    except Exception as e:
+        if "lost connection" in str(e).lower():
+            await init_database()
+            return await update_points_remaining(request_id)
+        logging.error(f"Error updating request_id={request_id}: {str(e)}")
         raise e
           
             
