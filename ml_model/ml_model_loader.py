@@ -8,11 +8,14 @@ import joblib
 import numpy as np
 import re
 from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 class FeedbackQualityPredictor:
     """Predicts if feedback is good quality (Pass/Fail)"""
     
-    def __init__(self, model_dir='ml_model'):
+    def __init__(self, model_dir='ml_model/simple_feedback_model'):
         self.model_dir = Path(model_dir)
         self.model = None
         self.vectorizer = None
@@ -24,18 +27,20 @@ class FeedbackQualityPredictor:
         vectorizer_path = self.model_dir / 'vectorizer.pkl'
         
         if not model_path.exists():
-            raise FileNotFoundError(f"Model not found at {model_path}")
+            logging.error(f"Model not found at {model_path}")
+            return False
         if not vectorizer_path.exists():
-            raise FileNotFoundError(f"Vectorizer not found at {vectorizer_path}")
+            logging.error(f"Vectorizer not found at {vectorizer_path}")
+            return False
         
         try:
             self.model = joblib.load(model_path)
             self.vectorizer = joblib.load(vectorizer_path)
             self.loaded = True
-            print(f"✅ Model loaded successfully from {self.model_dir}")
+            logging.info(f"✅ Model and vectorizer loaded successfully from {self.model_dir}")
             return True
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
+            logging.error(f"Error loading model or vectorizer: {e}", exc_info=True)
             return False
     
     def extract_features(self, feedback_text):
@@ -51,19 +56,19 @@ class FeedbackQualityPredictor:
         features['char_count'] = len(feedback_text)
         features['avg_word_length'] = np.mean([len(word) for word in words]) if words else 0
         
-        # Feature extraction logic (all the same as before)
+        # Feature extraction logic (unchanged)
         specific_suggestions = ['increase', 'decrease', 'remove', 'add', 'change', 'replace', 
-                                'move', 'cut', 'boost', 'lower', 'raise', 'eq', 'compress', 
-                                'gate', 'delay', 'recommend', 'suggest', 'try', 'learn', 
-                                'practice', 'work on', 'focus on', 'improve', 'fix', 'adjust']
+                               'move', 'cut', 'boost', 'lower', 'raise', 'eq', 'compress', 
+                               'gate', 'delay', 'recommend', 'suggest', 'try', 'learn', 
+                               'practice', 'work on', 'focus on', 'improve', 'fix', 'adjust']
         
         practical_feedback = ['too quiet', 'too loud', 'too low', 'too high', 'too soft', 
-                              'too hard', 'too thin', 'too thick', 'too muddy', 'too bright', 
-                              'too dark', 'sounds', 'quality', 'compared to', 'vs', 'against', 
-                              'clipping', 'distortion', 'noise', 'problems', 'issues', 'suffer from']
+                             'too hard', 'too thin', 'too thick', 'too muddy', 'too bright', 
+                             'too dark', 'sounds', 'quality', 'compared to', 'vs', 'against', 
+                             'clipping', 'distortion', 'noise', 'problems', 'issues', 'suffer from']
         
         problem_identification = ['clipping', 'distortion', 'noise', 'muddy', 'harsh', 
-                                  'problem', 'issue', 'suffer', 'wrong', 'off', 'bad', 'poor']
+                                 'problem', 'issue', 'suffer', 'wrong', 'off', 'bad', 'poor']
         
         vague_suggestions = ['could', 'should', 'might', 'maybe', 'perhaps', 'possibly', 'consider']
         
@@ -76,17 +81,17 @@ class FeedbackQualityPredictor:
         features['has_practical_feedback'] = int(practical_count > 0)
         features['identifies_problems'] = int(problem_count > 0)
         features['has_vague_suggestions_only'] = int(vague_count > 0 and specific_count == 0 
-                                                      and practical_count == 0 and problem_count == 0)
+                                                    and practical_count == 0 and problem_count == 0)
         
         tech_terms = ['db', 'hz', 'eq', 'reverb', 'delay', 'compression', 'compressor', 
-                      'limiter', 'gate', 'sidechain', 'frequency', 'bass', 'treble', 'midrange', 
-                      'stereo', 'mono', 'pan', 'automation', 'fade', 'crossfade']
+                     'limiter', 'gate', 'sidechain', 'frequency', 'bass', 'treble', 'midrange', 
+                     'stereo', 'mono', 'pan', 'automation', 'fade', 'crossfade']
         
         audio_terms = ['mix', 'master', 'track', 'channel', 'bus', 'send', 'return', 
-                       'plugin', 'vst', 'daw', 'volume', 'loud', 'quiet', 'level', 'gain']
+                      'plugin', 'vst', 'daw', 'volume', 'loud', 'quiet', 'level', 'gain']
         
         instrument_terms = ['guitar', 'bass', 'drums', 'piano', 'vocals', 'synth', 
-                            'strings', 'brass', 'woodwind', 'beat', 'melody', 'harmony']
+                           'strings', 'brass', 'woodwind', 'beat', 'melody', 'harmony']
         
         features['has_technical_terms'] = int(any(term in feedback_text.lower() for term in tech_terms))
         features['has_audio_terms'] = int(any(term in feedback_text.lower() for term in audio_terms))
@@ -99,47 +104,51 @@ class FeedbackQualityPredictor:
         features['has_questions'] = int('?' in feedback_text)
         
         positive_words = ['amazing', 'incredible', 'stunning', 'phenomenal', 'outstanding', 
-                          'exceptional', 'masterful', 'brilliant', 'perfect', 'flawless', 'professional']
+                         'exceptional', 'masterful', 'brilliant', 'perfect', 'flawless', 'professional']
         features['excessive_praise'] = int(sum(1 for word in positive_words if word in feedback_text.lower()) >= 3)
         
         generic_phrases = ['overall', 'in general', 'pretty good', 'really good', 
-                           'sounds good', 'nice work', 'great job', 'well done', 'solid work']
+                          'sounds good', 'nice work', 'great job', 'well done', 'solid work']
         features['has_generic_phrases'] = int(any(phrase in feedback_text.lower() for phrase in generic_phrases))
         
         features['too_short'] = int(len(words) < 8)
         features['too_generic'] = int(feedback_text.lower().strip() in 
-                                      ['good', 'nice', 'great', 'love it', 'awesome', 'amazing', 'incredible'])
+                                     ['good', 'nice', 'great', 'love it', 'awesome', 'amazing', 'incredible'])
         
         features['timestamps_but_vague'] = int(features['has_timestamps'] and 
-                                               not features['has_specific_suggestions'] and 
-                                               not features['has_practical_feedback'] and 
-                                               not features['has_technical_terms'])
+                                              not features['has_specific_suggestions'] and 
+                                              not features['has_practical_feedback'] and 
+                                              not features['has_technical_terms'])
         
         return features
     
     def predict(self, feedback_text):
         """Predict if feedback is Pass or Fail quality"""
         if not self.loaded:
-            raise ValueError("Model not loaded. Call load_model() first.")
+            if not self.load_model():
+                return None  # Return None if model loading fails
         
-        features = self.extract_features(feedback_text)
-        feature_array = np.array([list(features.values())])
-        
-        tfidf_features = self.vectorizer.transform([feedback_text]).toarray()
-        combined_features = np.hstack([feature_array, tfidf_features])
-        
-        prediction = self.model.predict(combined_features)[0]
-        probabilities = self.model.predict_proba(combined_features)[0]
-        confidence = max(probabilities)
-        
-        label = "Pass" if prediction == 1 else "Fail"
-        is_good = prediction == 1
-        
-        return {
-            'prediction': label,
-            'probability': confidence,
-            'is_good': is_good
-        }
+        try:
+            features = self.extract_features(feedback_text)
+            feature_array = np.array([list(features.values())])
+            tfidf_features = self.vectorizer.transform([feedback_text]).toarray()
+            combined_features = np.hstack([feature_array, tfidf_features])
+            
+            prediction = self.model.predict(combined_features)[0]
+            probabilities = self.model.predict_proba(combined_features)[0]
+            confidence = max(probabilities)
+            
+            label = "Pass" if prediction == 1 else "Fail"
+            is_good = prediction == 1
+            
+            return {
+                'prediction': label,
+                'probability': confidence,
+                'is_good': is_good
+            }
+        except Exception as e:
+            logging.error(f"Prediction error: {e}", exc_info=True)
+            return None
 
 # Global instance
 _predictor = None
@@ -149,7 +158,6 @@ def get_predictor():
     global _predictor
     if _predictor is None:
         _predictor = FeedbackQualityPredictor()
-        _predictor.load_model()
     return _predictor
 
 async def predict_feedback_quality(feedback_text):

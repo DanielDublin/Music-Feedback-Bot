@@ -7,6 +7,10 @@ import discord
 from discord.ext import commands
 from ml_model.ml_model_loader import predict_feedback_quality
 import asyncio
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Channel IDs
 FEEDBACK_CHANNEL_ID = 732356488151957516  # Channel to monitor for feedback
@@ -18,17 +22,25 @@ class FeedbackMonitor(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pending_validations = {}  # Store message_id -> original_message mapping
-        
+        self.db_pool = None  # Placeholder for potential database pool (e.g., aiomysql)
+
+    async def cog_unload(self):
+        """Clean up resources when cog is unloaded"""
+        if self.db_pool:
+            self.db_pool.close()
+            await self.db_pool.wait_closed()
+            logging.info("FeedbackMonitor database connection closed")
+
     @commands.Cog.listener()
     async def on_ready(self):
         """Called when bot is ready"""
-        print(f"✅ FeedbackMonitor cog loaded")
-        print(f"   Monitoring channel: {FEEDBACK_CHANNEL_ID}")
-        print(f"   Sending results to: {MOD_CHANNEL_ID}")
+        logging.info(f"✅ FeedbackMonitor cog loaded")
+        logging.info(f"   Monitoring channel: {FEEDBACK_CHANNEL_ID}")
+        logging.info(f"   Sending results to: {MOD_CHANNEL_ID}")
     
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Monitor messages in the feedback channel that start with <MFR"""
+        """Monitor messages in the feedback channel that start with <mfr or <mf"""
         
         # Ignore bot messages
         if message.author.bot:
@@ -38,29 +50,35 @@ class FeedbackMonitor(commands.Cog):
         if message.channel.id != FEEDBACK_CHANNEL_ID:
             return
         
-        # Only process if message starts with <MFR or <mfr
+        # Only process if message starts with <mfr or <mf (case-insensitive)
         content_lower = message.content.strip().lower()
-        if not (content_lower.startswith('<mfr') or content_lower.startswith('<Mfr') or 
-                content_lower.startswith('<mF') or content_lower.startswith('<MF')):
+        logging.info(f"Processing message: {content_lower}")
+        if not (content_lower.startswith('<mfr') or content_lower.startswith('<mf')):
             return
         
         # Extract feedback text after the command
-        feedback_text = message.content.strip()[4:].strip()  # Remove '<MFR' and spaces
+        feedback_text = message.content.strip()[4:].strip()  # Remove prefix and spaces
         
-        # Ignore if no feedback text provided
-        if len(feedback_text) < 10:
-            return
         
         # Predict feedback quality
         try:
+            logging.info(f"Predicting feedback quality for: {feedback_text}")
             result = await predict_feedback_quality(feedback_text)
+            if result is None:
+                mod_channel = self.bot.get_channel(MOD_CHANNEL_ID)
+                if mod_channel:
+                    await mod_channel.send("❌ Error: Feedback model unavailable. Check server logs.")
+                logging.error("Feedback prediction failed: Model unavailable")
+                return
+            logging.info(f"Prediction result: {result}")
             
             # Get mod channel
             mod_channel = self.bot.get_channel(MOD_CHANNEL_ID)
             if not mod_channel:
-                print(f"❌ Could not find mod channel {MOD_CHANNEL_ID}")
+                logging.error(f"Could not find mod channel {MOD_CHANNEL_ID}")
                 return
             
+            logging.info(f"Sending result to mod channel: {mod_channel}")
             # Create embed with prediction
             embed = discord.Embed(
                 title="🤖 Feedback Quality Check",
@@ -115,9 +133,10 @@ class FeedbackMonitor(commands.Cog):
             }
             
         except Exception as e:
-            print(f"❌ Error processing feedback: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.error(f"Error processing feedback: {e}", exc_info=True)
+            mod_channel = self.bot.get_channel(MOD_CHANNEL_ID)
+            if mod_channel:
+                await mod_channel.send(f"❌ Error processing feedback: {str(e)}")
     
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -152,6 +171,9 @@ class FeedbackMonitor(commands.Cog):
     
     async def _handle_validation(self, mod_message, validation_data, is_correct, validator):
         """Handle validation of prediction"""
+
+        logging.info(f"Validating prediction: {validation_data['prediction']['prediction']} | "
+                     f"Correct: {is_correct} | Validator: {validator.name}")
         
         # Mark as validated
         validation_data['validated'] = True
@@ -178,8 +200,8 @@ class FeedbackMonitor(commands.Cog):
         await mod_message.edit(embed=embed)
         
         # Log validation (you can save this to a database later)
-        print(f"📊 Validation: {validation_data['prediction']['prediction']} | "
-              f"Correct: {is_correct} | Validator: {validator.name}")
+        logging.info(f"📊 Validation: {validation_data['prediction']['prediction']} | "
+                     f"Correct: {is_correct} | Validator: {validator.name}")
         
         # Optional: Remove reactions after validation
         await mod_message.clear_reactions()
@@ -211,6 +233,10 @@ class FeedbackMonitor(commands.Cog):
         
         try:
             result = await predict_feedback_quality(feedback_text)
+            if result is None:
+                await ctx.send("❌ Error: Feedback model unavailable. Check server logs.")
+                logging.error("Feedback test failed: Model unavailable")
+                return
             
             embed = discord.Embed(
                 title="🧪 Feedback Quality Test",
@@ -234,8 +260,7 @@ class FeedbackMonitor(commands.Cog):
             
         except Exception as e:
             await ctx.send(f"❌ Error: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logging.error(f"Error in test_feedback: {e}", exc_info=True)
 
 async def setup(bot):
     """Setup function for loading the cog"""
