@@ -1,0 +1,50 @@
+.submissions (sunday w1)
+DONE Purge channel 
+DONE rename channel to aotw-submissions
+DONE re-write channel topic
+change perms 
+fans: send messages OFF
+groupies: send messages OFF
+everyone: add reactions, external emoji, external stickers OFF
+post submissions announcment with changed date
+Jenn’s 6 month date may need changing
+
+
+.voting (friday w2)
+change perms
+everyone: send messages OFF
+change channel name to aotw-voting
+rewrite channel topic
+delete any raw files, or tracks older than allowed
+make poll
+poll title with date
+vote limit: 1
+poll type: hidden
+make a choice for each members submission with their username
+copy paste submissions closed announcement
+Create event for Voting
+start immediately, end on sunday
+use aotw-voting channel link as event location
+Periodically announce in gen chat
+
+.winner (sunday w2)
+close poll
+open channel for winner
+ask for bio and track info
+
+once recieved:
+clear previous winners announcment from artist-of-the-week
+*remove role from previous winner, add to new winner
+post announcement with winners user name
+copy bio
+copy winning track
+
+purge Aotw-voting
+rename aotw-q-and-a
+re-write channel topic
+change perms
+groupies: send messages ON
+fans:  send messages ON
+everyone: send messages, add reactions, external emoji, external stickers ON 
+
+@ here  say congrats to user-name, more info in artist of the week

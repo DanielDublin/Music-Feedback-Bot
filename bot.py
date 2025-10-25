@@ -102,7 +102,7 @@ slash_extensions = [
     'cogs.slash_commands.rank_commands',
     'cogs.slash_commands.threads',
     'cogs.slash_commands.get_member_card',
-    'cogs.slash_commands.aotw_voting'
+    'cogs.slash_commands.aotw_event'
     # Add more slash command cogs as needed
 ]
 
