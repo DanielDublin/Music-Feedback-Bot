@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Channel IDs
 FEEDBACK_CHANNEL_ID = 732356488151957516  # Channel to monitor for feedback
-MOD_CHANNEL_ID = 1137143797361422458      # Channel to send validation results
+MOD_CHANNEL_ID = 1424821731570225287      # Channel to send validation results
 
 class FeedbackMonitor(commands.Cog):
     """Monitors and validates feedback quality"""
