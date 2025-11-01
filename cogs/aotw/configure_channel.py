@@ -134,14 +134,14 @@ __Voting Guidelines:__
     
     async def change_submissions_perms(self):
         # set FANS send messages to OFF
-        # await self.submissions_channel.set_permissions(self.guild.get_role(FANS), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
+        await self.submissions_channel.set_permissions(self.guild.get_role(FANS), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
 
-        # # set GROUPIES send messages to OFF
-        # await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
+        # set GROUPIES send messages to OFF
+        await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
 
         # set EVERYONE add reactions, external emoji, external stickers OFF
+        # add pin_messages = False once supported by Discord version
         await self.submissions_channel.set_permissions(self.guild.default_role, add_reactions=False, use_external_emojis=False, use_external_stickers=False, view_channel=True, send_messages=True, embed_links=True, attach_files=True, mention_everyone=False, manage_messages=False, use_external_apps=False)
-        # , send_messages=True, embed_links=True, attach_files=True, mention_everyone=False, manage_messages=False, pin_messages=False, use_external_apps=False)
 
     async def change_voting_perms(self):
         # set EVERYONE send messages to OFF
