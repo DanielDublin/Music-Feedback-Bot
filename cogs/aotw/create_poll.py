@@ -1,7 +1,8 @@
 import discord
 from discord.ui import Button, View
 import database.db as db
-from data.constants import AOTW_SUBMISSIONS
+from data.constants import AOTW_SUBMISSIONS, AOTW_VOTES
+import datetime
 
 
 class PollView(View):
@@ -42,21 +43,31 @@ class CreatePoll:
             channel_id (int): The ID of the channel to scrape.
 
         Returns:
-            list: List of user names.
+            list: List of user names in chronological order (oldest first).
         """
         user = ctx.user if hasattr(ctx, 'user') else ctx.author
         
         if user.name != self.bot.user.name:
             channel = self.bot.get_channel(channel_id)
-            names = set()
+            names = []
+            seen_names = set()
             self.messages = {}  # Reset messages dict
 
-            async for message in channel.history(limit=50):
+            # Get messages in reverse (oldest first)
+            messages_list = []
+            async for message in channel.history(limit=50, oldest_first=True):
                 if message.author.name != self.bot.user.name:
-                    names.add(message.author.display_name)
-                    self.messages[message.author.display_name] = message.content
+                    messages_list.append(message)
+            
+            # Process messages in chronological order
+            for message in messages_list:
+                display_name = message.author.display_name
+                if display_name not in seen_names:
+                    names.append(display_name)
+                    seen_names.add(display_name)
+                    self.messages[display_name] = message.content
 
-            return list(names)
+            return names
 
     async def create_embed(self, ctx, names):
         emojis = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿']
@@ -140,23 +151,38 @@ class CreatePoll:
     
     async def update_votes_channel(self):
         """Update the votes tracking channel with vote counts and voter list"""
-        votes_channel = self.bot.get_channel(1429975150039924806)
+        votes_channel = self.bot.get_channel(AOTW_VOTES)
         
         if not votes_channel:
             return
         
-        # Format vote results
-        results_text = "**AOTW Votes**\n\n"
+        # Calculate date range
+        date_today = datetime.date.today()
+        date_one_week = date_today + datetime.timedelta(days=7)
+        date_two_weeks = date_today + datetime.timedelta(days=20)
+        
+        formatted_one_week = date_one_week.strftime("%B %d, %Y")
+        formatted_two_weeks = date_two_weeks.strftime("%B %d, %Y")
+        
+        # Format vote results with date range
+        results_text = f"**AOTW Votes ({formatted_one_week} - {formatted_two_weeks})**\n\n"
+        
         for i, name in enumerate(self.names):
             votes = self.votes.get(i, 0)
             results_text += f"{self.emojis[i]} {name}: {votes} votes\n"
         
         results_text += f"\n**Total votes:** {len(self.voters)}\n"
         
-        # Add list of who voted for whom (admin/visible based on your needs)
+        # Add list of who voted for whom
         results_text += "\n**Who Voted for Whom:**\n"
         for i, name in enumerate(self.names):
-            voters = [self.bot.get_user(user_id).display_name for user_id, choice in self.voter_choices.items() if choice == i]
+            voters = []
+            for user_id, choice in self.voter_choices.items():
+                if choice == i:
+                    user = self.bot.get_user(user_id)
+                    if user:
+                        voters.append(user.display_name)
+            
             if voters:
                 results_text += f"{self.emojis[i]} {name}: {', '.join(voters)}\n"
             else:
@@ -174,7 +200,7 @@ class CreatePoll:
             await messages[0].edit(content=results_text)
     
     async def determine_the_winner(self):
-        votes_channel = self.bot.get_channel(1429975150039924806)
+        votes_channel = self.bot.get_channel(AOTW_VOTES)
         
         if not votes_channel:
             return None

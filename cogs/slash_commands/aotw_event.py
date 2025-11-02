@@ -4,7 +4,7 @@ from discord.ext import commands
 from discord import app_commands
 from cogs.aotw.create_poll import CreatePoll
 from cogs.aotw.configure_channel import ConfigureChannel
-from data.constants import AOTW_CHANNEL, AOTW_SUBMISSIONS, MODERATORS_CHANNEL_ID, AOTW_ROLE
+from data.constants import AOTW_CHANNEL, AOTW_SUBMISSIONS, MODERATORS_CHANNEL_ID, AOTW_ROLE, AOTW_VOTES
 
 
 class AOTWEvent(commands.Cog):
@@ -46,11 +46,10 @@ class AOTWEvent(commands.Cog):
                 await mod_channel.send(
                     f"AOTW NOTICE - **{message.author}** sent a message in <#{message.channel.id}>: {message.content}"
                 )
-            
 
             # give AOTW role
-            await message.author.add_roles(discord.utils.get(message.guild.roles, name=AOTW_ROLE))
-
+            aotw_role = message.guild.get_role(AOTW_ROLE)
+            await message.author.add_roles(aotw_role)
 
             await message.reply("Thank you! And congrats again on winning Artist of the Week!")
             
@@ -61,11 +60,11 @@ class AOTWEvent(commands.Cog):
             # Delete the aotw-q-a channel (the public submissions channel)
             await config.purge_channel()
 
-            # Post the announcement in aotw channel
-            await config.aotw_winner_announcement(config.aotw_channel, winner_info['name'], winner_info['link'], message)
-
             # Change permissions for Q&A
             await config.winner_perms()
+
+            # Post the announcement in aotw channel
+            await config.aotw_winner_announcement(config.aotw_channel, winner_info['name'], winner_info['link'], message)
 
             # Announce Q&A channel
             await config.qa_announcement(config.submissions_channel, winner_info['name'])
@@ -243,6 +242,8 @@ class AOTWEvent(commands.Cog):
 
         # FIFTH: Purge the public voting/Q&A channel
         await config.purge_channel()
+
+        # dont need to change perms because everyone has no messages from voting
 
         # SIXTH: Send announcement to the now-empty public channel
         await config.submissions_channel.send("Determining our next Artist of the Week!")

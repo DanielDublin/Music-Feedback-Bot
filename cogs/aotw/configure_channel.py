@@ -110,7 +110,7 @@ For now, we will consider artists who have released new music-related content __
     async def send_voting_announcement(self):
 
         # INDENTS MATTER!
-        voting_announcement = """**SUBMISSIONS ARE NOW CLOSED\n\nVOTING IS NOW OPEN!!!**
+        voting_announcement = """**SUBMISSIONS ARE CLOSED\nVOTING IS NOW OPEN!!!**
 
 Please select an option in the above anonymous poll to vote for your favorite
 
@@ -134,19 +134,51 @@ __Voting Guidelines:__
     
     async def change_submissions_perms(self):
         # set FANS send messages to OFF
-        await self.submissions_channel.set_permissions(self.guild.get_role(FANS), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
+        # await self.submissions_channel.set_permissions(self.guild.get_role(FANS), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
 
-        # set GROUPIES send messages to OFF
-        await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
+        # # set GROUPIES send messages to OFF
+        # await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=False, view_channel=True, embed_links=False, attach_files=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False, use_external_apps=False)
 
-        # set EVERYONE add reactions, external emoji, external stickers OFF
-        # add pin_messages = False once supported by Discord version
-        await self.submissions_channel.set_permissions(self.guild.default_role, add_reactions=False, use_external_emojis=False, use_external_stickers=False, view_channel=True, send_messages=True, embed_links=True, attach_files=True, mention_everyone=False, manage_messages=False, use_external_apps=False)
+        # # set EVERYONE add reactions, external emoji, external stickers OFF
+        # # add pin_messages = False once supported by Discord version
+        # await self.submissions_channel.set_permissions(self.guild.default_role, add_reactions=False, use_external_emojis=False, use_external_stickers=False, view_channel=True, send_messages=True, embed_links=True, attach_files=True, mention_everyone=False, manage_messages=False, use_external_apps=False)
+
+        # FANS - disable send_messages only
+        fans_overwrite = self.submissions_channel.overwrites_for(self.guild.get_role(FANS))
+        fans_overwrite.send_messages = False
+        await self.submissions_channel.set_permissions(self.guild.get_role(FANS), overwrite=fans_overwrite)
+
+        # GROUPIES - disable send_messages only
+        groupies_overwrite = self.submissions_channel.overwrites_for(self.guild.get_role(GROUPIES))
+        groupies_overwrite.send_messages = False
+        await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), overwrite=groupies_overwrite)
+
+        # EVERYONE - disable reactions and external emojis/stickers only
+        everyone_overwrite = self.submissions_channel.overwrites_for(self.guild.default_role)
+        everyone_overwrite.add_reactions = False
+        everyone_overwrite.use_external_emojis = False
+        everyone_overwrite.use_external_stickers = False
+        await self.submissions_channel.set_permissions(self.guild.default_role, overwrite=everyone_overwrite)
+
 
     async def change_voting_perms(self):
         # set EVERYONE send messages to OFF
         # set EVERYONE add reactions, external emoji, external stickers OFF
-        await self.submissions_channel.set_permissions(self.guild.default_role, send_messages=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False)
+        # await self.submissions_channel.set_permissions(self.guild.default_role, send_messages=False, add_reactions=False, use_external_emojis=False, use_external_stickers=False)
+
+
+            # Get existing overwrite for @everyone
+        everyone_overwrite = self.submissions_channel.overwrites_for(self.guild.default_role)
+        
+        # Set EVERYONE send messages to OFF
+        # Set EVERYONE add reactions, external emoji, external stickers OFF
+        everyone_overwrite.send_messages = False
+        everyone_overwrite.add_reactions = False
+        everyone_overwrite.use_external_emojis = False
+        everyone_overwrite.use_external_stickers = False
+        
+        await self.submissions_channel.set_permissions(self.guild.default_role, overwrite=everyone_overwrite)
+
 
     async def check_for_not_links(self):
         # delete any messages that have a file attached (aotw accepts links only)
@@ -226,6 +258,8 @@ __Voting Guidelines:__
         )
         print("channel created")
 
+        winner_mention = winner['name']
+
         message = f"# Congratulations {winner['name']} for winning Artist of the Week!\n\nWhen you can, could you please give a little more information about the release? What were some of your inspirations and thoughts behind the project? What else are you planning to release in the future?\n\nFeel free to provide links to your socials as well!"
 
         # send the congrats message to the dm
@@ -238,7 +272,7 @@ __Voting Guidelines:__
 
     async def aotw_winner_announcement(self, interaction, name, link, message):
 
-        await self.aotw_channel.send(f"""**Say congrats to our {AOTW_ROLE}, {name}!!!**
+        await self.aotw_channel.send(f"""**Say congrats to our <@&{AOTW_ROLE}>, {name}!!!**
                                      
 Here is a statement from our artist:
                                      
@@ -248,22 +282,41 @@ Here is a statement from our artist:
 
     async def qa_announcement(self, interaction, name):
 
-        await self.submissions_channel.send(f"@here Say congrats to our {AOTW_ROLE}, <@&{name}>!!! Use this channel to ask them any questions about their music (winning track and artist bio in <#{AOTW_CHANNEL}>)!", allowed_mentions=discord.AllowedMentions(everyone=True))
+        await self.submissions_channel.send(f"@here Say congrats to our <@&{AOTW_ROLE}>, <@&{name.id}>!!! Use this channel to ask them any questions about their music (winning track and artist bio in <#{AOTW_CHANNEL}>)!", allowed_mentions=discord.AllowedMentions(everyone=True))
 
     async def winner_perms(self):
 
         # set groupies, fans, and everyone send messages to ON
-        await self.aotw_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=True)
-        await self.aotw_channel.set_permissions(self.guild.get_role(FANS), send_messages=True)
-        await self.aotw_channel.set_permissions(self.guild.default_role, send_messages=True)
-        # reactions on for everyone
-        await self.aotw_channel.set_permissions(self.guild.default_role, add_reactions=True)
-        await self.aotw_channel.set_permissions(self.guild.default_role, use_external_emojis=True)
-        await self.aotw_channel.set_permissions(self.guild.default_role, use_external_stickers=True)
+        # await self.aotw_channel.set_permissions(self.guild.get_role(GROUPIES), send_messages=True)
+        # await self.aotw_channel.set_permissions(self.guild.get_role(FANS), send_messages=True)
+        # await self.aotw_channel.set_permissions(self.guild.default_role, send_messages=True)
+        # # reactions on for everyone
+        # await self.aotw_channel.set_permissions(self.guild.default_role, add_reactions=True)
+        # await self.aotw_channel.set_permissions(self.guild.default_role, use_external_emojis=True)
+        # await self.aotw_channel.set_permissions(self.guild.default_role, use_external_stickers=True)
+
+            # Get existing overwrites for each role
+        groupies_overwrite = self.submissions_channel.overwrites_for(self.guild.get_role(GROUPIES))
+        groupies_overwrite.send_messages = True
+        
+        fans_overwrite = self.submissions_channel.overwrites_for(self.guild.get_role(FANS))
+        fans_overwrite.send_messages = True
+        
+        everyone_overwrite = self.submissions_channel.overwrites_for(self.guild.default_role)
+        everyone_overwrite.send_messages = True
+        everyone_overwrite.add_reactions = True
+        everyone_overwrite.use_external_emojis = True
+        everyone_overwrite.use_external_stickers = True
+        
+        # Set groupies, fans, and everyone send messages to ON
+        await self.submissions_channel.set_permissions(self.guild.get_role(GROUPIES), overwrite=groupies_overwrite)
+        await self.submissions_channel.set_permissions(self.guild.get_role(FANS), overwrite=fans_overwrite)
+        # Reactions on for everyone
+        await self.submissions_channel.set_permissions(self.guild.default_role, overwrite=everyone_overwrite)
 
     async def remove_aotw_role(self, interaction):
 
-        aotw_role = discord.utils.get(interaction.guild.roles, name=AOTW_ROLE)
+        aotw_role = discord.utils.get(interaction.guild.roles, name="Artist of the Week")
         if aotw_role:
             for member in interaction.guild.members:
                 if aotw_role in member.roles:
