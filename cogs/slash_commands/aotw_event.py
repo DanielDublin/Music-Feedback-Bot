@@ -57,6 +57,16 @@ class AOTWEvent(commands.Cog):
             config = ConfigureChannel(self.bot)
             await config.initialize_channels()
 
+            # delete the previous message in aotw channel
+            try:
+            # Get the last message in the AOTW announcement channel
+                async for msg in config.aotw_channel.history(limit=1):
+                    await msg.delete()
+                    print("✅ Deleted previous message from AOTW channel")
+                    break
+            except Exception as e:
+                print(f"❌ Error deleting message from AOTW channel: {e}")
+
             # Delete the aotw-q-a channel (the public submissions channel)
             await config.purge_channel()
 
@@ -78,9 +88,10 @@ class AOTWEvent(commands.Cog):
                 await mod_channel.send(f"⚠️ AOTW winner {winner_info['name']} didn't respond within 24 hours!")
 
     @app_commands.command(name = "aotw_voting", description = "Setup poll and channels for AOTW voting")
+    @app_commands.checks.has_permissions(administrator=True)
     async def aotw_voting(self, interaction):
 
-        channel_id = 1383539110945489070
+        channel_id = AOTW_SUBMISSIONS
 
         await interaction.response.defer()
         config = ConfigureChannel(self.bot)
@@ -123,9 +134,10 @@ class AOTWEvent(commands.Cog):
 
 
     @app_commands.command(name = "aotw_submissions", description = "Setup poll and channels for AOTW submissions")
+    @app_commands.checks.has_permissions(administrator=True)
     async def aotw_submissions(self, interaction):
 
-        channel_id = 1383539110945489070
+        channel_id = AOTW_SUBMISSIONS
 
         await interaction.response.defer()
         config = ConfigureChannel(self.bot)
@@ -176,6 +188,7 @@ class AOTWEvent(commands.Cog):
         await interaction.followup.send("✅ AOTW Submissions setup complete!", ephemeral=True)
 
     @app_commands.command(name = "aotw_winner", description = "Setup poll and channels for AOTW winner")
+    @app_commands.checks.has_permissions(administrator=True)
     async def aotw_winner(self, interaction):
 
         await interaction.response.defer()

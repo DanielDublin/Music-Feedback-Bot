@@ -127,10 +127,20 @@ class CreatePoll:
     async def handle_vote(self, interaction, option_index, option_name):
         """Handle when someone votes"""
         user_id = interaction.user.id
+        voter_name = interaction.user.display_name
         
+        # Check if already voted
         if user_id in self.voters:
             await interaction.response.send_message(
                 "You've already voted in this poll!",
+                ephemeral=True
+            )
+            return
+        
+        # Check if voting for themselves
+        if voter_name == option_name:
+            await interaction.response.send_message(
+                "❌ You cannot vote for yourself!",
                 ephemeral=True
             )
             return
@@ -155,6 +165,16 @@ class CreatePoll:
         
         if not votes_channel:
             return
+        
+        # Add rate limit protection - only update every 5 seconds
+        import time
+        current_time = time.time()
+        if hasattr(self, '_last_update_time'):
+            time_since_update = current_time - self._last_update_time
+            if time_since_update < 5:  # Wait at least 5 seconds between updates
+                return
+        
+        self._last_update_time = current_time
         
         # Calculate date range
         date_today = datetime.date.today()
@@ -194,10 +214,16 @@ class CreatePoll:
             messages.append(msg)
         
         # Update or create message
-        if len(messages) == 0:
-            await votes_channel.send(results_text)
-        else:
-            await messages[0].edit(content=results_text)
+        try:
+            if len(messages) == 0:
+                await votes_channel.send(results_text)
+            else:
+                await messages[0].edit(content=results_text)
+        except discord.HTTPException as e:
+            if e.status == 429:  # Rate limited
+                print(f"⚠️ Rate limited when updating votes channel. Waiting...")
+            else:
+                print(f"❌ Error updating votes channel: {e}")
     
     async def determine_the_winner(self):
         votes_channel = self.bot.get_channel(AOTW_VOTES)

@@ -56,14 +56,39 @@ For now, we will consider artists who have released new music-related content __
         return formatted_six_months
 
     async def purge_channel(self):
-        # purge aotw submissions
-        await self.submissions_channel.purge()
-
-        # catch any messages not covered by purge
-        messages = [msg async for msg in self.submissions_channel.history(limit=100)]
-        for msg in messages:
-            await msg.delete()
-            return 
+        """Purge all messages from the submissions channel with rate limit handling"""
+        try:
+            # Purge handles bulk delete efficiently (messages < 14 days old)
+            deleted = await self.submissions_channel.purge(limit=None)
+            print(f"✅ Bulk deleted {len(deleted)} messages")
+            
+            # Check if there are any remaining messages (older than 14 days)
+            remaining = []
+            async for msg in self.submissions_channel.history(limit=10):
+                remaining.append(msg)
+            
+            # If there are old messages, delete them individually with delays
+            if remaining:
+                print(f"⚠️ Found {len(remaining)} old messages (>14 days), deleting individually...")
+                for msg in remaining:
+                    try:
+                        await msg.delete()
+                        await asyncio.sleep(1)  # 1 second delay between deletes
+                    except discord.HTTPException as e:
+                        if e.status == 429:
+                            print("⚠️ Rate limited, waiting 5 seconds...")
+                            await asyncio.sleep(5)
+                            await msg.delete()
+                        else:
+                            print(f"❌ Error deleting message: {e}")
+                            
+        except discord.HTTPException as e:
+            if e.status == 429:
+                print("⚠️ Rate limited on purge, waiting 60 seconds...")
+                await asyncio.sleep(60)
+                await self.purge_channel()  # Retry
+            else:
+                print(f"❌ Error purging channel: {e}") 
     
     async def change_name(self, command_name):
         # change aotw submissions/voting channel name and topic
@@ -158,6 +183,7 @@ __Voting Guidelines:__
         everyone_overwrite.add_reactions = False
         everyone_overwrite.use_external_emojis = False
         everyone_overwrite.use_external_stickers = False
+        everyone_overwrite.send_messages = True
         await self.submissions_channel.set_permissions(self.guild.default_role, overwrite=everyone_overwrite)
 
 
@@ -242,7 +268,7 @@ __Voting Guidelines:__
 
     async def send_message_to_winner(self, interaction, winner):
 
-        print ("Sending message to winner")
+        print("Sending message to winner")
         guild = interaction.guild
 
         print(guild)
@@ -258,11 +284,26 @@ __Voting Guidelines:__
         )
         print("channel created")
 
-        winner_mention = winner['name']
+        # Find the winner member object to create a proper mention
+        winner_member = discord.utils.get(guild.members, display_name=winner['name'])
+        if not winner_member:
+            winner_member = discord.utils.get(guild.members, name=winner['name'])
+        if not winner_member:
+            for member in guild.members:
+                if member.name == winner['name'] or member.display_name == winner['name']:
+                    winner_member = member
+                    break
+        
+        # Use mention if found, otherwise use plain name
+        if winner_member:
+            winner_mention = winner_member.mention
+        else:
+            winner_mention = winner['name']
+            print(f"⚠️ WARNING: Could not find member {winner['name']} to mention")
 
-        message = f"# Congratulations {winner['name']} for winning Artist of the Week!\n\nWhen you can, could you please give a little more information about the release? What were some of your inspirations and thoughts behind the project? What else are you planning to release in the future?\n\nFeel free to provide links to your socials as well!"
+        message = f"# Congratulations {winner_mention} for winning Artist of the Week!\n\nWhen you can, could you please give a little more information about the release? What were some of your inspirations and thoughts behind the project? What else are you planning to release in the future?\n\nFeel free to provide links to your socials as well!"
 
-        # send the congrats message to the dm
+        # send the congrats message to the channel
         await new_channel.send(message)
 
         print("message sent, channel:", new_channel)
@@ -271,8 +312,26 @@ __Voting Guidelines:__
         return new_channel
 
     async def aotw_winner_announcement(self, interaction, name, link, message):
+        
+        # Find the winner member object to create a proper mention
+        guild = interaction.guild
+        winner_member = discord.utils.get(guild.members, display_name=name)
+        if not winner_member:
+            winner_member = discord.utils.get(guild.members, name=name)
+        if not winner_member:
+            for member in guild.members:
+                if member.name == name or member.display_name == name:
+                    winner_member = member
+                    break
+        
+        # Use mention if found, otherwise use plain name
+        if winner_member:
+            name_mention = winner_member.mention
+        else:
+            name_mention = name
+            print(f"⚠️ WARNING: Could not find member {name} to mention")
 
-        await self.aotw_channel.send(f"""**Say congrats to our <@&{AOTW_ROLE}>, {name}!!!**
+        await self.aotw_channel.send(f"""**Say congrats to our <@&{AOTW_ROLE}>, {name_mention}!!!**
                                      
 Here is a statement from our artist:
                                      
@@ -281,8 +340,26 @@ Here is a statement from our artist:
 {link}""")
 
     async def qa_announcement(self, interaction, name):
+        
+        # Find the winner member object to create a proper mention
+        guild = interaction.guild
+        winner_member = discord.utils.get(guild.members, display_name=name)
+        if not winner_member:
+            winner_member = discord.utils.get(guild.members, name=name)
+        if not winner_member:
+            for member in guild.members:
+                if member.name == name or member.display_name == name:
+                    winner_member = member
+                    break
+        
+        # Use mention if found, otherwise use plain name
+        if winner_member:
+            name_mention = winner_member.mention
+        else:
+            name_mention = name
+            print(f"⚠️ WARNING: Could not find member {name} to mention")
 
-        await self.submissions_channel.send(f"@here Say congrats to our <@&{AOTW_ROLE}>, <@&{name.id}>!!! Use this channel to ask them any questions about their music (winning track and artist bio in <#{AOTW_CHANNEL}>)!", allowed_mentions=discord.AllowedMentions(everyone=True))
+        await self.submissions_channel.send(f"@here Say congrats to our <@&{AOTW_ROLE}>, {name_mention}!!! Use this channel to ask them any questions about their music (winning track and artist bio in <#{AOTW_CHANNEL}>)!", allowed_mentions=discord.AllowedMentions(everyone=True))
 
     async def winner_perms(self):
 
@@ -295,7 +372,7 @@ Here is a statement from our artist:
         # await self.aotw_channel.set_permissions(self.guild.default_role, use_external_emojis=True)
         # await self.aotw_channel.set_permissions(self.guild.default_role, use_external_stickers=True)
 
-            # Get existing overwrites for each role
+        # Get existing overwrites for each role
         groupies_overwrite = self.submissions_channel.overwrites_for(self.guild.get_role(GROUPIES))
         groupies_overwrite.send_messages = True
         
@@ -327,15 +404,3 @@ Here is a statement from our artist:
                         print(f"❌ Failed to remove role from {member.name}: {e}")
         else:
             print(f"⚠️ AOTW role '{AOTW_ROLE}' not found")
-
-
-
-
-
-
-
-
-
-
-
-        
