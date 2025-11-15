@@ -325,7 +325,7 @@ class PointsLogic:
             f"You will need to give feedback again or contact Moderators to restore your point."
             )
         
-        delete_notice.delete(delay=60)
+        await delete_notice.delete(delay=60)
         
         embed = await self.embeds.MFS_to_delete_embed(
         deleted_content=deleted_content,
