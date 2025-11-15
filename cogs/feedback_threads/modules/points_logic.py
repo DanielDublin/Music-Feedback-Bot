@@ -2,7 +2,7 @@ import discord
 import database.db as db
 from .embeds import Embeds
 from .helpers import DiscordHelpers
-from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
+from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, MODERATORS_ROLE_ID, CHAT_MODERATORS_ROLE_ID
 
 class PointsLogic:
     def __init__(self, bot, user_thread):
@@ -231,39 +231,46 @@ class PointsLogic:
         # if points available before removing the points is 0, then they used that 1 point somewhere
         # we can't look at total points being 0 because this would trigger to be true if they just did MFR and then deleted
 
+        member = message.author
+        admin_role_ids = [ADMINS_ROLE_ID, MODERATORS_ROLE_ID, CHAT_MODERATORS_ROLE_ID]  
+        is_staff = any(role.id in admin_role_ids for role in member.roles)
+
         if points_available > 0:
 
-            await message.channel.send(
-                f"{message.author.mention} deleted their feedback and lost **{points_to_remove}** MF Points. You now have **{total_points}** MF Points.\n\n"
-                f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_ACCESS_CHANNEL_ID}> for more information."
-            )
+            # check if sender is staff (only sender + staff can delete messages)
+            if not is_staff:
 
-            embed = await self.embeds.MFR_to_delete_embed(
-                deleted_content=deleted_content,
-                ctx=message.channel,
-                thread=thread,
-                ticket_counter=ticket_counter,
-                points_removed=points_to_remove,
-                total_points=total_points
-            )
-            try:
-                await thread.send(embed=embed)
-            except Exception as e:
-                print(e)
-                
+                await message.channel.send(
+                    f"{message.author.mention} deleted their feedback and lost **{points_to_remove}** MF Points. You now have **{total_points}** MF Points.\n\n"
+                    f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_ACCESS_CHANNEL_ID}> for more information."
+                )
 
-            embed = discord.Embed(color=0x7e016f)
-            embed.add_field(
-                name=f"Feedback Deletion - {self.helpers.get_formatted_time()}",
-                value=(
-                    f"<@{user_id}> has **deleted** their feedback containing `<MFR`. "
-                    f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
-                    f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
-                ),
-                inline=False
-            )
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            await channel.send(embed=embed)
+                embed = await self.embeds.MFR_to_delete_embed(
+                    deleted_content=deleted_content,
+                    ctx=message.channel,
+                    thread=thread,
+                    ticket_counter=ticket_counter,
+                    points_removed=points_to_remove,
+                    total_points=total_points
+                )
+                try:
+                    await thread.send(embed=embed)
+                except Exception as e:
+                    print(e)
+                    
+
+                embed = discord.Embed(color=0x7e016f)
+                embed.add_field(
+                    name=f"Feedback Deletion - {self.helpers.get_formatted_time()}",
+                    value=(
+                        f"<@{user_id}> has **deleted** their feedback containing `<MFR`. "
+                        f"They used **{points_to_remove}** points and now have **{total_points}** MF points.\n\n"
+                        f"⚠️ [Ticket #{ticket_counter}]({thread.jump_url})"
+                    ),
+                    inline=False
+                )
+                embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+                await channel.send(embed=embed)
 
         elif points_available == 0:
 
