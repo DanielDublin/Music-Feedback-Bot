@@ -104,3 +104,13 @@ class StartInTheMix:
 
         except Exception as e:
             await mod_chat.send(f"❌ Failed to join VC: {e}")
+
+    
+
+    # make listener for if messages are sent to event-submissions
+    # allow until the :30 (+40 minutes of when the event starts)
+    # then close submissions
+
+
+
+    
