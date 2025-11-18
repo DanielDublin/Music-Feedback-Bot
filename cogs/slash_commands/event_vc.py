@@ -16,14 +16,34 @@ class EventVC(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def start_in_the_mix(self, interaction):
 
+        await interaction.response.defer(ephemeral=True)
+
+        # configure channel, send announcements, change channel names/perms
         try:
-            await interaction.response.defer(ephemeral=True)
 
             itm = StartInTheMix(self.bot)      
             await itm.send_announcement(interaction)
 
             await interaction.followup.send("✅ In The Mix started!", ephemeral=True)
         
+        except discord.NotFound as e:
+            print(f"NotFound error in start_in_the_mix: {e}")
+            try:
+                await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
+            except:
+                pass
+        
+        except Exception as e:
+            print(f"Error in start_in_the_mix: {e}")
+            try:
+                await interaction.followup.send(f"❌ Command failed: {e}", ephemeral=True)
+            except:
+                pass
+
+        # bot join event vc
+        try:
+            await itm.join_vc(interaction)
+
         except discord.NotFound as e:
             print(f"NotFound error in start_in_the_mix: {e}")
             try:

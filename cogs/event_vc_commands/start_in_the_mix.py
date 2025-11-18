@@ -12,7 +12,6 @@ class StartInTheMix:
         guild = interaction.guild
         mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
 
-        # Get channel references first (outside try blocks)
         event_submissions = guild.get_channel(MOD_SUBMISSION_LOGGER_CHANNEL_ID)
         itm_channel = guild.get_channel(ITM_CHANNEL)
         event_category = guild.get_channel(EVENT_CATEGORY)
@@ -20,9 +19,11 @@ class StartInTheMix:
         event_vc = guild.get_channel(EVENT_VC)
         general_chat = guild.get_channel(GENERAL_CHAT_CHANNEL_ID)
 
+        # make event?
+
         # purge the submissions channel
         try:
-            await event_submissions.purge(limit=20)
+            await event_submissions.purge(limit=5)
             await mod_chat.send("✅ Purged submissions channel")
             await asyncio.sleep(0.5)
         except Exception as e:
@@ -86,3 +87,20 @@ class StartInTheMix:
             await mod_chat.send("✅ Sent general chat announcement")
         except Exception as e:
             await mod_chat.send(f"❌ Failed to send general chat announcement: {e}")
+
+    
+
+    async def join_vc(self, interaction):
+
+        guild = interaction.guild
+        mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
+
+        try:
+            guild = interaction.guild
+            event_vc = guild.get_channel(EVENT_VC)
+
+            await event_vc.connect()
+            await mod_chat.send("✅ Bot joined VC")
+
+        except Exception as e:
+            await mod_chat.send(f"❌ Failed to join VC: {e}")

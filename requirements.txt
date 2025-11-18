@@ -6,6 +6,7 @@ attrs==25.3.0
 beautifulsoup4==4.13.4
 cachetools==5.5.2
 certifi==2025.4.26
+cffi==2.0.0
 charset-normalizer==3.4.2
 croniter==6.0.0
 discord-ext-menus==1.1
@@ -31,7 +32,9 @@ platformdirs==4.3.8
 propcache==0.3.1
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
+pycparser==2.23
 PyMySQL==1.1.1
+PyNaCl==1.6.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 pytz==2025.2
