@@ -13,7 +13,7 @@ from cogs.feedback_threads.modules.ctx_class import ContextLike
 IS_READY = 0
 
 load_dotenv()
-token = os.environ.get('DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TEST_TOKEN')
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -102,7 +102,8 @@ slash_extensions = [
     'cogs.slash_commands.rank_commands',
     'cogs.slash_commands.threads',
     'cogs.slash_commands.get_member_card',
-    'cogs.slash_commands.aotw_event'
+    'cogs.slash_commands.aotw_event',
+    'cogs.slash_commands.event_vc'
     # Add more slash command cogs as needed
 ]
 
