@@ -4,16 +4,20 @@ from discord.ext import commands
 from discord import app_commands
 from data.constants import EVENT_VC, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_ID
 from cogs.event_vc_commands.start_in_the_mix import StartInTheMix
+from cogs.event_vc_commands.submissions_queue import SubmissionsQueue
 
 
 class EventVC(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.itm = StartInTheMix(bot)
+        self.submissions_queue = SubmissionsQueue(bot)
 
     # Listen for messages in event-submissions channel
     @commands.Cog.listener()
     async def on_message(self, message):
+
+        submissions_queue = SubmissionsQueue(self.bot)
 
         event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
         # Ignore anything but bot messages
@@ -35,6 +39,10 @@ class EventVC(commands.Cog):
         
         # Submission is valid
         await event_text.send(f"{message.author.mention} READ!")
+
+        # parse the message for the link
+        await self.submissions_queue.parse_submission(message)
+
         await message.add_reaction("✅")
 
     @app_commands.command(name="start-in-the-mix", description="Start the In-The-Mix event")
