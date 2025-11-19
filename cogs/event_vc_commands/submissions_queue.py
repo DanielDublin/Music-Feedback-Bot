@@ -100,11 +100,11 @@ class SubmissionsQueue(commands.Cog):
         else:
             return f"{minutes}:{secs:02d}"
 
-
             
-    async def add_to_queue(self, link):
+    async def add_to_queue(self, submission_data):
 
         try: 
+            link = submission_data['link']
             self.submission_queue.append(link)
             print("Submission added to queue")
             print(self.submission_queue)
