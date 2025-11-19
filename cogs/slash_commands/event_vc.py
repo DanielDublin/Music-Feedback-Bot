@@ -6,18 +6,27 @@ from data.constants import EVENT_VC, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIO
 from cogs.event_vc_commands.start_in_the_mix import StartInTheMix
 from cogs.event_vc_commands.submissions_queue import SubmissionsQueue
 
+# INSTALLED ffmpeg DIRECTLY TO GCP
+""""
+gcloud compute ssh bots4fun1@mfbot-1 --zone=us-central1-c
+sudo apt update
+sudo apt install -y ffmpeg
+ffmpeg -version
+exit
+"""""
 
 class EventVC(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.itm = StartInTheMix(bot)
         self.submissions_queue = SubmissionsQueue(bot)
+        self.submissions_open = False # submissions will be open for 40 minutes or until there's an hour of music
+        self.event_start = False # the event will start at the closest :00 or :30 since we usually announce 10 minutes before
+
 
     # Listen for messages in event-submissions channel
     @commands.Cog.listener()
     async def on_message(self, message):
-
-        submissions_queue = SubmissionsQueue(self.bot)
 
         event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
         # Ignore anything but bot messages
@@ -36,15 +45,13 @@ class EventVC(commands.Cog):
         #         delete_after=60
         #     )
         #     return
-        
-        # Submission is valid
-        await event_text.send(f"{message.author.mention} READ!")
 
         # parse the message for the link
         link = await self.submissions_queue.parse_submission(message)
-        
-        # add submission to queue
+
+        # add submission to queue, get track info
         await self.submissions_queue.add_to_queue(link)
+
 
         await message.add_reaction("✅")
 
@@ -52,6 +59,10 @@ class EventVC(commands.Cog):
     @app_commands.checks.has_permissions(administrator=True)
     async def start_in_the_mix(self, interaction):
         await interaction.response.defer(ephemeral=True)
+
+        # open submissions 
+        self.submissions_open = True
+        self.event_start = False
 
         # Configure channel, send announcements, change channel names/perms
         try:
@@ -73,6 +84,13 @@ class EventVC(commands.Cog):
         except Exception as e:
             print(f"Error joining VC: {e}")
             await interaction.followup.send(f"⚠️ Announcements sent but failed to join VC: {e}", ephemeral=True)
+
+
+        # create task to play aotw song with 10 minutes - duration of track
+        # create tasks to track 10 minute countdown + closest :00 or :30 to start the event
+
+        # play the queue
+        await self.submissions_queue.play_song()
 
 
 async def setup(bot):
