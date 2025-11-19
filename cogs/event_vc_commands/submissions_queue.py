@@ -42,7 +42,16 @@ class SubmissionsQueue(commands.Cog):
             else:
                 return None
             
-        print(link)
+        return link
+            
+    async def add_to_queue(self, link):
+
+        try: 
+            self.submission_queue.append(link)
+            print("Submission added to queue")
+            print(self.submission_queue)
+        except Exception as e:
+            print(e)
 
             
 

@@ -41,7 +41,10 @@ class EventVC(commands.Cog):
         await event_text.send(f"{message.author.mention} READ!")
 
         # parse the message for the link
-        await self.submissions_queue.parse_submission(message)
+        link = await self.submissions_queue.parse_submission(message)
+        
+        # add submission to queue
+        await self.submissions_queue.add_to_queue(link)
 
         await message.add_reaction("✅")
 
