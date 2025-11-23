@@ -1,6 +1,9 @@
 import discord
 import asyncio
-from data.constants import EVENT_VC, ITM_CHANNEL, ITM_ROLE, SUBMISSIONS_CHANNEL_ID, EVENT_CATEGORY, MOD_SUBMISSION_LOGGER_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MODERATORS_CHANNEL_ID #submissions_channel_id = event-text // mod_submission_logger_channel_id = event-submissions
+import datetime
+import re
+from data.constants import EVENT_VC, ITM_CHANNEL, ITM_ROLE, SUBMISSIONS_CHANNEL_ID, EVENT_CATEGORY, MOD_SUBMISSION_LOGGER_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MODERATORS_CHANNEL_ID, AOTW_CHANNEL #submissions_channel_id = event-textevent-submissions
+from cogs.event_vc_commands.submissions_queue import SubmissionsQueue
 
 
 class StartInTheMix:
@@ -89,7 +92,6 @@ class StartInTheMix:
             await mod_chat.send(f"❌ Failed to send general chat announcement: {e}")
 
     
-
     async def join_vc(self, interaction):
 
         guild = interaction.guild
@@ -105,11 +107,107 @@ class StartInTheMix:
         except Exception as e:
             await mod_chat.send(f"❌ Failed to join VC: {e}")
 
+    async def calculate_aotw_runtime(self, interaction, event_start_time):
+        guild = interaction.guild
+        mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
+        aotw_channel = guild.get_channel(AOTW_CHANNEL)
+        event_text = guild.get_channel(SUBMISSIONS_CHANNEL_ID)
+
+        async for message in aotw_channel.history(limit=1):
+            link = re.search(r"(https?://\S+)", message.content).group(1)
+            break
+
+        submissions_cog = self.bot.get_cog('SubmissionsQueue')
+
+        try:
+            # parse the time
+            duration_str, title = await submissions_cog.get_song_duration(link)
+            parts = duration_str.split(':')
+            
+            # Handle both MM:SS and HH:MM:SS formats
+            if len(parts) == 2:  # MM:SS
+                duration_seconds = int(parts[0]) * 60 + int(parts[1])
+            elif len(parts) == 3:  # HH:MM:SS
+                duration_seconds = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+            else:
+                await mod_chat.send(f"⚠️ Could not parse duration: {duration_str}")
+                return None, None
+
+            # Check if song is too long (more than 10 minutes)
+            if duration_seconds > 600:
+                await mod_chat.send(f"⚠️ AOTW track '{title}' is too long ({duration_str}). Max 10 minutes.")
+                await event_text.send(f"# Make sure to check out our Artist of the Week's winnning track after the event after the event!\n\n{link}")
+                return None, None
+
+            # allow a time to buffer
+            calculated_start_time = event_start_time - datetime.timedelta(seconds=duration_seconds - 45)
+            
+            await mod_chat.send(f"✅ AOTW: '{title}' ({duration_str}) will play at {calculated_start_time.strftime('%I:%M:%S %p')}")
+            return calculated_start_time, link
+
+        except Exception as e:
+            await mod_chat.send(f"❌ Failed to get song duration: {e}")
+            return None, None
+    
+    async def play_aotw_song(self, calculated_start_time, link):
+        submissions_cog = self.bot.get_cog('SubmissionsQueue')
+        
+        # Get guild and mod chat
+        guild = self.bot.guilds[0] 
+        mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
+        
+        # Calculate wait time with 5 second buffer to join VC early
+        wait_time = (calculated_start_time - datetime.datetime.now()).total_seconds() - 5
+        
+        if wait_time > 0:
+            await mod_chat.send(f"⏳ Waiting {wait_time:.0f} seconds before joining VC for AOTW...")
+            await asyncio.sleep(wait_time)
+        
+        # Join VC 5 seconds before song starts
+        try:
+            event_vc = guild.get_channel(EVENT_VC)
+            
+            if not self.bot.voice_clients:
+                await event_vc.connect()
+                await mod_chat.send("✅ Bot joined VC for AOTW")
+            
+            # Wait the remaining 5 seconds
+            await asyncio.sleep(5)
+            
+        except Exception as e:
+            await mod_chat.send(f"❌ Failed to join VC: {e}")
+        
+        # Play the song
+        try: 
+            await submissions_cog.play_song(link)
+            await mod_chat.send("✅ AOTW finished playing")
+            
+        except Exception as e:
+            await mod_chat.send(f"❌ Failed to play AOTW song: {e}")
+
+    
+
+         
+
+
+
+
+
+
+
+
+        # take the last message in aotw and check duration
+        # subtract from 10 to b the start time
+
+        
     
 
     # make listener for if messages are sent to event-submissions
     # allow until the :30 (+40 minutes of when the event starts)
     # then close submissions
+
+
+    # check if a playlist submitted
 
 
 

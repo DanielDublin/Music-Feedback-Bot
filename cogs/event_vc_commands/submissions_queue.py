@@ -112,11 +112,71 @@ class SubmissionsQueue(commands.Cog):
         except Exception as e:
             print(f"❌ Error in add_to_queue: {e}")
 
+    async def play_song(self, link):
+        """Play a single song (for AOTW)"""
+        
+        if not self.bot.voice_clients:
+            print("❌ Bot is not connected to a voice channel")
+            return
+        
+        voice_client = self.bot.voice_clients[0]
+        
+        try:
+            # Get song info
+            duration_str, title = await self.get_song_duration(link)
+            print(f"▶️  Now playing AOTW: {title}")
+            
+            # Extract audio URL
+            ytdl_format_options = {
+                'format': 'bestaudio/best',
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,
+                'skip_download': True,
+            }
+            
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(
+                None, 
+                lambda: yt_dlp.YoutubeDL(ytdl_format_options).extract_info(link, download=False)
+            )
+            
+            # Handle playlists
+            if 'entries' in data:
+                data = data['entries'][0]
+            
+            # Get streaming URL
+            if 'url' in data:
+                audio_url = data['url']
+            elif 'formats' in data:
+                formats = [f for f in data['formats'] if f.get('acodec') != 'none']
+                audio_url = formats[0]['url'] if formats else data['formats'][0]['url']
+            else:
+                raise Exception("Could not extract audio URL")
+            
+            print(f"📡 Audio URL extracted, starting playback...")
+            
+            # Play the audio
+            audio_source = discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options)
+            voice_client.play(audio_source)
+            
+            # Wait for song to finish
+            while voice_client.is_playing():
+                await asyncio.sleep(1)
+                
+            print(f"✅ Finished playing AOTW: {title}")
+            
+        except Exception as e:
+            print(f"❌ Error playing AOTW: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+
     
-    async def play_song(self):
+    async def play_queue(self):
         """Wait 60 seconds, then play all songs in queue"""
         print("⏳ Waiting 60 seconds for submissions...")
-        await asyncio.sleep(60)
         
         print(f"🎵 Starting playback. Queue has {len(self.submission_queue)} songs")
         
@@ -195,4 +255,6 @@ class SubmissionsQueue(commands.Cog):
         self.submission_queue.append(submission)
 
 
-# queue aotw track first!
+async def setup(bot):
+    await bot.add_cog(SubmissionsQueue(bot))
+

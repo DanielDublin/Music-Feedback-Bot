@@ -1,8 +1,9 @@
 import discord
 import asyncio
+import datetime
 from discord.ext import commands
 from discord import app_commands
-from data.constants import EVENT_VC, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_ID
+from data.constants import EVENT_VC, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_ID, AOTW_CHANNEL
 from cogs.event_vc_commands.start_in_the_mix import StartInTheMix
 from cogs.event_vc_commands.submissions_queue import SubmissionsQueue
 
@@ -20,8 +21,8 @@ class EventVC(commands.Cog):
         self.bot = bot
         self.itm = StartInTheMix(bot)
         self.submissions_queue = SubmissionsQueue(bot)
-        self.submissions_open = False # submissions will be open for 40 minutes or until there's an hour of music
-        self.event_start = False # the event will start at the closest :00 or :30 since we usually announce 10 minutes before
+# submissions will be open for 40 minutes or until there's an hour of music
+# the event will start at the closest :00 or :30 since we usually announce 10 minutes before
 
 
     # Listen for messages in event-submissions channel
@@ -61,8 +62,12 @@ class EventVC(commands.Cog):
         await interaction.response.defer(ephemeral=True)
 
         # open submissions 
-        self.submissions_open = True
-        self.event_start = False
+        submissions_start_time = datetime.datetime.now()
+        submissions_open = True
+        event_start_time = submissions_start_time + datetime.timedelta(minutes=5)
+        event_start = False
+
+        event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
 
         # Configure channel, send announcements, change channel names/perms
         try:
@@ -77,20 +82,27 @@ class EventVC(commands.Cog):
             await interaction.followup.send(f"❌ Command failed: {e}", ephemeral=True)
             return
 
-        # Bot join event VC
-        try:
-            await self.itm.join_vc(interaction)
-            await interaction.followup.send("✅ In The Mix fully started!", ephemeral=True)
+        # calculate aotw runtime
+        try:    
+            calculated_start_time, aotw_link = await self.itm.calculate_aotw_runtime(interaction, event_start_time)
+            await interaction.followup.send("✅ AOTW runtime calculated!", ephemeral=True)
         except Exception as e:
-            print(f"Error joining VC: {e}")
-            await interaction.followup.send(f"⚠️ Announcements sent but failed to join VC: {e}", ephemeral=True)
+            print(f"Error calculating AOTW runtime: {e}")
+            await interaction.followup.send(f"⚠️ Failed to calculate AOTW runtime: {e}", ephemeral=True)
+            calculated_start_time, aotw_link = None, None
 
-
-        # create task to play aotw song with 10 minutes - duration of track
-        # create tasks to track 10 minute countdown + closest :00 or :30 to start the event
-
+        # play aotw track (run as background task so it doesn't block)
+        if calculated_start_time and aotw_link:
+            try:
+                asyncio.create_task(self.itm.play_aotw_song(calculated_start_time, aotw_link))
+                await interaction.followup.send("✅ AOTW scheduled!", ephemeral=True)
+            except Exception as e:
+                print(f"Error scheduling AOTW: {e}")
+                await interaction.followup.send(f"⚠️ Failed to schedule AOTW: {e}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"⚠️ Check <#{AOTW_CHANNEL}> for this week's Artist of the Week!", ephemeral=True)
         # play the queue
-        await self.submissions_queue.play_song()
+        # await self.submissions_queue.play_queue()
 
 
 async def setup(bot):
