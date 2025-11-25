@@ -185,12 +185,6 @@ class StartInTheMix:
         except Exception as e:
             await mod_chat.send(f"❌ Failed to play AOTW song: {e}")
 
-    
-
-         
-
-
-
 
 
 

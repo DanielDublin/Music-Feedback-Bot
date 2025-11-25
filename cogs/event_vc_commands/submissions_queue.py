@@ -54,7 +54,7 @@ class SubmissionsQueue(commands.Cog):
             link = link_match.group(1)
         except Exception as e:
             await mod_chat.send(f"❌ Error parsing ITM submission: {e}")
-            return
+            return None
         
         # extract the sender of the link
         try:
@@ -64,16 +64,16 @@ class SubmissionsQueue(commands.Cog):
                 sender = guild.get_member(user_id)
         except Exception as e:
             await mod_chat.send(f"❌ Error parsing ITM submission: {e}")
-            return
+            return None
 
         # get the duration of the track
-        formatted_duration, title = await self.get_song_duration(link)
-        print(f"Duration: {formatted_duration}, Title: {title}")
+        title, duration_seconds = await self.get_song_duration(link)  
+        print(f"Duration: {duration_seconds}s, Title: {title}")
 
         return {
             'sender': sender,
             'link': link,
-            'duration': formatted_duration,
+            'duration_seconds': duration_seconds, 
             'title': title
         }
 
@@ -81,26 +81,12 @@ class SubmissionsQueue(commands.Cog):
         try:
             with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                duration = info.get('duration', 0)
+                duration_seconds = info.get('duration', 0)
                 title = info.get('title', 'Unknown')
-                formatted_duration = self.format_duration(duration)
-                return formatted_duration, title
+                return title, duration_seconds 
         except Exception as e:
             print(f"Error getting video duration: {e}")
-            return None, None
-    
-    def format_duration(self, seconds):
-        if not seconds:
-            return "Unknown"
-        
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        
-        if hours > 0:
-            return f"{hours}:{minutes:02d}:{secs:02d}"
-        else:
-            return f"{minutes}:{secs:02d}"
+            return "Unknown", 0
 
     
     async def add_to_queue(self, submission_data):
@@ -111,6 +97,30 @@ class SubmissionsQueue(commands.Cog):
             print(f"📋 Current queue: {[s['title'] for s in self.submission_queue]}")
         except Exception as e:
             print(f"❌ Error in add_to_queue: {e}")
+
+    def get_queue_length(self):
+        try: 
+            total_seconds = sum(submission['duration_seconds'] for submission in self.submission_queue)
+        except Exception as e:
+            print(f"❌ Error calculating queue length: {e}")
+
+        return total_seconds
+    
+    def get_formatted_queue_length(self):
+        total_seconds = self.get_queue_length()
+        
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        secs = int(total_seconds % 60)
+        
+        if hours > 0:
+            return f"{hours}:{minutes:02d}:{secs:02d}"
+        else:
+            return f"{minutes}:{secs:02d}"
+    
+    def get_queue_count(self):
+
+        return len(self.submission_queue)
 
     async def play_song(self, link):
         """Play a single song (for AOTW)"""
@@ -123,7 +133,7 @@ class SubmissionsQueue(commands.Cog):
         
         try:
             # Get song info
-            duration_str, title = await self.get_song_duration(link)
+            title, duration_seconds = await self.get_song_duration(link)
             print(f"▶️  Now playing AOTW: {title}")
             
             # Extract audio URL
@@ -171,13 +181,8 @@ class SubmissionsQueue(commands.Cog):
             import traceback
             traceback.print_exc()
 
-
-
     
     async def play_queue(self):
-        """Wait 60 seconds, then play all songs in queue"""
-        print("⏳ Waiting 60 seconds for submissions...")
-        
         print(f"🎵 Starting playback. Queue has {len(self.submission_queue)} songs")
         
         # Check if bot is in voice channel
@@ -251,10 +256,5 @@ class SubmissionsQueue(commands.Cog):
         print("🏁 Queue finished!")
 
 
-    async def add_submission(self, submission):
-        self.submission_queue.append(submission)
-
-
 async def setup(bot):
     await bot.add_cog(SubmissionsQueue(bot))
-
