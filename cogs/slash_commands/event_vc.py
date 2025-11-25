@@ -24,7 +24,6 @@ class EventVC(commands.Cog):
         # submissions will be open for 40 minutes or until there's an hour of music
         # the event will start at the closest :00 or :30 since we usually announce 10 minutes before
 
-
     # Listen for messages in event-submissions channel
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -138,7 +137,8 @@ class EventVC(commands.Cog):
             await interaction.followup.send(f"⚠️ Failed to calculate AOTW runtime: {e}", ephemeral=True)
             calculated_start_time, aotw_link = None, None
 
-        # Play aotw track (run as background task so it doesn't block)
+        # Play aotw track 
+        # will also call the rest of the queue immediately after playing aotw
         if calculated_start_time and aotw_link:
             try:
                 asyncio.create_task(self.itm.play_aotw_song(calculated_start_time, aotw_link))
@@ -152,11 +152,16 @@ class EventVC(commands.Cog):
         # Schedule automatic submission closing after 40 minutes
         asyncio.create_task(self.close_submissions_timer())
         
-        # TODO: Schedule queue playback after AOTW finishes
         # await self.submissions_queue.play_queue()
 
     async def close_submissions_timer(self):
         """Automatically close submissions after 40 minutes"""
+
+        await asyncio.sleep(30 * 60)  # Wait 30 minutes first
+        if self.submissions_open:
+            event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
+            await event_text.send("⏳ 10 minutes remaining to submit your tracks!")
+
         await asyncio.sleep(40 * 60)  # Wait 40 minutes
         
         if self.submissions_open:

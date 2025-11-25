@@ -121,28 +121,18 @@ class StartInTheMix:
 
         try:
             # parse the time
-            duration_str, title = await submissions_cog.get_song_duration(link)
-            parts = duration_str.split(':')
+            title, duration_seconds = await submissions_cog.get_song_duration(link)
             
-            # Handle both MM:SS and HH:MM:SS formats
-            if len(parts) == 2:  # MM:SS
-                duration_seconds = int(parts[0]) * 60 + int(parts[1])
-            elif len(parts) == 3:  # HH:MM:SS
-                duration_seconds = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-            else:
-                await mod_chat.send(f"⚠️ Could not parse duration: {duration_str}")
-                return None, None
-
             # Check if song is too long (more than 10 minutes)
             if duration_seconds > 600:
-                await mod_chat.send(f"⚠️ AOTW track '{title}' is too long ({duration_str}). Max 10 minutes.")
+                await mod_chat.send(f"⚠️ AOTW track '{title}' is too long ({duration_seconds}). Max 10 minutes.")
                 await event_text.send(f"# Make sure to check out our Artist of the Week's winnning track after the event after the event!\n\n{link}")
                 return None, None
 
             # allow a time to buffer
             calculated_start_time = event_start_time - datetime.timedelta(seconds=duration_seconds - 45)
             
-            await mod_chat.send(f"✅ AOTW: '{title}' ({duration_str}) will play at {calculated_start_time.strftime('%I:%M:%S %p')}")
+            await mod_chat.send(f"✅ AOTW: '{title}' ({duration_seconds}) will play at {calculated_start_time.strftime('%I:%M:%S %p')}")
             return calculated_start_time, link
 
         except Exception as e:
@@ -184,6 +174,13 @@ class StartInTheMix:
             
         except Exception as e:
             await mod_chat.send(f"❌ Failed to play AOTW song: {e}")
+
+        # play the rest of the queue
+        try:
+            await submissions_cog.play_queue()
+            await mod_chat.send("✅ Finished playing submission queue")
+        except Exception as e:
+            await mod_chat.send(f"❌ Failed to play submission queue: {e}")
 
 
 
