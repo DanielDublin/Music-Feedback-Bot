@@ -111,7 +111,7 @@ class EventVC(commands.Cog):
         self.submissions_open = True
         self.submission_close_time = submissions_start_time + datetime.timedelta(minutes=40)
         
-        event_start_time = submissions_start_time + datetime.timedelta(minutes=10)  # Event starts 10 min after command
+        event_start_time = submissions_start_time + datetime.timedelta(minutes=5)  # Event starts 10 min after command
 
         event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
 

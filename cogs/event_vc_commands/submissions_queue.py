@@ -2,6 +2,7 @@ import discord
 import re
 import yt_dlp
 import asyncio
+import random
 from discord.ext import commands
 from data.constants import MOD_SUBMISSION_LOGGER_CHANNEL_ID, MODERATORS_CHANNEL_ID
 
@@ -194,6 +195,10 @@ class SubmissionsQueue(commands.Cog):
         
         # Play each song in the queue
         while len(self.submission_queue) > 0:
+            
+            # randomize the queue first
+            random.shuffle(self.submission_queue)
+
             submission = self.submission_queue.pop(0)
             url = submission['link']
             title = submission['title']
