@@ -2,16 +2,23 @@ import discord
 import asyncio
 import datetime
 import re
-from data.constants import EVENT_VC, ITM_CHANNEL, ITM_ROLE, SUBMISSIONS_CHANNEL_ID, EVENT_CATEGORY, MOD_SUBMISSION_LOGGER_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MODERATORS_CHANNEL_ID, AOTW_CHANNEL #submissions_channel_id = event-textevent-submissions
+import os
+from data.constants import (
+    EVENT_VC, ITM_CHANNEL, ITM_ROLE, SUBMISSIONS_CHANNEL_ID, 
+    EVENT_CATEGORY, MOD_SUBMISSION_LOGGER_CHANNEL_ID, 
+    GENERAL_CHAT_CHANNEL_ID, MODERATORS_CHANNEL_ID, AOTW_CHANNEL
+)
 from cogs.event_vc_commands.submissions_queue import SubmissionsQueue
+from cogs.event_vc_commands.elven_tts import ElevenLabsTTS
 
 
 class StartInTheMix:
     def __init__(self, bot):
         self.bot = bot
+        # Initialize ElevenLabs TTS handler
+        self.tts = ElevenLabsTTS(api_key=os.getenv('ELEVENLABS_API_KEY'))
 
     async def send_announcement(self, interaction):
-    
         guild = interaction.guild
         mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
 
@@ -21,8 +28,6 @@ class StartInTheMix:
         event_text = guild.get_channel(SUBMISSIONS_CHANNEL_ID)
         event_vc = guild.get_channel(EVENT_VC)
         general_chat = guild.get_channel(GENERAL_CHAT_CHANNEL_ID)
-
-        # make event?
 
         # purge the submissions channel
         try:
@@ -91,9 +96,7 @@ class StartInTheMix:
         except Exception as e:
             await mod_chat.send(f"❌ Failed to send general chat announcement: {e}")
 
-    
     async def join_vc(self, interaction):
-
         guild = interaction.guild
         mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
 
@@ -125,49 +128,100 @@ class StartInTheMix:
             
             # Check if song is too long (more than 10 minutes)
             if duration_seconds > 600:
-                await mod_chat.send(f"⚠️ AOTW track '{title}' is too long ({duration_seconds}). Max 10 minutes.")
-                await event_text.send(f"# Make sure to check out our Artist of the Week's winnning track after the event after the event!\n\n{link}")
-                return None, None
+                await mod_chat.send(f"⚠️ AOTW track '{title}' is too long ({duration_seconds}s). Max 10 minutes.")
+                await event_text.send(f"# Make sure to check out our Artist of the Week's winning track after the event!\n\n{link}")
+                return None, None, None
 
             # allow a time to buffer
             calculated_start_time = event_start_time - datetime.timedelta(seconds=duration_seconds - 45)
             
-            await mod_chat.send(f"✅ AOTW: '{title}' ({duration_seconds}) will play at {calculated_start_time.strftime('%I:%M:%S %p')}")
-            return calculated_start_time, link
+            await mod_chat.send(f"✅ AOTW: '{title}' ({duration_seconds}s) will play at {calculated_start_time.strftime('%I:%M:%S %p')}")
+            return calculated_start_time, link, title
 
         except Exception as e:
             await mod_chat.send(f"❌ Failed to get song duration: {e}")
-            return None, None
+            return None, None, None
     
-    async def play_aotw_song(self, calculated_start_time, link):
+    async def play_welcome_announcement(self, voice_client, mod_chat, title):
+        """Play welcome TTS message"""
+        welcome_text = "Welcome to In The Mix! Listening to the latest tracks from our community. First we have our Artist of the Week with {title}."
+        
+        await mod_chat.send("🎤 Playing welcome message...")
+        success = await self.tts.play_tts_in_vc(voice_client, welcome_text, voice_id="TxGEqnHWrfWFTfGW9XjX")
+        
+        if success:
+            await mod_chat.send("✅ Welcome message played")
+        else:
+            await mod_chat.send("❌ Failed to play welcome message")
+        
+        return success
+    
+    async def play_now_playing_announcement(self, voice_client, mod_chat, title, artist=None):
+        """Play 'now playing' TTS announcement"""
+        if artist:
+            announcement = f"Now playing: {title} by {artist}"
+        else:
+            announcement = f"Now playing: {title}"
+        
+        await mod_chat.send(f"🎤 Announcing: {title}")
+        success = await self.tts.play_tts_in_vc(voice_client, announcement, voice_id="TxGEqnHWrfWFTfGW9XjX")
+        
+        if success:
+            await mod_chat.send("✅ Announcement played")
+        else:
+            await mod_chat.send("❌ Failed to play announcement")
+        
+        return success
+    
+    async def play_aotw_song(self, calculated_start_time, link, title, artist=None):
+        """
+        Play AOTW song with optional TTS announcements
+        
+        Args:
+            calculated_start_time: When to start playing
+            link: Song URL
+            title: Song title
+            artist: Artist name (optional)
+        """
         submissions_cog = self.bot.get_cog('SubmissionsQueue')
         
         # Get guild and mod chat
         guild = self.bot.guilds[0] 
         mod_chat = guild.get_channel(MODERATORS_CHANNEL_ID)
         
-        # Calculate wait time with 5 second buffer to join VC early
-        wait_time = (calculated_start_time - datetime.datetime.now()).total_seconds() - 5
+        # Calculate wait time with extra buffer for TTS announcements (15 seconds)
+        wait_time = (calculated_start_time - datetime.datetime.now()).total_seconds() - 15
         
         if wait_time > 0:
             await mod_chat.send(f"⏳ Waiting {wait_time:.0f} seconds before joining VC for AOTW...")
             await asyncio.sleep(wait_time)
         
-        # Join VC 5 seconds before song starts
+        # Join VC early for announcements
         try:
             event_vc = guild.get_channel(EVENT_VC)
+            voice_client = None
             
             if not self.bot.voice_clients:
-                await event_vc.connect()
+                voice_client = await event_vc.connect()
                 await mod_chat.send("✅ Bot joined VC for AOTW")
+            else:
+                voice_client = self.bot.voice_clients[0]
             
-            # Wait the remaining 5 seconds
-            await asyncio.sleep(5)
+            # Wait for connection to stabilize
+            await asyncio.sleep(2)
+            
+            # Play welcome announcement (optional - can be toggled)
+            await self.play_welcome_announcement(voice_client, mod_chat)
+            await asyncio.sleep(1)
+            
+            # Announce AOTW track
+            await self.play_now_playing_announcement(voice_client, mod_chat, title, artist)
+            await asyncio.sleep(1)
             
         except Exception as e:
-            await mod_chat.send(f"❌ Failed to join VC: {e}")
+            await mod_chat.send(f"❌ Failed to join VC or play announcements: {e}")
         
-        # Play the song
+        # Play the AOTW song
         try: 
             await submissions_cog.play_song(link)
             await mod_chat.send("✅ AOTW finished playing")
@@ -175,16 +229,12 @@ class StartInTheMix:
         except Exception as e:
             await mod_chat.send(f"❌ Failed to play AOTW song: {e}")
 
-        # play the rest of the queue
+        # Play the rest of the queue
         try:
             await submissions_cog.play_queue()
             await mod_chat.send("✅ Finished playing submission queue")
         except Exception as e:
             await mod_chat.send(f"❌ Failed to play submission queue: {e}")
-
-
-
-
 
 
         # take the last message in aotw and check duration

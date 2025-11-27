@@ -111,7 +111,7 @@ class EventVC(commands.Cog):
         self.submissions_open = True
         self.submission_close_time = submissions_start_time + datetime.timedelta(minutes=40)
         
-        event_start_time = submissions_start_time + datetime.timedelta(minutes=5)  # Event starts 10 min after command
+        event_start_time = submissions_start_time + datetime.timedelta(minutes=5)  # Event starts 5 min after command
 
         event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
 
@@ -130,21 +130,35 @@ class EventVC(commands.Cog):
 
         # Calculate aotw runtime
         try:    
-            calculated_start_time, aotw_link = await self.itm.calculate_aotw_runtime(interaction, event_start_time)
+            # FIXED: Now unpacking 3 values instead of 2, and removed incorrect 'title' parameter
+            calculated_start_time, aotw_link, aotw_title = await self.itm.calculate_aotw_runtime(interaction, event_start_time)
             await interaction.followup.send("✅ AOTW runtime calculated!", ephemeral=True)
         except Exception as e:
             print(f"Error calculating AOTW runtime: {e}")
+            import traceback
+            traceback.print_exc()
             await interaction.followup.send(f"⚠️ Failed to calculate AOTW runtime: {e}", ephemeral=True)
-            calculated_start_time, aotw_link = None, None
+            calculated_start_time, aotw_link, aotw_title = None, None, None
 
         # Play aotw track 
         # will also call the rest of the queue immediately after playing aotw
         if calculated_start_time and aotw_link:
             try:
-                asyncio.create_task(self.itm.play_aotw_song(calculated_start_time, aotw_link))
+                # FIXED: Now passing title and optionally extracting artist
+                artist = None
+                title = aotw_title
+                
+                # Try to extract artist from title if format is "Artist - Song"
+                if title and " - " in title:
+                    artist, title = title.split(" - ", 1)
+                
+                # Schedule the AOTW song with TTS announcements
+                asyncio.create_task(self.itm.play_aotw_song(calculated_start_time, aotw_link, title, artist))
                 await interaction.followup.send("✅ AOTW scheduled!", ephemeral=True)
             except Exception as e:
                 print(f"Error scheduling AOTW: {e}")
+                import traceback
+                traceback.print_exc()
                 await interaction.followup.send(f"⚠️ Failed to schedule AOTW: {e}", ephemeral=True)
         else:
             await interaction.followup.send(f"⚠️ Check <#{AOTW_CHANNEL}> for this week's Artist of the Week!", ephemeral=True)
@@ -152,8 +166,6 @@ class EventVC(commands.Cog):
         # Schedule automatic submission closing after 40 minutes
         asyncio.create_task(self.close_submissions_timer())
         
-        # await self.submissions_queue.play_queue()
-
     async def close_submissions_timer(self):
         """Automatically close submissions after 40 minutes"""
 
@@ -162,7 +174,7 @@ class EventVC(commands.Cog):
             event_text = self.bot.get_channel(SUBMISSIONS_CHANNEL_ID)
             await event_text.send("⏳ 10 minutes remaining to submit your tracks!")
 
-        await asyncio.sleep(40 * 60)  # Wait 40 minutes
+        await asyncio.sleep(10 * 60)  # Wait another 10 minutes (40 total)
         
         if self.submissions_open:
             self.submissions_open = False
