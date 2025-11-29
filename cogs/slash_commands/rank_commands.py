@@ -7,6 +7,8 @@ from discord import app_commands
 from database.google_sheet import GoogleSheet
 from data.constants import GENERAL_CHAT_CHANNEL_ID
 from cogs.member_cards.add_rank_member_card import AddRankMemberCard
+from cogs.feedback_threads.modules.check_rank_embed import PaginationView
+
 
 class RankCommands(commands.Cog):
     def __init__(self, bot, google_sheet):
@@ -141,31 +143,23 @@ class RankCommands(commands.Cog):
         else:
             await interaction.followup.send("User not in the database.")
 
-    # check for ranks added more than a week ago
+        # check for ranks added more than a week ago
     @app_commands.checks.has_any_role('Admins', 'Moderators')
-    @group.command(name="check", description="Check for users with ranks older than a week")
+    @group.command(name="check", description="Check for users with ranks that need updating")
     async def check_ranks(self, interaction: discord.Interaction):
         
         await interaction.response.defer(thinking=True)
 
-        # Get debug channel
-        debug_channel = self.bot.get_channel(1137143797361422458)
-        
         outdated_users = await self.google_sheet.get_outdated_for_all_users(interaction.guild)
 
-        # Send debug info
-        if debug_channel:
-            await debug_channel.send(f"**Debug Info:**\nTotal outdated users found: {len(outdated_users)}")
-            
-            # Send the raw data
-            for user_data in outdated_users[:10]:  # First 10 to avoid spam
-                await debug_channel.send(f"```python\n{user_data}\n```")
-
         if outdated_users:
-            embed = discord.Embed(title="Users that might need to be updated", color=0x7e016f)
-            
-            user_list = []
             today = datetime.now()
+            
+            # Categorize users by rank type with different time thresholds
+            stagehands = []  # 1 week
+            supporting_acts = []  # 3 weeks
+            headliners = []  # 6 months
+            ranked_down = []  # 1 month
             
             for user_data in outdated_users:
                 user_id = user_data['user_id']
@@ -180,39 +174,67 @@ class RankCommands(commands.Cog):
                 member = interaction.guild.get_member(int(user_id))
                 user_mention = member.mention if member else user_data['username']
                 
-                user_list.append(f"• {user_mention} - {last_role} ({days}d ago)")
+                line = f"• {user_mention} - {last_role} ({days}d ago)"
+                
+                # Categorize based on role and time threshold
+                if "Ranked up to Stagehands" in last_role and days >= 7:
+                    stagehands.append(line)
+                elif "Ranked up to Supporting Acts" in last_role and days >= 21:  # 3 weeks
+                    supporting_acts.append(line)
+                elif "Ranked up to Headliners" in last_role and days >= 180:  # 6 months
+                    headliners.append(line)
+                elif "Ranked down" in last_role and days >= 30:  # 1 month
+                    ranked_down.append(line)
             
-            # Split into chunks if too long
-            combined_text = '\n'.join(user_list)
+            # Create pages for each category
+            pages = []
             
-            if len(combined_text) <= 1024:
-                embed.add_field(name="Outdated Ranks", value=combined_text, inline=False)
+            if stagehands:
+                embed = discord.Embed(
+                    title="🎭 Stagehands (1+ week old)",
+                    description='\n'.join(stagehands),
+                    color=0x7e016f
+                )
+                embed.set_footer(text=f"Page 1 • {len(stagehands)} users")
+                pages.append(embed)
+            
+            if supporting_acts:
+                embed = discord.Embed(
+                    title="🎸 Supporting Acts (3+ weeks old)",
+                    description='\n'.join(supporting_acts),
+                    color=0x7e016f
+                )
+                embed.set_footer(text=f"Page {len(pages) + 1} • {len(supporting_acts)} users")
+                pages.append(embed)
+            
+            if headliners:
+                embed = discord.Embed(
+                    title="⭐ Headliners (6+ months old)",
+                    description='\n'.join(headliners),
+                    color=0x7e016f
+                )
+                embed.set_footer(text=f"Page {len(pages) + 1} • {len(headliners)} users")
+                pages.append(embed)
+            
+            if ranked_down:
+                embed = discord.Embed(
+                    title="⬇️ Ranked Down (1+ month old)",
+                    description='\n'.join(ranked_down),
+                    color=0x7e016f
+                )
+                embed.set_footer(text=f"Page {len(pages) + 1} • {len(ranked_down)} users")
+                pages.append(embed)
+            
+            if pages:
+                # Create pagination view
+                view = PaginationView(pages)
+                message = await interaction.followup.send(embed=pages[0], view=view)
+                view.message = message
             else:
-                # Split into multiple fields
-                chunk = []
-                chunk_length = 0
-                field_num = 1
-                
-                for line in user_list:
-                    if chunk_length + len(line) + 1 > 1024:  # +1 for newline
-                        embed.add_field(name=f"Outdated Ranks (Part {field_num})", value='\n'.join(chunk), inline=False)
-                        chunk = [line]
-                        chunk_length = len(line)
-                        field_num += 1
-                    else:
-                        chunk.append(line)
-                        chunk_length += len(line) + 1
-                
-                # Add remaining chunk
-                if chunk:
-                    embed.add_field(name=f"Outdated Ranks (Part {field_num})", value='\n'.join(chunk), inline=False)
+                await interaction.followup.send("No users with ranks that need updating.")
             
-            await interaction.followup.send(embed=embed)
         else:
-            await interaction.followup.send("No users with ranks older than a week were found.")
-            # Debug when nothing found
-            if debug_channel:
-                await debug_channel.send("⚠️ No outdated users found - checking why...")
+            await interaction.followup.send("No users with ranks that need updating.")
 
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'

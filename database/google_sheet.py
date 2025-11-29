@@ -109,8 +109,6 @@ class GoogleSheet:
         all_data = self.sheet.get_all_values()
         
         user_dates = []
-        today = datetime.now()
-        one_week_ago = today - timedelta(days=7)
         
         for row in all_data:
             if len(row) < 3:  # Skip rows that don't have enough data
@@ -147,20 +145,11 @@ class GoogleSheet:
                 continue
             
             if last_date_str and last_role:
-                try:
-                    # Parse the date string to datetime object
-                    last_date = datetime.strptime(last_date_str, "%m/%d/%Y")
-                    
-                    # Compare datetime objects
-                    if last_date <= one_week_ago:
-                        user_dates.append({
-                            "user_id": user_id,
-                            "username": username,
-                            "last_role": last_role,
-                            "last_date": last_date_str
-                        })
-                except ValueError:
-                    # Skip rows with invalid date formats
-                    continue
+                user_dates.append({
+                    "user_id": user_id,
+                    "username": username,
+                    "last_role": last_role,
+                    "last_date": last_date_str
+                })
                         
         return user_dates
