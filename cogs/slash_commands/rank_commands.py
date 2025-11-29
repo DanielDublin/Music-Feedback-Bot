@@ -143,7 +143,7 @@ class RankCommands(commands.Cog):
 
     # check for ranks added more than a week ago
     @app_commands.checks.has_any_role('Admins', 'Moderators')
-    @group.command(name="check", description="Check for users with ranks older than a week"
+    @group.command(name="check", description="Check for users with ranks older than a week")
     async def check_ranks(self, interaction: discord.Interaction):
         
         await interaction.response.defer(thinking=True)
