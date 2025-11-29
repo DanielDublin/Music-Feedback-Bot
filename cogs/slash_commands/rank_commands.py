@@ -1,7 +1,7 @@
 import discord
 import asyncio
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord.ext import commands
 from discord import app_commands
 from database.google_sheet import GoogleSheet
@@ -148,7 +148,18 @@ class RankCommands(commands.Cog):
         
         await interaction.response.defer(thinking=True)
 
+        # Get debug channel
+        debug_channel = self.bot.get_channel(1137143797361422458)
+        
         outdated_users = await self.google_sheet.get_outdated_for_all_users(interaction.guild)
+
+        # Send debug info
+        if debug_channel:
+            await debug_channel.send(f"**Debug Info:**\nTotal outdated users found: {len(outdated_users)}")
+            
+            # Send the raw data
+            for user_data in outdated_users[:10]:  # First 10 to avoid spam
+                await debug_channel.send(f"```python\n{user_data}\n```")
 
         if outdated_users:
             embed = discord.Embed(title="Users that might need to be updated", color=0x7e016f)
@@ -175,6 +186,9 @@ class RankCommands(commands.Cog):
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send("No users with ranks older than a week were found.")
+            # Debug when nothing found
+            if debug_channel:
+                await debug_channel.send("⚠️ No outdated users found - checking why...")
 
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'

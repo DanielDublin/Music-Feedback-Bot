@@ -105,7 +105,6 @@ class GoogleSheet:
             time_difference = current_date - previous_date
             return time_difference.days
         
-
     async def get_outdated_for_all_users(self, guild):
         all_data = self.sheet.get_all_values()
         
@@ -143,6 +142,10 @@ class GoogleSheet:
                         last_role = row[i - 1]
                     break
             
+            # Skip if last role is MF Gilded or The Real MFrs
+            if last_role and ("MF Gilded" in last_role or "The Real MFrs" in last_role):
+                continue
+            
             if last_date_str and last_role:
                 try:
                     # Parse the date string to datetime object
@@ -161,3 +164,5 @@ class GoogleSheet:
                     continue
                         
         return user_dates
+            
+
