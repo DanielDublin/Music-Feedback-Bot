@@ -142,6 +142,8 @@ class RankCommands(commands.Cog):
             await interaction.followup.send("User not in the database.")
 
     # check for ranks added more than a week ago
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @group.command(name="check", description="Check for users with ranks older than a week"
     async def check_ranks(self, interaction: discord.Interaction):
         
         await interaction.response.defer(thinking=True)
@@ -211,7 +213,7 @@ class RankCommands(commands.Cog):
             # Debug when nothing found
             if debug_channel:
                 await debug_channel.send("⚠️ No outdated users found - checking why...")
-                
+
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'
     sheet_name = "MF BOT"
