@@ -1,5 +1,7 @@
 import json
 import gspread
+import time
+from datetime import timedelta
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 
@@ -102,4 +104,50 @@ class GoogleSheet:
             # find difference
             time_difference = current_date - previous_date
             return time_difference.days
+        
 
+    async def get_outdated_for_all_users(self, guild):
+        all_data = self.sheet.get_all_values()
+        
+        user_dates = []
+        # add roles that were added > 1 week ago
+        today = datetime.now()
+        one_week_ago = today - timedelta(days=7)
+        
+        for row in all_data:
+            if len(row) < 3:  # Skip rows that don't have enough data
+                continue
+                
+            user_id = row[0]
+            username = row[1]
+
+            # check if user is still in the server
+            try:
+                member = guild.get_member(int(user_id))
+                if member is None:
+                    # User not in this guild, don't add
+                    continue
+            except:
+                continue
+                
+            last_date_str = row[-1] if len(row) > 2 else None
+            last_role = row[-2] if len(row) > 2 else None
+            
+            if last_date_str and last_role:
+                try:
+                    # Parse the date string to datetime object
+                    last_date = datetime.strptime(last_date_str, "%m/%d/%Y")
+                    
+                    # Compare datetime objects
+                    if last_date <= one_week_ago:
+                        user_dates.append({
+                            "user_id": user_id,
+                            "username": username,
+                            "last_role": last_role,
+                            "last_date": last_date_str
+                        })
+                except ValueError:
+                    # Skip rows with invalid date formats
+                    continue
+                        
+        return user_dates

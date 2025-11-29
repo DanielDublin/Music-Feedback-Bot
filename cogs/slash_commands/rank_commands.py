@@ -1,5 +1,6 @@
 import discord
 import asyncio
+import datetime
 from discord.ext import commands
 from discord import app_commands
 from database.google_sheet import GoogleSheet
@@ -138,6 +139,41 @@ class RankCommands(commands.Cog):
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send("User not in the database.")
+
+    # check for ranks added more than a week ago
+    @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @group.command(name="check_ranks", description="Check for users with ranks older than a week")
+    async def check_ranks(self, interaction: discord.Interaction):
+        
+        await interaction.response.defer(thinking=True)
+
+        outdated_users = await self.google_sheet.get_outdated_for_all_users(interaction.guild)
+
+        if outdated_users:
+            embed = discord.Embed(title="Users that might need to be updated", color=0x7e016f)
+            
+            user_list = []
+            today = datetime.now()
+            
+            for user_data in outdated_users:
+                user_id = user_data['user_id']
+                last_role = user_data['last_role']
+                last_date_str = user_data['last_date']
+                
+                # Calculate days since update
+                last_date = datetime.strptime(last_date_str, "%m/%d/%Y")
+                days = (today - last_date).days
+                
+                # Get the member object for mention
+                member = interaction.guild.get_member(int(user_id))
+                user_mention = member.mention if member else user_data['username']
+                
+                user_list.append(f"• {user_mention} - {last_role} on {last_date_str} ({days} days ago)")
+            
+            embed.add_field(name="Outdated Ranks", value='\n'.join(user_list), inline=False)
+            await interaction.followup.send(embed=embed)
+        else:
+            await interaction.followup.send("No users with ranks older than a week were found.")
 
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'
