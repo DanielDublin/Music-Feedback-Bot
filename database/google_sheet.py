@@ -110,7 +110,6 @@ class GoogleSheet:
         all_data = self.sheet.get_all_values()
         
         user_dates = []
-        # add roles that were added > 1 week ago
         today = datetime.now()
         one_week_ago = today - timedelta(days=7)
         
@@ -125,13 +124,24 @@ class GoogleSheet:
             try:
                 member = guild.get_member(int(user_id))
                 if member is None:
-                    # User not in this guild, don't add
                     continue
             except:
                 continue
-                
-            last_date_str = row[-1] if len(row) > 2 else None
-            last_role = row[-2] if len(row) > 2 else None
+            
+            # Find the last date by going backwards through the row
+            last_date_str = None
+            last_role = None
+            
+            # Start from the end and work backwards, looking for date pattern
+            for i in range(len(row) - 1, 1, -1):  # Start from end, go to index 2
+                cell = row[i].strip() if row[i] else ""
+                # Check if this looks like a date (contains slashes and numbers)
+                if '/' in cell and any(c.isdigit() for c in cell):
+                    last_date_str = cell
+                    # The role should be in the cell before the date
+                    if i > 0:
+                        last_role = row[i - 1]
+                    break
             
             if last_date_str and last_role:
                 try:
