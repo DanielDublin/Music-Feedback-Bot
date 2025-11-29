@@ -142,8 +142,6 @@ class RankCommands(commands.Cog):
             await interaction.followup.send("User not in the database.")
 
     # check for ranks added more than a week ago
-    @app_commands.checks.has_any_role('Admins', 'Moderators')
-    @group.command(name="check_ranks", description="Check for users with ranks older than a week")
     async def check_ranks(self, interaction: discord.Interaction):
         
         await interaction.response.defer(thinking=True)
@@ -180,16 +178,40 @@ class RankCommands(commands.Cog):
                 member = interaction.guild.get_member(int(user_id))
                 user_mention = member.mention if member else user_data['username']
                 
-                user_list.append(f"• {user_mention} - {last_role} on {last_date_str} ({days} days ago)")
+                user_list.append(f"• {user_mention} - {last_role} ({days}d ago)")
             
-            embed.add_field(name="Outdated Ranks", value='\n'.join(user_list), inline=False)
+            # Split into chunks if too long
+            combined_text = '\n'.join(user_list)
+            
+            if len(combined_text) <= 1024:
+                embed.add_field(name="Outdated Ranks", value=combined_text, inline=False)
+            else:
+                # Split into multiple fields
+                chunk = []
+                chunk_length = 0
+                field_num = 1
+                
+                for line in user_list:
+                    if chunk_length + len(line) + 1 > 1024:  # +1 for newline
+                        embed.add_field(name=f"Outdated Ranks (Part {field_num})", value='\n'.join(chunk), inline=False)
+                        chunk = [line]
+                        chunk_length = len(line)
+                        field_num += 1
+                    else:
+                        chunk.append(line)
+                        chunk_length += len(line) + 1
+                
+                # Add remaining chunk
+                if chunk:
+                    embed.add_field(name=f"Outdated Ranks (Part {field_num})", value='\n'.join(chunk), inline=False)
+            
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send("No users with ranks older than a week were found.")
             # Debug when nothing found
             if debug_channel:
                 await debug_channel.send("⚠️ No outdated users found - checking why...")
-
+                
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'
     sheet_name = "MF BOT"
