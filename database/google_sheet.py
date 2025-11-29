@@ -142,8 +142,8 @@ class GoogleSheet:
                         last_role = row[i - 1]
                     break
             
-            # Skip if last role is MF Gilded or The Real MFrs
-            if last_role and ("MF Gilded" in last_role or "The Real MFrs" in last_role):
+            # Skip if last role is MF Gilded, The Real MFrs, or Ranked down to Groupies
+            if last_role and ("MF Gilded" in last_role or "The Real MFrs" in last_role or "Ranked down to Groupies" in last_role):
                 continue
             
             if last_date_str and last_role:
@@ -164,5 +164,3 @@ class GoogleSheet:
                     continue
                         
         return user_dates
-            
-
