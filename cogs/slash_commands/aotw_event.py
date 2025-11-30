@@ -295,5 +295,18 @@ class AOTWEvent(commands.Cog):
             await interaction.followup.send(f"⚠️ Setup complete but listener may not be active!")
 
 
+    @app_commands.command(name ="initial_atow_message", description = "Post in Artist of the Week channel initial message")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def initial_atow_message(self, interaction):
+
+        await interaction.response.defer()
+
+        config = ConfigureChannel(self.bot)
+
+        await config.check_aotw_channel_announcement()
+        
+        await interaction.followup.send("✅ Initial AOTW message posted!", ephemeral=True)
+
+
 async def setup(bot):
     await bot.add_cog(AOTWEvent(bot))
