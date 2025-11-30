@@ -303,7 +303,8 @@ class AOTWEvent(commands.Cog):
 
         config = ConfigureChannel(self.bot)
 
-        await config.check_aotw_channel_announcement()
+        formatted_six_months = await config.calculate_six_months()
+        await config.check_aotw_channel_announcement(formatted_six_months)
         
         await interaction.followup.send("✅ Initial AOTW message posted!", ephemeral=True)
 
