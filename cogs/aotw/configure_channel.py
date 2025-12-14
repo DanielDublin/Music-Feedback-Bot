@@ -1,5 +1,6 @@
 import discord
 import datetime
+import asyncio
 from data.constants import AOTW_CHANNEL, AOTW_SUBMISSIONS, STAGEHANDS, SUPPORTING_ACTS, HEADLINERS, AOTW_ROLE, FANS, GROUPIES, GENERAL_CHAT_CHANNEL_ID, MODMAIL_CATEGORY_ID
 from discord.ext import tasks
 
@@ -36,17 +37,28 @@ For now, we will consider artists who have released new music-related content __
 
         # Check if announcement exists
         found = False
+        announcement_msg = None
         async for msg in self.aotw_channel.history(limit=10):
             if "**Artist of the Week** is a biweekly event" in msg.content:
                 # Found announcement - update if date is outdated
                 if msg.content != message:
                     await msg.edit(content=message)
                 found = True
+                announcement_msg = msg
                 break
         
         # if no announcement found, send new one
         if not found:
-            await self.aotw_channel.send(message)
+            announcement_msg = await self.aotw_channel.send(message)
+        
+        # Delete all other messages in the channel (except the announcement)
+        async for msg in self.aotw_channel.history(limit=100):
+            if msg.id != announcement_msg.id:
+                try:
+                    await msg.delete()
+                    print(f"✅ Deleted old message: {msg.id}")
+                except Exception as e:
+                    print(f"❌ Error deleting message {msg.id}: {e}")
 
     async def calculate_six_months(self):
         six_months = datetime.datetime.now() - datetime.timedelta(days=180)
@@ -232,6 +244,15 @@ __Voting Guidelines:__
 
         return event
     
+    async def end_voting_event(self):
+
+        for event in self.guild.scheduled_events:
+            if "Artist of the Week" in event.name and event.status == discord.EventStatus.active:
+                await event.edit(
+                    end_time=discord.utils.utcnow(),
+                    status=discord.EventStatus.completed
+                )
+                break
 
     async def schedule_general_chat_reminders(self):
         channel = self.guild.get_channel(GENERAL_CHAT_CHANNEL_ID)
@@ -248,6 +269,16 @@ __Voting Guidelines:__
         # start reminder loop
         if not self.voting_reminder_task.is_running():
             self.voting_reminder_task.start()
+
+    async def end_aotw_event(self):
+        for event in self.guild.scheduled_events:
+            if "Artist of the Week" in event.name and event.status == discord.EventStatus.active:
+                try:
+                    await event.edit(status=discord.EventStatus.completed)
+                    print("✅ Ended AOTW voting event")
+                except discord.HTTPException as e:
+                    print(f"❌ Error ending event: {e}")
+                break
     
     @tasks.loop(hours=12)
     async def voting_reminder_task(self):
@@ -311,16 +342,53 @@ __Voting Guidelines:__
         # return new channel so that listener can wait for it
         return new_channel
 
-    async def aotw_winner_announcement(self, interaction, name, link, message):
+    async def aotw_winner_announcement(self, votes_channel_id, message):
+        """
+        Fetch winner info from votes channel and post announcement
+        votes_channel_id: The ID of the aotw-votes channel
+        message: The winner's bio message from their private channel
+        """
+        
+        # Fetch winner info from aotw-votes channel
+        votes_channel = self.bot.get_channel(votes_channel_id)
+        winner_name = None
+        winner_link = None
+        
+        if votes_channel:
+            async for msg in votes_channel.history(limit=1):
+                # Parse the most recent message to get winner info
+                if "**WINNER:**" in msg.content:
+                    lines = msg.content.split('\n')
+                    for line in lines:
+                        if "**WINNER:**" in line:
+                            winner_name = line.replace("**WINNER:**", "").strip()
+                        elif "**Link:**" in line:
+                            # Extract everything after "**Link:**"
+                            link_content = line.replace("**Link:**", "").strip()
+                            
+                            # Find URL in the content (look for http:// or https://)
+                            import re
+                            url_pattern = r'(https?://[^\s]+)'
+                            url_match = re.search(url_pattern, link_content)
+                            
+                            if url_match:
+                                winner_link = url_match.group(1)
+                            else:
+                                # If no URL found, use the whole content
+                                winner_link = link_content
+                    break
+        
+        if not winner_name:
+            print("⚠️ WARNING: Could not find winner info in votes channel")
+            return
         
         # Find the winner member object to create a proper mention
-        guild = interaction.guild
-        winner_member = discord.utils.get(guild.members, display_name=name)
+        winner_member = discord.utils.get(self.guild.members, display_name=winner_name)
         if not winner_member:
-            winner_member = discord.utils.get(guild.members, name=name)
+            winner_member = discord.utils.get(self.guild.members, name=winner_name)
         if not winner_member:
-            for member in guild.members:
-                if member.name == name or member.display_name == name:
+            for member in self.guild.members:
+                if member.name == winner_name or member.display_name == winner_name:
                     winner_member = member
                     break
         
@@ -328,26 +396,25 @@ __Voting Guidelines:__
         if winner_member:
             name_mention = winner_member.mention
         else:
-            name_mention = name
-            print(f"⚠️ WARNING: Could not find member {name} to mention")
+            name_mention = winner_name
+            print(f"⚠️ WARNING: Could not find member {winner_name} to mention")
 
         await self.aotw_channel.send(f"""**Say congrats to our <@&{AOTW_ROLE}>, {name_mention}!!!**
-                                     
-Here is a statement from our artist:
-                                     
-{message.content}                              
-                                     
-{link}""")
+                                    
+    Here is a statement from our artist:
+                                    
+    {message.content}                              
+                                    
+    {winner_link}""")
 
-    async def qa_announcement(self, interaction, name):
+    async def qa_announcement(self, name):
         
         # Find the winner member object to create a proper mention
-        guild = interaction.guild
-        winner_member = discord.utils.get(guild.members, display_name=name)
+        winner_member = discord.utils.get(self.guild.members, display_name=name)
         if not winner_member:
-            winner_member = discord.utils.get(guild.members, name=name)
+            winner_member = discord.utils.get(self.guild.members, name=name)
         if not winner_member:
-            for member in guild.members:
+            for member in self.guild.members:
                 if member.name == name or member.display_name == name:
                     winner_member = member
                     break
