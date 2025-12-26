@@ -49,16 +49,7 @@ For now, we will consider artists who have released new music-related content __
         
         # if no announcement found, send new one
         if not found:
-            announcement_msg = await self.aotw_channel.send(message)
-        
-        # Delete all other messages in the channel (except the announcement)
-        async for msg in self.aotw_channel.history(limit=100):
-            if msg.id != announcement_msg.id:
-                try:
-                    await msg.delete()
-                    print(f"✅ Deleted old message: {msg.id}")
-                except Exception as e:
-                    print(f"❌ Error deleting message {msg.id}: {e}")
+            await self.aotw_channel.send(message)
 
     async def calculate_six_months(self):
         six_months = datetime.datetime.now() - datetime.timedelta(days=180)
