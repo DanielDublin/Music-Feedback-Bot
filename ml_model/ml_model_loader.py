@@ -12,7 +12,7 @@ from pathlib import Path
 class FeedbackQualityPredictor:
     """Predicts if feedback is good quality (Pass/Fail)"""
     
-    def __init__(self, model_dir='ml_model'):
+    def __init__(self, model_dir='ml_model/simple_feedback_model'):
         self.model_dir = Path(model_dir)
         self.model = None
         self.vectorizer = None

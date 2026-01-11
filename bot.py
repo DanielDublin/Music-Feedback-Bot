@@ -13,7 +13,7 @@ from cogs.feedback_threads.modules.ctx_class import ContextLike
 IS_READY = 0
 
 load_dotenv()
-token = os.environ.get('DISCORD_TOKEN')
+token = os.environ.get('DISCORD_TEST_TOKEN')
 
 # Initialize the bot
 intents = discord.Intents.default()
