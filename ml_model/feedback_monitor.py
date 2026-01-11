@@ -40,8 +40,7 @@ class FeedbackMonitor(commands.Cog):
         
         # Only process if message starts with <MFR or <mfr
         content_lower = message.content.strip().lower()
-        if not (content_lower.startswith('<mfr') or content_lower.startswith('<Mfr') or 
-                content_lower.startswith('<mF') or content_lower.startswith('<MF')):
+        if not content_lower.startswith('<mfr'):
             return
         
         # Extract feedback text after the command
