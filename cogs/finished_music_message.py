@@ -8,9 +8,17 @@ class FinishedMusicMessage(discord.ext.commands.Cog):
         self.stored_message_id = None
         self.stored_channel_id = FINISHED_MUSIC
 
+    async def cog_load(self):
+        """Called when the cog is loaded - sends the initial message."""
+        # Wait for bot to be ready before sending
+        await self.client.wait_until_ready()
+        await self.send_finished_message()
+
     async def send_finished_message(self):
         """Send a message to the specified channel when music finishes."""
         channel = self.client.get_channel(FINISHED_MUSIC)
+
+        print("Sending finished music message...")
 
         message_text = "**Deleted song?** If your name is green, you have the Groupies role and have 5-minute access to this channel! Stay active in the server for a few days and quickly rank up for full access."
 
