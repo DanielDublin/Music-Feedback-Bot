@@ -1,6 +1,6 @@
 import discord
 import json
-from data.constants import MODERATORS_CHANNEL_ID   
+from data.constants import EXPORTS_CHANNEL
 
 class ExportJson:
 
@@ -23,12 +23,12 @@ class ExportJson:
             with open(filename, 'r') as json_file:
                 data = json.load(json_file)
 
-                if len(data) >= 5:
+                if len(data) >= 20:
                     # Get the mod channel
-                    mod_channel = self.client.get_channel(MODERATORS_CHANNEL_ID)
+                    mod_channel = self.client.get_channel(EXPORTS_CHANNEL)
                     
                     if mod_channel is None:
-                        print(f"❌ Could not find channel with ID {MODERATORS_CHANNEL_ID}")
+                        print(f"❌ Could not find channel with ID {EXPORTS_CHANNEL}")
                         return len(data)
 
                     file_path = filename  # Use the filename parameter consistently

@@ -47,12 +47,7 @@ class FeedbackMonitor(commands.Cog):
         
         # Extract feedback text after the command
         feedback_text = message.content.strip()[4:].strip()  # Remove '<MFR' and spaces
-        
-        # Ignore if no feedback text provided
-        if len(feedback_text) < 10:
-            print("⚠️ Feedback too short, ignoring")
-            return
-        
+    
         print(f"🔍 Processing feedback from {message.author.name}")
         
         # Predict feedback quality
