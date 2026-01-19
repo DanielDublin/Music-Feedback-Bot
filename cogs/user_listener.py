@@ -9,7 +9,7 @@ import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
 from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
-    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID, VLADHOG_ID, QUARANTINE_LOG_CHANNEL_ID, QUARANTINE_ROLE_ID
+    MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, INTRO_MUSIC, DYNO_ID, VLADHOG_ID, QUARANTINE_LOG_CHANNEL_ID, QUARANTINE_ROLE_ID, BOT_LOG
 
 # dan
 promotion_whitelist_id = [358631356248489984]
