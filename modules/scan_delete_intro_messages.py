@@ -54,11 +54,17 @@ class MessageCleaner(commands.Cog):
 
     @staticmethod
     def is_a_normie(message):
+
+        # delete messages immediately for users who have left
+        if not isinstance(message.author, discord.Member):
+            return True
+        
         if not message.author.guild_permissions.administrator:
             now = discord.utils.utcnow()
             time_passed = now - message.created_at
             if time_passed >= datetime.timedelta(days=1):
                 return True
+        
         return False
 
     @tasks.loop(hours=1, reconnect=True)
