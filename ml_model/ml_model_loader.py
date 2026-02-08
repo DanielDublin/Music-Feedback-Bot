@@ -8,9 +8,6 @@ import joblib
 import numpy as np
 import re
 from pathlib import Path
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 class FeedbackQualityPredictor:
     """Predicts if feedback is good quality (Pass/Fail)"""
@@ -26,22 +23,23 @@ class FeedbackQualityPredictor:
         model_path = self.model_dir / 'model.pkl'
         vectorizer_path = self.model_dir / 'vectorizer.pkl'
         
+        print(f"🔍 Current working directory: {os.getcwd()}")
+        print(f"🔍 Looking for model at: {model_path.resolve()}")
+        print(f"🔍 Looking for vectorizer at: {vectorizer_path.resolve()}")
+        
         if not model_path.exists():
-            logging.error(f"Model not found at {model_path}")
-            return False
+            raise FileNotFoundError(f"Model not found at {model_path.resolve()}")
         if not vectorizer_path.exists():
-            logging.error(f"Vectorizer not found at {vectorizer_path}")
-            return False
+            raise FileNotFoundError(f"Vectorizer not found at {vectorizer_path.resolve()}")
         
         try:
             self.model = joblib.load(model_path)
             self.vectorizer = joblib.load(vectorizer_path)
             self.loaded = True
-            logging.info(f"✅ Model and vectorizer loaded successfully from {self.model_dir}")
-            return True
+            print(f"✅ Model loaded successfully from {self.model_dir}")
         except Exception as e:
-            logging.error(f"Error loading model or vectorizer: {e}", exc_info=True)
-            return False
+            print(f"❌ Error loading model: {e}")
+            raise  # Re-raise the exception
     
     def extract_features(self, feedback_text):
         """Extract features from feedback text"""
@@ -56,7 +54,7 @@ class FeedbackQualityPredictor:
         features['char_count'] = len(feedback_text)
         features['avg_word_length'] = np.mean([len(word) for word in words]) if words else 0
         
-        # Feature extraction logic (unchanged)
+        # Feature extraction logic (all the same as before)
         specific_suggestions = ['increase', 'decrease', 'remove', 'add', 'change', 'replace', 
                                'move', 'cut', 'boost', 'lower', 'raise', 'eq', 'compress', 
                                'gate', 'delay', 'recommend', 'suggest', 'try', 'learn', 
@@ -125,12 +123,12 @@ class FeedbackQualityPredictor:
     def predict(self, feedback_text):
         """Predict if feedback is Pass or Fail quality"""
         if not self.loaded:
-            if not self.load_model():
-                return None  # Return None if model loading fails
+            raise ValueError("Model not loaded. Call load_model() first.")
         
         try:
             features = self.extract_features(feedback_text)
             feature_array = np.array([list(features.values())])
+            
             tfidf_features = self.vectorizer.transform([feedback_text]).toarray()
             combined_features = np.hstack([feature_array, tfidf_features])
             
@@ -147,8 +145,8 @@ class FeedbackQualityPredictor:
                 'is_good': is_good
             }
         except Exception as e:
-            logging.error(f"Prediction error: {e}", exc_info=True)
-            return None
+            print(f"❌ Prediction error: {e}")
+            raise  # Re-raise the exception
 
 # Global instance
 _predictor = None
@@ -158,6 +156,7 @@ def get_predictor():
     global _predictor
     if _predictor is None:
         _predictor = FeedbackQualityPredictor()
+        _predictor.load_model()  # This will now raise an exception if it fails
     return _predictor
 
 async def predict_feedback_quality(feedback_text):

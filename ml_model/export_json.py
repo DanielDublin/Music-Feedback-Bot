@@ -39,7 +39,7 @@ class ExportJson:
                     # Send the file to the channel  
                     await mod_channel.send(
                         f"<@{412733389196623879}> New Export!",
-                        allowed_mentions=discord.AllowedMentions(roles=True)
+                        allowed_mentions=discord.AllowedMentions(users=True)  # Changed from roles=True
                     )
                     await mod_channel.send(file=discord_file, content=f"📊 Feedback export - {len(data)} entries")
                     print(f"✅ Sent {len(data)} feedback entries to mod channel")
