@@ -1,13 +1,9 @@
-"""
-Feedback Quality Monitor Cog
-Monitors messages in the feedback channel and validates feedback quality
-"""
-
 import discord
 from discord.ext import commands
 from ml_model.ml_model_loader import predict_feedback_quality
 from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, BOT_LOG
 from ml_model.export_json import ExportJson
+from ml_model.feedback_notifier import FeedbackNotifier
 import asyncio
 import json
 import traceback
@@ -19,6 +15,7 @@ class FeedbackMonitor(commands.Cog):
         self.bot = bot
         self.pending_validations = {}  # Store message_id -> original_message mapping
         self.listener_active = True
+        self.notifier = FeedbackNotifier(bot)  # Add notifier instance
         
     async def log_to_bot_log(self, message: str, error: Exception = None):
         """Send detailed logs to BOT_LOG channel"""
@@ -177,6 +174,14 @@ class FeedbackMonitor(commands.Cog):
                 traceback.print_exc()
                 await self.log_to_bot_log("❌ Error creating embed", e)
                 return
+            
+            # Notify mods if it's bad feedback using the notifier
+            if not result['is_good']:
+                await self.notifier.notify_bad_feedback(
+                    message, 
+                    feedback_text,
+                    log_callback=self.log_to_bot_log
+                )
             
             # Send to dev spam channel with reaction buttons
             try:
