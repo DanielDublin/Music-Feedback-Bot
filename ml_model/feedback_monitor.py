@@ -1,3 +1,8 @@
+"""
+Feedback Quality Monitor Cog
+Monitors messages in the feedback channel and validates feedback quality
+"""
+
 import discord
 from discord.ext import commands
 from ml_model.ml_model_loader import predict_feedback_quality
@@ -108,6 +113,19 @@ class FeedbackMonitor(commands.Cog):
             # Predict feedback quality
             try:
                 result = await predict_feedback_quality(feedback_text)
+                
+                # Check if result is None
+                if result is None:
+                    print(f"❌ predict_feedback_quality returned None")
+                    await self.log_to_bot_log(f"❌ ML prediction returned None for message {message.id}")
+                    return
+                
+                # Validate result structure
+                if not isinstance(result, dict) or 'prediction' not in result:
+                    print(f"❌ Invalid result structure: {result}")
+                    await self.log_to_bot_log(f"❌ ML prediction returned invalid structure for message {message.id}")
+                    return
+                
                 print(f"✅ Prediction complete: {result['prediction']}")
             except Exception as e:
                 print(f"❌ Error in predict_feedback_quality: {e}")
@@ -446,6 +464,19 @@ class FeedbackMonitor(commands.Cog):
         
         try:
             result = await predict_feedback_quality(feedback_text)
+            
+            # Check if result is None
+            if result is None:
+                await ctx.send("❌ Error: Model returned no prediction")
+                await self.log_to_bot_log(f"❌ test_feedback: Model returned None for user {ctx.author.name}")
+                return
+            
+            # Validate result structure
+            if not isinstance(result, dict) or 'prediction' not in result:
+                await ctx.send(f"❌ Error: Invalid model response structure")
+                await self.log_to_bot_log(f"❌ test_feedback: Invalid result structure: {result}")
+                return
+                
         except Exception as e:
             await ctx.send(f"❌ Error predicting: {str(e)}")
             print(f"❌ Error in test_feedback prediction: {e}")
