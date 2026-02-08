@@ -3,7 +3,7 @@ from discord.ext import commands
 from ml_model.ml_model_loader import predict_feedback_quality
 from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, BOT_LOG
 from ml_model.export_json import ExportJson
-from ml_model.feedback_notifier import FeedbackNotifier
+from ml_model.mod_bad_feedback_notification import FeedbackNotifier
 import asyncio
 import json
 import traceback
