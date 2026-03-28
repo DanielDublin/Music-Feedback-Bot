@@ -14,6 +14,7 @@ IS_READY = 0
 
 load_dotenv()
 token = os.environ.get('DISCORD_TOKEN')
+server_id = os.environ.get('SERVER_ID')
 
 # Initialize the bot
 intents = discord.Intents.default()
@@ -26,9 +27,9 @@ bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents,
                    owner_id=BOT_DEV_ID)
 bot.remove_command('help')
 
-@bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=732355624259813531))
+@bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=server_id))
 async def sync(interaction: discord.Interaction):
-    await bot.tree.sync(guild=discord.Object(id=732355624259813531))
+    await bot.tree.sync(guild=discord.Object(id=server_id))
     await interaction.response.send_message("Commands synced", ephemeral=True)
 
 
