@@ -395,3 +395,5 @@ FodyWeavers.xsd
 feedback_threads.sqlite
 feedback_examples.json
 /database/data/MF_DB.db
+/database/data/MF_DB.db-shm
+/database/data/MF_DB.db-wal

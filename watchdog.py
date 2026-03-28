@@ -1,6 +1,7 @@
 import subprocess
 import time
 import threading
+import sys
 
 # Give a special name to the main script
 threading.current_thread().name = "Watchdog"
@@ -10,22 +11,37 @@ def bot_process():
     current_thread = threading.current_thread()
     current_thread.name = "MusicFeedbackBot"
 
+    # Determine the correct python executable for the current system
+    # sys.executable returns the path to the python runner currently running this watchdog
+    python_cmd = sys.executable
+
     while True:
-        print(f"Starting the bot in thread: {current_thread.name}...")
-        bot_process = subprocess.Popen(["python3", "bot.py"])
+        print(f"Starting the bot in thread: {current_thread.name} using {python_cmd}...")
+        
+        # We use sys.executable to ensure we use the same python that started the watchdog
+        bot_proc = subprocess.Popen([python_cmd, "bot.py"])
 
         # Monitor the bot process
         while True:
-            if bot_process.poll() is not None:
+            if bot_proc.poll() is not None:
                 # The bot process has exited (crashed)
                 print("Bot went down. Restarting...")
                 time.sleep(5)  # Optional delay before restarting
                 break
+            
+            # Sleep briefly to prevent high CPU usage from polling
+            time.sleep(1)
 
-        # Optional: Add a delay between restarts to avoid constant restarts
-        time.sleep(10)  # Adjust the delay as needed
+        # Delay between restarts to avoid rapid-fire crashing loops
+        time.sleep(10)
 
 if __name__ == "__main__":
     bot_thread = threading.Thread(target=bot_process)
+    bot_thread.daemon = True # Ensure the thread closes if the main process is killed
     bot_thread.start()
-    bot_thread.join()  # Wait for the thread to finish (this line is optional)
+    
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Watchdog shutting down...")

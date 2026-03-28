@@ -1,16 +1,16 @@
 import sqlite3
+import os
 
 class SQLiteDatabase:
-    def __init__(self, db_name='feedback_threads.sqlite'):
-        """
-        Initialize the SQLite database connection and cursor.
+    def __init__(self):
+        # Build path relative to this script so it always finds the same file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Place it in the same 'data' folder as MF_DB.db
+        db_path = os.path.join(current_dir, "data", "feedback_threads.sqlite")
         
-        Args:
-            db_name (str): Name of the SQLite database file - 'feedback_threads.sqlite'.
-        """
-
         try:
-            self.connection = sqlite3.connect(db_name)
+            self.connection = sqlite3.connect(db_path)
+            self.connection.row_factory = sqlite3.Row
             self.cursor = self.connection.cursor()
             self.create_table()
         except sqlite3.Error as e:
