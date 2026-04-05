@@ -17,7 +17,7 @@ class FinishedMusicMessage(commands.Cog):
         """Called when the cog is unloaded - stops the background task."""
         self.delete_and_repost_cycle.cancel()
 
-    @tasks.loop(hours=24)
+    @tasks.loop(hours=24, reconnect=True)
     async def delete_and_repost_cycle(self):
         """Delete and repost the message every 24 hours."""
         
@@ -47,6 +47,12 @@ class FinishedMusicMessage(commands.Cog):
             self.stored_message_id = new_message.id  # Save the new ID for tomorrow
         except discord.HTTPException as e:
             print(f"Error sending new message: {e}")
+
+    @delete_and_repost_cycle.error
+    async def delete_and_repost_cycle_error(self, error):
+        print(f"[FinishedMusicMessage] Task crashed: {error!r}")
+        if not self.delete_and_repost_cycle.is_running():
+            self.delete_and_repost_cycle.restart()
 
     @delete_and_repost_cycle.before_loop
     async def before_cycle(self):
