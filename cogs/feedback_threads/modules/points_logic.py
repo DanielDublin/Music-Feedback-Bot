@@ -46,12 +46,12 @@ class PointsLogic:
 
     async def handle_mfr_submissions(self, ctx, thread, ticket_counter):
         
-        embed = await self.embeds.mfr(ctx, ticket_counter, thread)
+        embed = await self.embeds.mfr(ctx, ticket_counter)
         await thread.send(embed=embed)
             
     async def handle_mfs_submissions(self, ctx, thread, ticket_counter):
 
-        embed = await self.embeds.mfs(ctx, ticket_counter, thread)
+        embed = await self.embeds.mfs(ctx, ticket_counter)
         await thread.send(embed=embed)
 
     async def handle_zero_points_submission(self, message: discord.Message, thread, ticket_counter: int):
@@ -59,7 +59,7 @@ class PointsLogic:
         deleted_content = self.helpers.shorten_message(message.content, 1000)
 
         try:
-            embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, thread, deleted_content)
+            embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, deleted_content)
         except Exception as e:
             print(e)
         await thread.send(f"<@&{ADMINS_ROLE_ID}>")
@@ -90,8 +90,6 @@ class PointsLogic:
         embed = await self.embeds.MFS_to_MFR_embed(
         original_message=shortened_before_content,
         shortened_message=shortened_after_content,
-        ctx=after.channel, 
-        thread=thread,
         ticket_counter=ticket_counter,
         points_added=points_to_add,
         total_points=total_points
@@ -142,8 +140,6 @@ class PointsLogic:
             embed = await self.embeds.MFR_to_MFS_embed(
             original_message=shortened_before_content,
             shortened_message=shortened_after_content,
-            ctx=after.channel, 
-            thread=thread,
             ticket_counter=ticket_counter,
             points_removed=points_to_remove,
             total_points=total_points
@@ -184,8 +180,6 @@ class PointsLogic:
             embed = await self.embeds.MFR_to_MFS_with_no_points_embed(
             original_message=shortened_before_content,
             shortened_message=shortened_after_content,
-            ctx=after.channel, 
-            thread=thread,
             ticket_counter=ticket_counter,
             points_removed=points_to_remove,
             total_points=total_points
@@ -242,8 +236,6 @@ class PointsLogic:
 
             embed = await self.embeds.MFR_to_delete_embed(
                 deleted_content=deleted_content,
-                ctx=message.channel,
-                thread=thread,
                 ticket_counter=ticket_counter,
                 points_removed=points_to_remove,
                 total_points=total_points
@@ -282,8 +274,6 @@ class PointsLogic:
 
             embed = await self.embeds.MFR_to_delete_embed_with_no_points(
             deleted_content=deleted_content,
-            ctx=message.channel,
-            thread=thread,
             ticket_counter=ticket_counter,
             points_removed=points_to_remove,
             total_points=total_points
@@ -329,8 +319,6 @@ class PointsLogic:
         
         embed = await self.embeds.MFS_to_delete_embed(
         deleted_content=deleted_content,
-        ctx=message.channel,
-        thread=thread,
         ticket_counter=ticket_counter,
         total_points=total_points
         )

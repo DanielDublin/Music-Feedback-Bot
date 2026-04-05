@@ -9,7 +9,7 @@ class Embeds:
         self.helpers = DiscordHelpers(bot)
         self.user_thread = user_thread
 
-    async def mfr(self, ctx, ticket_counter, thread=None):
+    async def mfr(self, ctx, ticket_counter):
 
         points = int(await db.fetch_points(str(ctx.author.id)))
         
@@ -25,7 +25,7 @@ class Embeds:
 
         return embed
 
-    async def mfs(self, ctx, ticket_counter, thread=None):
+    async def mfs(self, ctx, ticket_counter):
 
         points = int(await db.fetch_points(str(ctx.author.id)))
 
@@ -41,7 +41,7 @@ class Embeds:
 
         return embed
 
-    async def mfs_with_zero_points(self, message: discord.Message, ticket_counter: int, thread, deleted_content: str):
+    async def mfs_with_zero_points(self, message: discord.Message, ticket_counter: int, deleted_content: str):
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -56,7 +56,7 @@ class Embeds:
         return embed
     
 
-    async def mod_add_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+    async def mod_add_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, points=0):
 
         total_points = int(await db.fetch_points(str(user.id)))
 
@@ -72,7 +72,7 @@ class Embeds:
         return embed
     
 
-    async def mod_remove_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, points=0):
+    async def mod_remove_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, points=0):
 
         total_points = int(await db.fetch_points(str(user.id)))
 
@@ -87,7 +87,7 @@ class Embeds:
 
         return embed
 
-    async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, thread=None, cleared_points=0):
+    async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, cleared_points=0):
 
         total_points = int(await db.fetch_points(str(user.id)))
 
@@ -102,7 +102,7 @@ class Embeds:
 
         return embed
         
-    async def MFS_to_MFR_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_added, total_points):
+    async def MFS_to_MFR_embed(self, original_message, shortened_message, ticket_counter, points_added, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Edit",
@@ -120,7 +120,7 @@ class Embeds:
 
         return embed
     
-    async def MFR_to_MFS_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_removed, total_points):
+    async def MFR_to_MFS_embed(self, original_message, shortened_message, ticket_counter, points_removed, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Edit",
@@ -138,7 +138,7 @@ class Embeds:
 
         return embed
     
-    async def MFR_to_MFS_with_no_points_embed(self, original_message, shortened_message, ctx, thread, ticket_counter, points_removed, total_points):
+    async def MFR_to_MFS_with_no_points_embed(self, original_message, shortened_message, ticket_counter, points_removed, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Deletion",
@@ -156,7 +156,7 @@ class Embeds:
 
         return embed
     
-    async def MFR_to_delete_embed(self, deleted_content, ctx, thread, ticket_counter, points_removed, total_points):
+    async def MFR_to_delete_embed(self, deleted_content, ticket_counter, points_removed, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Deletion",
@@ -173,7 +173,7 @@ class Embeds:
 
         return embed
     
-    async def MFR_to_delete_embed_with_no_points(self, deleted_content, ctx, thread, ticket_counter, points_removed, total_points):
+    async def MFR_to_delete_embed_with_no_points(self, deleted_content, ticket_counter, points_removed, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Deletion",
@@ -190,7 +190,7 @@ class Embeds:
 
         return embed
     
-    async def MFS_to_delete_embed(self, deleted_content, ctx, thread, ticket_counter, total_points):
+    async def MFS_to_delete_embed(self, deleted_content, ticket_counter, total_points):
 
         embed = discord.Embed(
             title=f"Ticket #{ticket_counter} - Deletion",

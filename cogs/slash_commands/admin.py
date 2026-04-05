@@ -69,7 +69,7 @@ class Admin(commands.Cog):
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await interaction.channel.send(embed=embed) # Sending to channel is fine, not an interaction response
 
-        mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+        mod_embed = await self.embeds.mod_add_points(interaction, user, ticket_counter, points=points)
         await thread_for_target_user.send(embed=mod_embed)
 
     # Mod remove points
@@ -123,7 +123,7 @@ class Admin(commands.Cog):
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
             await interaction.channel.send(embed=embed)
 
-            mod_embed = await self.embeds.mod_remove_points(interaction, user, ticket_counter, thread_for_target_user, points=points)
+            mod_embed = await self.embeds.mod_remove_points(interaction, user, ticket_counter, points=points)
             await thread_for_target_user.send(embed=mod_embed)
 
         else:
@@ -179,7 +179,7 @@ class Admin(commands.Cog):
 
         await interaction.channel.send(embed=embed)
 
-        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, cleared_points=cleared_points)
+        mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, cleared_points=cleared_points)
         await thread_for_target_user.send(embed=mod_embed)
 
 
