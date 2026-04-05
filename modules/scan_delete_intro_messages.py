@@ -8,6 +8,7 @@ import datetime
 class MessageCleaner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.channel = None
         self.clean_old_messages.start()
 
     def cog_unload(self):
