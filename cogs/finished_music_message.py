@@ -4,6 +4,9 @@ from discord.ext import commands, tasks
 from data.constants import FINISHED_MUSIC
 
 class FinishedMusicMessage(commands.Cog):
+
+    MESSAGE_TEXT = "**Deleted song?** If your name is green, you have the Groupies role and have 5-minute access to this channel! Stay active in the server for a few days and quickly rank up for full access."
+
     def __init__(self, client):
         self.client = client
         self.stored_message_id = None
@@ -40,10 +43,8 @@ class FinishedMusicMessage(commands.Cog):
                 print(f"Error deleting message: {e}")
         
         # 4. ALWAYS send the new message, regardless of whether an old one was deleted
-        message_text = "**Deleted song?** If your name is green, you have the Groupies role and have 5-minute access to this channel! Stay active in the server for a few days and quickly rank up for full access."
-        
         try:
-            new_message = await channel.send(message_text)
+            new_message = await channel.send(self.MESSAGE_TEXT)
             self.stored_message_id = new_message.id  # Save the new ID for tomorrow
         except discord.HTTPException as e:
             print(f"Error sending new message: {e}")
@@ -77,9 +78,8 @@ class FinishedMusicMessage(commands.Cog):
         
         # 3. If the bot restarts and the channel is totally empty, send it now
         if not message_found:
-            message_text = "**Deleted song?** If your name is green, you have the Groupies role and have 5-minute access to this channel! Stay active in the server for a few days and quickly rank up for full access."
             try:
-                new_msg = await channel.send(message_text)
+                new_msg = await channel.send(self.MESSAGE_TEXT)
                 self.stored_message_id = new_msg.id
                 print("No previous message found in history. Sent a new one.")
             except discord.HTTPException as e:
