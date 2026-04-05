@@ -86,7 +86,7 @@ class ThreadsManager:
 
         # get the thread and ticket_counter from the dictionary
         thread_id = self.user_thread[ctx.author.id][0]
-        existing_thread = await self.bot.fetch_channel(thread_id)
+        existing_thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
 
         ticket_counter = self.user_thread[ctx.author.id][1]
 

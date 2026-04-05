@@ -56,8 +56,8 @@ class PointsLogic:
 
     async def handle_zero_points_submission(self, message: discord.Message, thread, ticket_counter: int):
 
-        deleted_content = await self.helpers.shorten_message(message.content, 1000)
-        
+        deleted_content = self.helpers.shorten_message(message.content, 1000)
+
         try:
             embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, thread, deleted_content)
         except Exception as e:
@@ -72,13 +72,13 @@ class PointsLogic:
             self.pfp_url = creator_user.avatar.url
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
-        shortened_before_content = await self.helpers.shorten_message(before.content, 1000)
-        shortened_after_content = await self.helpers.shorten_message(after.content, 1000)
+        shortened_before_content = self.helpers.shorten_message(before.content, 1000)
+        shortened_after_content = self.helpers.shorten_message(after.content, 1000)
         
         user_id = str(after.author.id)
         points_to_add = 2
     
-        await self.helpers.add_points_for_edits(user_id, points_to_add)
+        await db.add_points(user_id, points_to_add)
         total_points = int(await db.fetch_points(str(user_id)))
 
         # send information to user in the original channel
@@ -120,14 +120,14 @@ class PointsLogic:
             self.pfp_url = creator_user.avatar.url
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
-        shortened_before_content = await self.helpers.shorten_message(before.content, 1000)
-        shortened_after_content = await self.helpers.shorten_message(after.content, 1000)
+        shortened_before_content = self.helpers.shorten_message(before.content, 1000)
+        shortened_after_content = self.helpers.shorten_message(after.content, 1000)
         
         user_id = str(after.author.id)
         points_to_remove = 2
 
         points_available = int(await db.fetch_points(str(user_id)))
-        await self.helpers.remove_points_for_edits(user_id, points_to_remove)
+        await db.reduce_points(user_id, points_to_remove)
         total_points = int(await db.fetch_points(str(user_id)))
 
         # if the user has greater than the points that need to be removed, it's a valid edit
@@ -217,13 +217,13 @@ class PointsLogic:
         if not channel:
             return
 
-        deleted_content = await self.helpers.shorten_message(message.content, 1000)
+        deleted_content = self.helpers.shorten_message(message.content, 1000)
 
         user_id = str(message.author.id)
         points_to_remove = 1
 
         points_available = await db.fetch_points(user_id)
-        await self.helpers.remove_points_for_edits(user_id, points_to_remove)
+        await db.reduce_points(user_id, points_to_remove)
         total_points = await db.fetch_points(user_id)
 
         # if a user deletes an MFR message (1 points available) after sending a MFS message (0 points available), then moderators should be tagged due to chances of submitting feedback with technically 0 points
@@ -314,7 +314,7 @@ class PointsLogic:
         if not channel:
             return
 
-        deleted_content = await self.helpers.shorten_message(message.content, 1000)
+        deleted_content = self.helpers.shorten_message(message.content, 1000)
 
         user_id = str(message.author.id)
         # don't need to remove any points since <MFS handled that; no points given in return 

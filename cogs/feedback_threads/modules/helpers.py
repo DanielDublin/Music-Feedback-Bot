@@ -47,7 +47,7 @@ class DiscordHelpers:
             ticket_counter = user_thread[ctx.author.id][1]
             thread_id = user_thread[ctx.author.id][0]
 
-            thread = await self.bot.fetch_channel(thread_id)
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
         else:
             print(f"[load_feedback_cog] User {ctx.author.id} not found in user_thread — thread was not created before load_feedback_cog was called")
             raise RuntimeError(f"No feedback thread found for user {ctx.author.id}")
@@ -70,6 +70,7 @@ class DiscordHelpers:
         return feedback_cog, user_thread, sqlitedatabase
 
     
+    @staticmethod
     async def get_thread_id_no_ctx(bot, user_id: int):
 
         feedback_cog = bot.get_cog("FeedbackThreads")
@@ -89,6 +90,7 @@ class DiscordHelpers:
             print(f"No thread found for user ID: {user_id}")
             return None 
         
+    @staticmethod
     async def delete_user_from_user_thread(bot, user_id: int):
         feedback_cog = bot.get_cog("FeedbackThreads")
 
@@ -102,6 +104,7 @@ class DiscordHelpers:
             user_thread.pop(user_id)
 
 
+    @staticmethod
     async def delete_user_from_db(bot, user_id: int):
 
         feedback_cog = bot.get_cog("FeedbackThreads")
@@ -112,19 +115,7 @@ class DiscordHelpers:
 
         feedback_cog.sqlitedatabase.delete_user(user_id)
 
-    async def add_points_for_edits(self, user_id: int, points_to_add: int):
-
-        await db.add_points(user_id, points_to_add)
-
-        return
-    
-    async def remove_points_for_edits(self, user_id: int, points_to_remove: int):
-
-        await db.reduce_points(user_id, points_to_remove)
-
-        return
-    
-    async def shorten_message(self, content: str, max_length: int):
+    def shorten_message(self, content: str, max_length: int):
         if len(content) > max_length:
             return content[:max_length - 3] + "..."
         

@@ -33,7 +33,7 @@ class ThreadSearch(commands.Cog):
 
         if thread_id:
 
-            thread = await self.bot.fetch_channel(thread_id)
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
             await thread.delete()
 
             # Delete the original message that started the thread:

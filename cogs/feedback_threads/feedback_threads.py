@@ -48,7 +48,7 @@ class FeedbackThreads(commands.Cog):
             user_id = after.author.id
             thread_info = self.user_thread.get(user_id)
             thread_id, ticket_counter = thread_info
-            thread = await self.bot.fetch_channel(thread_id)
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
 
             # MFS to MFR
             if "<mfs" in before_content_normalized and "<mfr" in after_content_normalized: 
@@ -72,7 +72,7 @@ class FeedbackThreads(commands.Cog):
             user_id = message.author.id
             thread_info = self.user_thread.get(user_id)
             thread_id, ticket_counter = thread_info
-            thread = await self.bot.fetch_channel(thread_id)
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
 
             # if mfr is in content that was deleted, take away the points
             if "<mfr" in message_content_normalized:
