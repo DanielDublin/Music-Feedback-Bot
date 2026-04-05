@@ -43,7 +43,12 @@ async def on_ready():
 
         print(f'Logged in as {bot.user.name} ({bot.user.id})')
         
-        await db.init_database()  # Initialize the database when the bot starts
+        try:
+            await db.init_database()  # Initialize the database when the bot starts
+        except Exception as e:
+            import traceback
+            print(f"FATAL: db.init_database() failed: {e}")
+            traceback.print_exc()
 
         feedback_cog = bot.get_cog("FeedbackThreads")
         if feedback_cog:
