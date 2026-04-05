@@ -49,7 +49,8 @@ class DiscordHelpers:
 
             thread = await self.bot.fetch_channel(thread_id)
         else:
-            pass
+            print(f"[load_feedback_cog] User {ctx.author.id} not found in user_thread — thread was not created before load_feedback_cog was called")
+            raise RuntimeError(f"No feedback thread found for user {ctx.author.id}")
 
         return thread, ticket_counter, points_logic, user_id
     
