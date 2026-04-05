@@ -64,12 +64,6 @@ class User_listener(commands.Cog):
                 await self.handle_promotion_check(ctx)
 
 
-        elif ctx.channel.id == INTRO_MUSIC and not ctx.author.guild_permissions.administrator: # Music intro delete 24h
-           try:
-               await asyncio.sleep(60*60*24) # 24 hours
-               await ctx.delete()
-           except Exception as e:
-               print(str(e))                  
         elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID: # primus easter egg
             
             if not self.PRIMUS_COOLDOWN:
