@@ -7,6 +7,11 @@ from cogs.aotw.configure_channel import ConfigureChannel
 from data.constants import AOTW_CHANNEL, AOTW_SUBMISSIONS, MODERATORS_CHANNEL_ID, AOTW_ROLE, AOTW_VOTES
 
 
+def _log_task_error(task: asyncio.Task):
+    if not task.cancelled() and task.exception():
+        print(f"[AOTW] Background task error: {task.exception()!r}")
+
+
 class AOTWEvent(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -363,8 +368,9 @@ class AOTWEvent(commands.Cog):
         await mod_channel.send(f"✅ Found winner member: {winner_member.name} (ID: {winner_member.id})")
         
         # EIGHTH: Start background listener for winner's response IN THE PRIVATE CHANNEL
-        try: 
-            asyncio.create_task(self.wait_for_winner_response(winner_info, winner_channel, winner_member))
+        try:
+            _task = asyncio.create_task(self.wait_for_winner_response(winner_info, winner_channel, winner_member))
+            _task.add_done_callback(_log_task_error)
             await mod_channel.send(f"✅ Started listener for {winner_name} in channel {winner_channel.mention}")
             await interaction.followup.send(f"✅ AOTW Winner setup complete! Waiting for {winner_name}'s response in <#{winner_channel.id}>...")
         except Exception as e:
@@ -381,10 +387,9 @@ class AOTWEvent(commands.Cog):
 
         config = ConfigureChannel(self.bot)
 
-        formatted_six_months = await config.calculate_six_months()
-        await config.check_aotw_channel_announcement(formatted_six_months)
         try:
-            await config.check_aotw_channel_announcement()
+            formatted_six_months = await config.calculate_six_months()
+            await config.check_aotw_channel_announcement(formatted_six_months)
             await mod_channel.send("✅ Initial AOTW message posted")
         except Exception as e:
             await mod_channel.send(f"❌ Error posting initial AOTW message: {e}")
