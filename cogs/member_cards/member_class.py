@@ -269,12 +269,12 @@ class MemberCards(commands.Cog):
                         if message.author.id == member.id:
                             if message.content and message.content.strip():
                                 messages_by_member_on_day.append(message)
-                        
-                        if messages_by_member_on_day:
-                            chosen_message = random.choice(messages_by_member_on_day)
-                            # For random messages, we always return the jump_url along with content
-                            print(f"  SUCCESS (Recent): Found message on {start_of_day.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
-                            return chosen_message.content, chosen_message.jump_url
+
+                    if messages_by_member_on_day:
+                        chosen_message = random.choice(messages_by_member_on_day)
+                        # For random messages, we always return the jump_url along with content
+                        print(f"  SUCCESS (Recent): Found message on {start_of_day.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
+                        return chosen_message.content, chosen_message.jump_url
 
                 except discord.Forbidden:
                     print(f"  Error: Bot lacks permissions to read history in {channel.name}. Aborting recent checks.")
