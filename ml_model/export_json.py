@@ -1,6 +1,6 @@
 import discord
 import json
-from data.constants import EXPORTS_CHANNEL
+from data.constants import EXPORTS_CHANNEL, CO_DEV_ID
 
 class ExportJson:
 
@@ -38,7 +38,7 @@ class ExportJson:
                     
                     # Send the file to the channel  
                     await mod_channel.send(
-                        f"<@{412733389196623879}> New Export!",
+                        f"<@{CO_DEV_ID}> New Export!",
                         allowed_mentions=discord.AllowedMentions(users=True)  # Changed from roles=True
                     )
                     await mod_channel.send(file=discord_file, content=f"📊 Feedback export - {len(data)} entries")

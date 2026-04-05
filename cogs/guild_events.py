@@ -2,12 +2,11 @@ import discord
 from discord.ext import commands
 from data.constants import MFL_INFO, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
 
-pfp_url = ""
-
 class Guild_events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.queue = [] # initiate array for queue
+        self.pfp_url = ""
         
     def guild_only(ctx):
         return ctx.guild is not None
@@ -44,11 +43,11 @@ class Guild_events(commands.Cog):
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name=":ballot_box_with_check:  Success!",
                         value=f"{ctx.author.mention}, your submission has been received.", inline=False)
-        global pfp_url
-        creator_user = await self.bot.fetch_user(self.bot.owner_id)
-        pfp_url = creator_user.avatar.url
+        if not self.pfp_url:
+            creator_user = await self.bot.fetch_user(self.bot.owner_id)
+            self.pfp_url = creator_user.avatar.url
         
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         channel = self.bot.get_channel(MOD_SUBMISSION_LOGGER_CHANNEL_ID)
         await channel.send(
@@ -74,7 +73,7 @@ class Guild_events(commands.Cog):
         for index, item in enumerate(self.queue, start = 1):
             queue_message += f"{index}. {item}\n"
         embed.add_field(name="Submissions", value=queue_message, inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
 
         await ctx.send(embed=embed)
 

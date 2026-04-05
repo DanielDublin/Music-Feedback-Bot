@@ -107,10 +107,3 @@ class ThreadsManager:
 
         # return for archive use
         return existing_thread
-
-async def setup(bot):
-    await bot.add_cog(ThreadsManager(bot))
-        
-        
-        
-                

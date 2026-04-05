@@ -64,7 +64,7 @@ async def check_spotify(message):
     content = message.content
 
     urls = extract_spotify_urls(content)
-    if urls is None:
+    if not urls:
         return False
 
     author = message.author

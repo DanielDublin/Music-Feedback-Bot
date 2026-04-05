@@ -182,8 +182,6 @@ class Admin(commands.Cog):
         mod_embed = await self.embeds.mod_clear_points(interaction, user, ticket_counter, thread_for_target_user, cleared_points=cleared_points)
         await thread_for_target_user.send(embed=mod_embed)
 
-print("Processing complete")
-
 
 async def setup(bot):
     # await bot.add_cog(Admin(bot), guild=discord.Object(id=SERVER_ID)) # for debug

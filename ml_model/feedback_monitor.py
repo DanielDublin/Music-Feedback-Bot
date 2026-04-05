@@ -6,7 +6,7 @@ Monitors messages in the feedback channel and validates feedback quality
 import discord
 from discord.ext import commands
 from ml_model.ml_model_loader import predict_feedback_quality
-from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, BOT_LOG
+from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, BOT_LOG, CO_DEV_ID
 from ml_model.export_json import ExportJson
 from ml_model.mod_bad_feedback_notification import FeedbackNotifier
 import asyncio
@@ -204,7 +204,7 @@ class FeedbackMonitor(commands.Cog):
             # Send to dev spam channel with reaction buttons
             try:
                 await dev_spam.send(
-                    f"<@{412733389196623879}> New feedback!",
+                    f"<@{CO_DEV_ID}> New feedback!",
                     allowed_mentions=discord.AllowedMentions(users=True)
                 )
                 print("✅ Mention sent")

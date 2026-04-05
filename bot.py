@@ -10,7 +10,7 @@ from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUS
 from cogs.feedback_threads.modules.ctx_class import ContextLike
 
 
-IS_READY = 0
+IS_READY = False
 
 load_dotenv()
 token = os.environ.get('DISCORD_TOKEN')
@@ -37,7 +37,6 @@ async def sync(interaction: discord.Interaction):
 @bot.event
 async def on_ready():
     global IS_READY
-    global bot
 
     if not IS_READY:
 
@@ -79,10 +78,9 @@ async def on_ready():
         print('Sync-ed slash commands')
 
  
-        general_chat = bot.get_channel(FEEDBACK_CHANNEL_ID)
         creator_user = await bot.fetch_user(BOT_DEV_ID)
         await creator_user.send("Music Feedback is now live")
-        IS_READY += 1
+        IS_READY = True
 
 
 # Load extensions (cogs)
@@ -135,7 +133,6 @@ async def load_extensions():
 
 # Run the bot using asyncio.run() to set up the event loop
 async def main():
-    global bot
     try:
         await load_extensions()  # Initializing the cogs
     except KeyboardInterrupt:

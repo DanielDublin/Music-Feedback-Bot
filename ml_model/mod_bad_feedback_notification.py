@@ -1,5 +1,5 @@
 import discord
-from data.constants import MODERATORS_CHANNEL_ID, AUDIO_FEEDBACK
+from data.constants import MODERATORS_CHANNEL_ID, AUDIO_FEEDBACK, CO_DEV_ID, FEEDBACK_ACCESS_CHANNEL_ID
 import asyncio
 
 
@@ -8,8 +8,7 @@ class FeedbackNotifier:
     
     def __init__(self, bot):
         self.bot = bot
-        # my ID
-        self.moderator_user_id = 412733389196623879
+        self.moderator_user_id = CO_DEV_ID
     
     async def notify_bad_feedback(self, message, feedback_text, log_callback=None):
         """
@@ -72,7 +71,7 @@ class FeedbackNotifier:
                     
                     if audio_feedback_channel:
                         await audio_feedback_channel.send(
-                            f"{message.author.mention} Please provide more detailed and constructive feedback. Check out <#959150439692128277> if you need help.",
+                            f"{message.author.mention} Please provide more detailed and constructive feedback. Check out <#{FEEDBACK_ACCESS_CHANNEL_ID}> if you need help.",
                             allowed_mentions=discord.AllowedMentions(users=True)
                         )
                         

@@ -1,6 +1,5 @@
 import discord
 import asyncio
-import datetime
 from datetime import datetime, timedelta
 from discord.ext import commands
 from discord import app_commands
@@ -60,7 +59,6 @@ class RankCommands(commands.Cog):
         # exclude Headliners/UF/Gilded/TRMFRs because they stay along with Headliners
         lower_rank_names = {"Groupies", "Stagehands", "Supporting Acts"}
 
-        rank_options = ["Groupies", "Stagehands", "Supporting Acts", "Ultimate Fans", "Headliners", "MF Gilded", "The Real MFrs"]
         if role in user.guild.roles:
             # check if the member already has the role
             if role in user.roles:
@@ -122,7 +120,7 @@ class RankCommands(commands.Cog):
                             # add -1 from index of role
                             await user.add_roles(new_role)
                             # update spreadsheet
-                            self.google_sheet.update_rank_spreadsheet(user.id, new_role, is_rankup = False)
+                            self.google_sheet.update_rank_spreadsheet(user.id, new_role.name, is_rankup = False)
                             await interaction.followup.send(
                                 f"{role.mention} was removed from {user.mention}. They are now {new_role.mention}.")
 

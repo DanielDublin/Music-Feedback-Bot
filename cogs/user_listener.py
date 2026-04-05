@@ -1,5 +1,3 @@
-from re import T
-from tarfile import NUL
 import discord
 import asyncio
 from discord.ext import commands
