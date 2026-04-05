@@ -1,4 +1,5 @@
 import discord
+import traceback
 
 
 # Define a function to handle exceptions
@@ -28,6 +29,8 @@ async def handle_exception(ctx, error):
             await ctx.send(f"Invalid argument in the command. Please check your input.")
         else:
             # Handle other unexpected errors
+            print(f"UNHANDLED ERROR in {cog_name}: {error}")
+            traceback.print_exception(type(error), error, error.__traceback__)
             await ctx.send(f"An error occurred while executing the command.")
     except Exception as e:
         print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n{str(e)}")
