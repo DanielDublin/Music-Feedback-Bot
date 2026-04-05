@@ -119,11 +119,15 @@ class NotesMenu(menus.Menu):
                 
             
             embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-            
+
             if self.menu_message is None:
                 self.menu_message = await message.channel.send(embed=embed)
             else:
                 await self.menu_message.edit(embed=embed)
+
+            # Terminal state reached — no further interaction possible; clean up listener now.
+            self.bot.remove_listener(self.on_raw_reaction_add)
+            return
 
         else:
             # Create a standard embed
@@ -184,9 +188,13 @@ class NotesMenu(menus.Menu):
 
         return options
 
+    def stop(self):
+        self.bot.remove_listener(self.on_raw_reaction_add)
+        super().stop()
+
     async def send_data(self, ctx, data):
         embed = discord.Embed(description=data)
-     
+
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.send(embed=embed)
 
