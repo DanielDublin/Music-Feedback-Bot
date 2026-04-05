@@ -87,6 +87,7 @@ async def update_dict_from_db(user_id: str):
     else:
         del users_dict[user_id]
         await add_user(user_id, called_from_update_func=True)
+        users_dict[user_id] = {"Points": 0, "Warnings": 0, "Kicks": 0}
 
 
 async def fetch_rank_from_db(user_id: str):
