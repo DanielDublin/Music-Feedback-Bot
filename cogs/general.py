@@ -72,7 +72,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(help = f"Use to check how many MF points you have.")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def points(self, ctx: discord.Message, user: discord.Member = None):
+    async def points(self, ctx: commands.Context, user: discord.Member = None):
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -107,7 +107,7 @@ class General(commands.Cog):
     @commands.command(aliases=["leaderboard"],
                       help = f"(Use to see the leaderboard.")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def top(self, ctx: discord.Member):
+    async def top(self, ctx: commands.Context):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -139,7 +139,7 @@ class General(commands.Cog):
     @commands.command(name="R",
                       help = f"Use to submit feedback.", brief = "@username")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def MFR_command(self, ctx: discord.Message):
+    async def MFR_command(self, ctx: commands.Context):
 
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -197,7 +197,7 @@ class General(commands.Cog):
     @commands.command(name="S",
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @commands.cooldown(1, 10, commands.BucketType.user)
-    async def MFs_command(self, ctx: discord.Message):
+    async def MFs_command(self, ctx: commands.Context):
 
 
         if self.pfp_url == "":
@@ -287,7 +287,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
-    async def genres(self, ctx: discord.Message, band_name: str):
+    async def genres(self, ctx: commands.Context, band_name: str):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
@@ -306,7 +306,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
     @commands.cooldown(1, 60, commands.BucketType.user)
-    async def similar(self, ctx: discord.Message, band_name: str):
+    async def similar(self, ctx: commands.Context, band_name: str):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
