@@ -21,52 +21,52 @@ class User_listener(commands.Cog):
         self.MUSIC_TRIO_CHANNEL_IDS_LIST = [MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID]
 
     @commands.Cog.listener()
-    async def on_message(self, ctx):
-        if ctx.author.bot and (ctx.author.id != DYNO_ID or (ctx.interaction is not None and ctx.interaction.name != 'warn')):
-            if ctx.author.id == VLADHOG_ID:
-                await self.handle_vladhog(ctx)
+    async def on_message(self, message):
+        if message.author.bot and (message.author.id != DYNO_ID or (message.interaction is not None and message.interaction.name != 'warn')):
+            if message.author.id == VLADHOG_ID:
+                await self.handle_vladhog(message)
             else:
                 return
-        
-        if not isinstance(ctx.channel, discord.TextChannel):
+
+        if not isinstance(message.channel, discord.TextChannel):
             return
 
-        if not self.pfp_url :
+        if not self.pfp_url:
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
-            
-        content = ctx.content
-        
-        content_remove_spaces = content.replace(' ', '').lower()
-        if  not ctx.author.guild_permissions.kick_members and content_remove_spaces.startswith('>mf'):
-            await self.handle_wrong_prefix(ctx)
 
-        if ctx.author.id == DYNO_ID:  # is a warning
-            if len(ctx.embeds[0].fields):
-                
-                await self.handle_warnings(ctx, True)
-                
-        elif ctx.content.lower().startswith("/warn ") and ctx.author.guild_permissions.kick_members: # warn checker
-            await self.handle_warnings(ctx)    
-        elif 'soundcloud.com' in content.lower() and not ctx.author.guild_permissions.kick_members: # soundcloud promotion checker
-            if ctx.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
-                await self.handle_promotion_check(ctx)
+        content = message.content
+
+        content_remove_spaces = content.replace(' ', '').lower()
+        if not message.author.guild_permissions.kick_members and content_remove_spaces.startswith('>mf'):
+            await self.handle_wrong_prefix(message)
+
+        if message.author.id == DYNO_ID:  # is a warning
+            if len(message.embeds[0].fields):
+
+                await self.handle_warnings(message, True)
+
+        elif message.content.lower().startswith("/warn ") and message.author.guild_permissions.kick_members: # warn checker
+            await self.handle_warnings(message)
+        elif 'soundcloud.com' in content.lower() and not message.author.guild_permissions.kick_members: # soundcloud promotion checker
+            if message.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
+                await self.handle_promotion_check(message)
 
         elif ('youtube.com' in content.lower() or 'youtu.be' in content.lower())\
-                and not ctx.author.guild_permissions.kick_members:  # youtube promotion checker
-            if ctx.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
-                await self.handle_promotion_check(ctx)
-                
-        elif 'open.spotify' in content.lower() and not ctx.author.guild_permissions.kick_members:  # spotify promotion checker
-            if ctx.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
-                await self.handle_promotion_check(ctx)
+                and not message.author.guild_permissions.kick_members:  # youtube promotion checker
+            if message.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
+                await self.handle_promotion_check(message)
+
+        elif 'open.spotify' in content.lower() and not message.author.guild_permissions.kick_members:  # spotify promotion checker
+            if message.channel.id in self.MUSIC_TRIO_CHANNEL_IDS_LIST:
+                await self.handle_promotion_check(message)
 
 
-        elif 'primus' in content.lower() and ctx.channel.id == GENERAL_CHAT_CHANNEL_ID: # primus easter egg
-            
+        elif 'primus' in content.lower() and message.channel.id == GENERAL_CHAT_CHANNEL_ID: # primus easter egg
+
             if not self.PRIMUS_COOLDOWN:
                 self.PRIMUS_COOLDOWN = True
-                await ctx.channel.send("🤘 **Primus SUX!** 🤘")
+                await message.channel.send("🤘 **Primus SUX!** 🤘")
                 await asyncio.sleep(self.PRIMUS_COOLDOWN_TIME)
                 self.PRIMUS_COOLDOWN = False
                 
@@ -92,17 +92,9 @@ class User_listener(commands.Cog):
         audit_log_entry = None
         
         async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
-            
-            cutoff_time = discord.utils.utcnow() - timedelta(minutes=2)  # Adjust the time window as needed
+            cutoff_time = discord.utils.utcnow() - timedelta(minutes=2)
             if entry.target == member and entry.created_at >= cutoff_time:
-                
-                # Get all matching kicks, filter the newest one if exists
-                try:
-                    async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
-                        audit_log_entry = entry
-                        break
-                except Exception as e:
-                    print(str(e))
+                audit_log_entry = entry
             
         if audit_log_entry is not None and audit_log_entry.target == member:
             # User was kicked
