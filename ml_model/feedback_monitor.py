@@ -203,19 +203,11 @@ class FeedbackMonitor(commands.Cog):
             
             # Send to dev spam channel with reaction buttons
             try:
-                await dev_spam.send(
-                    f"<@{CO_DEV_ID}> New feedback!",
+                mod_message = await dev_spam.send(
+                    content=f"<@{CO_DEV_ID}> New feedback!",
+                    embed=embed,
                     allowed_mentions=discord.AllowedMentions(users=True)
                 )
-                print("✅ Mention sent")
-            except Exception as e:
-                print(f"❌ Error sending mention: {e}")
-                traceback.print_exc()
-                await self.log_to_bot_log("⚠️ Error sending mention (non-critical)", e)
-                # Continue anyway
-            
-            try:
-                mod_message = await dev_spam.send(embed=embed)
                 print(f"✅ Embed sent, message ID: {mod_message.id}")
                 await self.log_to_bot_log(
                     f"✅ Feedback processed successfully\n"
@@ -415,6 +407,9 @@ class FeedbackMonitor(commands.Cog):
                 traceback.print_exc()
                 await self.log_to_bot_log("⚠️ Error counting entries (non-critical)", e)
             
+            # Remove from pending_validations now that it's been handled
+            self.pending_validations.pop(mod_message.id, None)
+
             # Optional: Remove reactions after validation
             try:
                 await mod_message.clear_reactions()
