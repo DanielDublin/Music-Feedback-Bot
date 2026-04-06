@@ -4,6 +4,7 @@ from discord.ext import commands
 from datetime import datetime
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
+from modules.cooldowns import admin_bypass_cooldown
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
@@ -71,7 +72,7 @@ class General(commands.Cog):
     # MF points - Shows how many points the current user has
     @commands.check(guild_only)
     @commands.command(help = f"Use to check how many MF points you have.")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 10)
     async def points(self, ctx: commands.Context, user: discord.Member = None):
 
         if self.pfp_url == "":
@@ -106,7 +107,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(aliases=["leaderboard"],
                       help = f"(Use to see the leaderboard.")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 10)
     async def top(self, ctx: commands.Context):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -138,7 +139,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(name="R",
                       help = f"Use to submit feedback.", brief = "@username")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 10)
     async def MFR_command(self, ctx: commands.Context):
 
         if self.pfp_url == "":
@@ -196,7 +197,7 @@ class General(commands.Cog):
     @commands.check(guild_only)
     @commands.command(name="S",
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 10)
     async def MFs_command(self, ctx: commands.Context):
 
 
@@ -286,7 +287,7 @@ class General(commands.Cog):
 
     @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
-    @commands.cooldown(1, 60, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 60)
     async def genres(self, ctx: commands.Context, band_name: str):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
@@ -305,7 +306,7 @@ class General(commands.Cog):
         
     @commands.check(guild_only)
     @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
-    @commands.cooldown(1, 60, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 60)
     async def similar(self, ctx: commands.Context, band_name: str):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
