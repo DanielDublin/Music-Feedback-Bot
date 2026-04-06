@@ -292,18 +292,23 @@ class General(commands.Cog):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
-            
+
         words = ctx.message.content.split()
-        band_name  = " ".join(words[2:])
-        result, pfp_url = await fetch_band_genres(band_name)
+        band_name = " ".join(words[2:])
+        if not band_name:
+            await ctx.channel.send("Please provide a band name.")
+            return
+
+        result, thumbnail_url = await fetch_band_genres(band_name)
 
         embed = discord.Embed(color=0x7e016f)
         embed.title = 'Genre Check'
-        embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
-        embed.set_thumbnail(url=pfp_url)
+        embed.add_field(name=f"{band_name.title()}:", value=result, inline=False)
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
-        
+
     @commands.check(guild_only)
     @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
     @admin_bypass_cooldown(1, 60)
@@ -311,16 +316,20 @@ class General(commands.Cog):
         if self.pfp_url == "":
             creator_user = await self.bot.fetch_user(self.bot.owner_id)
             self.pfp_url = creator_user.avatar.url
-        
+
         words = ctx.message.content.split()
-        band_name  = " ".join(words[2:])
-        result = await fetch_similar_bands(band_name)
-        
+        band_name = " ".join(words[2:])
+        if not band_name:
+            await ctx.channel.send("Please provide a band name.")
+            return
+
+        result, thumbnail_url = await fetch_similar_bands(band_name)
 
         embed = discord.Embed(color=0x7e016f)
         embed.title = 'Similar bands'
-        embed.add_field(name=f"{band_name.title()}:",value = result,inline=False)
-        embed.set_thumbnail(url='https://cdn-icons-png.flaticon.com/512/1753/1753311.png')
+        embed.add_field(name=f"{band_name.title()}:", value=result, inline=False)
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
         embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
         await ctx.channel.send(embed=embed)
         
