@@ -2,6 +2,7 @@
 from discord.ext import commands, menus
 import json
 import asyncio
+from modules.cooldowns import admin_bypass_cooldown
 
 
 
@@ -217,7 +218,7 @@ class Music(commands.Cog):
 
     @commands.check(guild_only)
     @commands.command(help= "Use to see the chord/notes information menu.")
-    @commands.cooldown(1, 10, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 10)
     async def notes(self, ctx):
         
      
