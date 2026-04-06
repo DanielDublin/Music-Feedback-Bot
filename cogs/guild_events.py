@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from data.constants import MFL_INFO, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
+from modules.cooldowns import admin_bypass_cooldown
 
 class Guild_events(commands.Cog):
     def __init__(self, bot):
@@ -13,7 +14,7 @@ class Guild_events(commands.Cog):
 
     @commands.check(guild_only)
     @commands.command(help = "Use to submit entries to events.", brief = "(link, file, text)")
-    @commands.cooldown(1, 5, commands.BucketType.user)
+    @admin_bypass_cooldown(1, 5)
     async def submit(self, ctx):
 
         allowed_channels_list = [
