@@ -47,8 +47,12 @@ class FeedbackThreads(commands.Cog):
 
             user_id = after.author.id
             thread_info = self.user_thread.get(user_id)
+            if thread_info is None:
+                return
             thread_id, ticket_counter = thread_info
             thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+            if thread is None:
+                return
 
             # MFS to MFR
             if "<mfs" in before_content_normalized and "<mfr" in after_content_normalized: 
@@ -71,8 +75,12 @@ class FeedbackThreads(commands.Cog):
 
             user_id = message.author.id
             thread_info = self.user_thread.get(user_id)
+            if thread_info is None:
+                return
             thread_id, ticket_counter = thread_info
             thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+            if thread is None:
+                return
 
             # if mfr is in content that was deleted, take away the points
             if "<mfr" in message_content_normalized:
@@ -82,8 +90,12 @@ class FeedbackThreads(commands.Cog):
             #else if mfs is in content deleted, send message that the user needs more points/contact mods if a mistake
             elif "<mfs" in message_content_normalized:
 
+                # lazy-load General cog in case it wasn't ready at __init__ time
+                if self.general is None:
+                    self.general = self.bot.get_cog('General')
+
                 # check if the message id is due to manual deletion of the else statement in MFS
-                if message.id in self.general.deleted_messages:
+                if self.general is not None and message.id in self.general.deleted_messages:
                     # if it is, this means that the message was manually deleted and to not throw this embed; delete the id
                     self.general.deleted_messages.discard(message.id)
                     return

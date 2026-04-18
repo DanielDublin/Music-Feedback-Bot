@@ -14,8 +14,11 @@ class ConfigureChannel:
     async def initialize_channels(self):
         self.submissions_channel = self.bot.get_channel(AOTW_SUBMISSIONS)
         self.aotw_channel = self.bot.get_channel(AOTW_CHANNEL)
-        if self.submissions_channel:
-            self.guild = self.submissions_channel.guild
+        if not self.submissions_channel:
+            raise ValueError(f"AOTW submissions channel (ID: {AOTW_SUBMISSIONS}) not found — check constants.py")
+        if not self.aotw_channel:
+            raise ValueError(f"AOTW channel (ID: {AOTW_CHANNEL}) not found — check constants.py")
+        self.guild = self.submissions_channel.guild
 
     async def check_aotw_channel_announcement(self, formatted_six_months):
 
@@ -282,18 +285,24 @@ __Voting Guidelines:__
                     print(f"❌ Error ending event: {e}")
                 break
     
-    @tasks.loop(hours=12)
+    @tasks.loop(hours=12, reconnect=True)
     async def voting_reminder_task(self):
-        # send reminder every 24 hours in chat
+        # send reminder every 12 hours in chat
         channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
-        
+        if not channel:
+            print("[AOTW] voting_reminder_task: GENERAL_CHAT_CHANNEL_ID not found")
+            return
         embed = discord.Embed(
             title="VOTING IS OPEN!",
             description=f"Don't forget to vote! Check <#{AOTW_SUBMISSIONS}> to cast your vote!",
             color=discord.Color.gold()
         )
         await channel.send(embed=embed)
-    
+
+    @voting_reminder_task.error
+    async def voting_reminder_task_error(self, error):
+        print(f"[AOTW] Voting reminder task crashed: {error!r}")
+
     def stop_voting_reminders(self):
         """Stop reminders when voting ends"""
         if self.voting_reminder_task.is_running():

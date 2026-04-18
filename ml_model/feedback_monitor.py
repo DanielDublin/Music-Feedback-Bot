@@ -4,7 +4,7 @@ Monitors messages in the feedback channel and validates feedback quality
 """
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from ml_model.ml_model_loader import predict_feedback_quality
 from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, BOT_LOG, CO_DEV_ID
 from ml_model.export_json import ExportJson
@@ -12,6 +12,13 @@ from ml_model.mod_bad_feedback_notification import FeedbackNotifier
 import asyncio
 import json
 import traceback
+from datetime import timezone, timedelta
+
+def _log_task_error(task: asyncio.Task):
+    """Callback to log unhandled exceptions from background tasks."""
+    if not task.cancelled() and task.exception():
+        print(f"[FeedbackMonitor] Background task error: {task.exception()!r}")
+
 
 class FeedbackMonitor(commands.Cog):
     """Monitors and validates feedback quality"""
@@ -56,10 +63,25 @@ class FeedbackMonitor(commands.Cog):
             if error:
                 traceback.print_exception(type(error), error, error.__traceback__)
         
+    @tasks.loop(hours=24)
+    async def cleanup_pending_validations(self):
+        """Remove entries older than 48 hours to prevent unbounded growth"""
+        cutoff = discord.utils.utcnow() - timedelta(hours=48)
+        stale = [
+            mid for mid, data in self.pending_validations.items()
+            if data['original_message'].created_at.replace(tzinfo=timezone.utc) < cutoff
+        ]
+        for mid in stale:
+            self.pending_validations.pop(mid, None)
+        if stale:
+            print(f"[FeedbackMonitor] Cleaned up {len(stale)} stale pending validations")
+
     @commands.Cog.listener()
     async def on_ready(self):
         """Called when bot is ready"""
         try:
+            if not self.cleanup_pending_validations.is_running():
+                self.cleanup_pending_validations.start()
             print(f"✅ FeedbackMonitor cog loaded")
             print(f"   Monitoring channel: {AUDIO_FEEDBACK}")
             print(f"   Sending results to: {DEV_SPAM}")
@@ -193,13 +215,14 @@ class FeedbackMonitor(commands.Cog):
                 await self.log_to_bot_log("❌ Error creating embed", e)
                 return
             
-            # Notify mods if it's bad feedback using the notifier
+            # Notify mods if it's bad feedback — fire as background task to avoid blocking on_message
             if not result['is_good']:
-                await self.notifier.notify_bad_feedback(
-                    message, 
+                _task = asyncio.create_task(self.notifier.notify_bad_feedback(
+                    message,
                     feedback_text,
                     log_callback=self.log_to_bot_log
-                )
+                ))
+                _task.add_done_callback(_log_task_error)
             
             # Send to dev spam channel with reaction buttons
             try:

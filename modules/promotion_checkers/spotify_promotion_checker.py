@@ -1,4 +1,5 @@
 import re
+import asyncio
 import discord
 import urlextract
 import spotipy
@@ -72,13 +73,13 @@ async def check_spotify(message):
     for url in urls:
        
         
-        spotify_artists_names = fetch_artist_name(url)
+        spotify_artists_names = await asyncio.to_thread(fetch_artist_name, url)
         if spotify_artists_names is None:
             continue
         
         
         spotify_artists_names = [artist_name.replace(" ", "").lower() for artist_name in spotify_artists_names]
-        discord_global_name = author.global_name.replace(" ", "").lower()
+        discord_global_name = (author.global_name or "").replace(" ", "").lower()
         discord_display_name = author.display_name.replace(" ", "").lower()
 
         try:

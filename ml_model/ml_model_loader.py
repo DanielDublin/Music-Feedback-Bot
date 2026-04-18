@@ -4,6 +4,7 @@ Loads the trained SimpleML model for feedback quality prediction
 """
 
 import os
+import asyncio
 import joblib
 import numpy as np
 import re
@@ -160,6 +161,9 @@ def get_predictor():
     return _predictor
 
 async def predict_feedback_quality(feedback_text):
-    """Async wrapper for prediction"""
-    predictor = get_predictor()
-    return predictor.predict(feedback_text)
+    """Async wrapper for prediction — runs CPU-bound sklearn work off the event loop."""
+    import asyncio
+    def _predict():
+        predictor = get_predictor()  # may load model files on first call
+        return predictor.predict(feedback_text)
+    return await asyncio.to_thread(_predict)

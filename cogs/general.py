@@ -1,6 +1,6 @@
 from os import makedirs
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime
 import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
@@ -18,6 +18,7 @@ class General(commands.Cog):
         self.pfp_url =""
         self.helpers = DiscordHelpers(self.bot)
         self.deleted_messages = set() # store the messages deleted when mfs with 0 points
+        self.cleanup_deleted_messages.start()
 
         
     def guild_only(ctx):
@@ -185,7 +186,7 @@ class General(commands.Cog):
                       "> <MFR is for giving feedback\n"\
                       "> <MFS is for submitting feedback\n"\
                       "_THIS IS A 1-for-1 SYSTEM AND **__YOU MUST GIVE FEEDBACK FIRST TO GET FEEDBACK__**_\n"\
-                      "\nRe-read the #Feedback-Access (https://discord.com/channels/732355624259813531/953764384495251477/959150439692128277) "\
+                      f"\nRe-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> "\
                       "for more information or contact the Moderators.\n"\
                       "\n**Here is a copy of the message that was deleted:**\n"
 
@@ -336,6 +337,13 @@ class General(commands.Cog):
 
         
      
+
+
+    @tasks.loop(hours=1)
+    async def cleanup_deleted_messages(self):
+        """Periodically clear stale message IDs — entries older than ~1 hour were never matched"""
+        if self.deleted_messages:
+            self.deleted_messages.clear()
 
 
 async def setup(bot):

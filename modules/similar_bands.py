@@ -7,16 +7,25 @@ from bs4 import BeautifulSoup
 load_dotenv()
 api_key = os.environ.get('LAST_FM_TOKEN')
 
+_session: "aiohttp.ClientSession | None" = None
+
+
+async def _get_session() -> aiohttp.ClientSession:
+    global _session
+    if _session is None or _session.closed:
+        _session = aiohttp.ClientSession()
+    return _session
+
 
 async def _get_image(artist_url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(artist_url) as response:
-            if response.status != 200:
-                return None
-            soup = BeautifulSoup(await response.text(), 'html.parser')
-            meta_tag = soup.find('meta', {'property': 'og:image'})
-            if meta_tag and meta_tag.get('content'):
-                return meta_tag['content']
+    session = await _get_session()
+    async with session.get(artist_url) as response:
+        if response.status != 200:
+            return None
+        soup = BeautifulSoup(await response.text(), 'html.parser')
+        meta_tag = soup.find('meta', {'property': 'og:image'})
+        if meta_tag and meta_tag.get('content'):
+            return meta_tag['content']
     return None
 
 
@@ -31,11 +40,11 @@ async def fetch_similar_bands(artist_name):
         'format': 'json'
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=params) as response:
-            if response.status != 200:
-                return (f"Error: Failed to retrieve data (HTTP status {response.status})", None)
-            data = await response.json()
+    session = await _get_session()
+    async with session.get(base_url, params=params) as response:
+        if response.status != 200:
+            return (f"Error: Failed to retrieve data (HTTP status {response.status})", None)
+        data = await response.json()
 
     if 'error' in data:
         return (f"Error: {data['message']}", None)
@@ -58,12 +67,12 @@ async def fetch_similar_bands(artist_name):
         'format': 'json'
     }
     image_url = default_image
-    async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=info_params) as response:
-            if response.status == 200:
-                info_data = await response.json()
-                artist_url = info_data.get('artist', {}).get('url')
-                if artist_url:
-                    image_url = await _get_image(artist_url) or default_image
+    session = await _get_session()
+    async with session.get(base_url, params=info_params) as response:
+        if response.status == 200:
+            info_data = await response.json()
+            artist_url = info_data.get('artist', {}).get('url')
+            if artist_url:
+                image_url = await _get_image(artist_url) or default_image
 
     return (result, image_url)

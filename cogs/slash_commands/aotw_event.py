@@ -106,6 +106,8 @@ class AOTWEvent(commands.Cog):
             
         except asyncio.TimeoutError:
             await mod_channel.send(f"⚠️ AOTW winner {winner_info['name']} didn't respond within 24 hours!")
+        except Exception as e:
+            await mod_channel.send(f"❌ Unexpected error in winner listener for {winner_info['name']}: {e}")
 
     @app_commands.command(name = "aotw_voting", description = "Setup poll and channels for AOTW voting")
     @app_commands.checks.has_permissions(administrator=True)
@@ -170,7 +172,12 @@ class AOTWEvent(commands.Cog):
 
         # reminders for gen chat
         try:
+            # cancel any previously running reminder loop before starting a new one
+            old_config = getattr(self.bot, '_aotw_config', None)
+            if old_config is not None:
+                old_config.stop_voting_reminders()
             await config.schedule_general_chat_reminders()
+            self.bot._aotw_config = config  # save instance so aotw_winner can stop its task
             await mod_channel.send("✅ Scheduled general chat reminders")
         except Exception as e:
             await mod_channel.send(f"❌ Error scheduling reminders: {e}")
@@ -252,8 +259,13 @@ class AOTWEvent(commands.Cog):
             # end the aotw event
             await config.end_aotw_event()
             await mod_channel.send("✅ AOTW voting event ended")
-            # stop voting reminders
-            config.stop_voting_reminders()
+            # stop voting reminders — must use the original instance that started the task
+            voting_config = getattr(self.bot, '_aotw_config', None)
+            if voting_config is not None:
+                voting_config.stop_voting_reminders()
+                self.bot._aotw_config = None
+            else:
+                config.stop_voting_reminders()  # fallback (no-op if task not running)
             await mod_channel.send("✅ Stopped voting reminders")
         except Exception as e:
             await mod_channel.send(f"❌ Error ending aotw event: {e}")

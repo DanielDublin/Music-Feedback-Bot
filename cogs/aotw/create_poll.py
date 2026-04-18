@@ -217,6 +217,9 @@ class CreatePoll:
         try:
             if len(messages) == 0:
                 await votes_channel.send(results_text)
+            elif "**WINNER:**" in messages[0].content:
+                # Don't overwrite the winner record with a live vote update
+                return
             else:
                 await messages[0].edit(content=results_text)
         except discord.HTTPException as e:

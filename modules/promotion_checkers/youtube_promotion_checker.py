@@ -1,5 +1,6 @@
 import re
 import os
+import asyncio
 import discord
 import yt_dlp as youtube_dl
 import urlextract
@@ -71,12 +72,16 @@ async def handle_videos(message):
             # Get the author's profile
             profile = message.author
 
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(f'https://www.youtube.com/watch?v={youtube_video_id}', download=False)
-                creator = info.get('uploader')
+            vid_id = youtube_video_id  # capture loop variable for closure
+            def _extract():
+                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    return ydl.extract_info(f'https://www.youtube.com/watch?v={vid_id}', download=False)
+
+            info = await asyncio.to_thread(_extract)
+            creator = info.get('uploader')
 
             # Check if the author's username or display name contains the YouTube creator's name
-            discord_global_name = profile.global_name.replace(" ", "").lower()
+            discord_global_name = (profile.global_name or "").replace(" ", "").lower()
             discord_display_name = profile.display_name.replace(" ", "").lower()
             creator = creator.replace(" ", "").lower()
             if creator and (creator.lower() == discord_global_name or creator.lower() == discord_display_name):
@@ -130,7 +135,7 @@ async def handle_channels(message):
                 continue
 
             # Check if the author's username or display name contains the YouTube creator's name
-            discord_global_name = profile.global_name.replace(" ", "").lower()
+            discord_global_name = (profile.global_name or "").replace(" ", "").lower()
             discord_display_name = profile.display_name.replace(" ", "").lower()
             creator = creator.replace(" ", "").lower()
             if creator.lower() == discord_global_name or creator.lower() == discord_display_name:

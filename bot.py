@@ -27,9 +27,9 @@ bot = commands.Bot(command_prefix=["<MF", "<Mf", "<mF", "<mf"], intents=intents,
                    owner_id=BOT_DEV_ID)
 bot.remove_command('help')
 
-@bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=server_id))
+@bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=SERVER_ID))
 async def sync(interaction: discord.Interaction):
-    await bot.tree.sync(guild=discord.Object(id=server_id))
+    await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
     await interaction.response.send_message("Commands synced", ephemeral=True)
 
 
@@ -73,7 +73,7 @@ async def on_ready():
         # for command in tree.get_commands():
         #     print(f"- {command.name}: {command.description}")
 
-        await bot.tree.sync() 
+        await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
 
         print('Sync-ed slash commands')
 
@@ -118,7 +118,13 @@ async def on_command_error(ctx, error):
     
 @bot.tree.error
 async def on_app_command_error(interaction, error):
-    await interaction.channel.send(str(error))
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(str(error), ephemeral=True)
+        else:
+            await interaction.response.send_message(str(error), ephemeral=True)
+    except Exception:
+        pass  # best-effort; don't crash the error handler itself
 
 
 async def load_extensions():

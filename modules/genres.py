@@ -7,19 +7,28 @@ from bs4 import BeautifulSoup
 load_dotenv()
 api_key = os.environ.get('LAST_FM_TOKEN')
 
+_session: "aiohttp.ClientSession | None" = None
+
+
+async def _get_session() -> aiohttp.ClientSession:
+    global _session
+    if _session is None or _session.closed:
+        _session = aiohttp.ClientSession()
+    return _session
+
 
 async def _get_image(data):
     artist_url = data.get('artist', {}).get('url')
     if not artist_url:
         return None
-    async with aiohttp.ClientSession() as session:
-        async with session.get(artist_url) as response:
-            if response.status != 200:
-                return None
-            soup = BeautifulSoup(await response.text(), 'html.parser')
-            meta_tag = soup.find('meta', {'property': 'og:image'})
-            if meta_tag and meta_tag.get('content'):
-                return meta_tag['content']
+    session = await _get_session()
+    async with session.get(artist_url) as response:
+        if response.status != 200:
+            return None
+        soup = BeautifulSoup(await response.text(), 'html.parser')
+        meta_tag = soup.find('meta', {'property': 'og:image'})
+        if meta_tag and meta_tag.get('content'):
+            return meta_tag['content']
     return None
 
 
@@ -33,11 +42,11 @@ async def fetch_band_genres(band_name):
         'format': 'json'
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=params) as response:
-            if response.status != 200:
-                return (f"Error: Failed to retrieve data (HTTP status {response.status})", None)
-            data = await response.json()
+    session = await _get_session()
+    async with session.get(base_url, params=params) as response:
+        if response.status != 200:
+            return (f"Error: Failed to retrieve data (HTTP status {response.status})", None)
+        data = await response.json()
 
     if 'error' in data:
         return (f"Error: {data['message']}", None)

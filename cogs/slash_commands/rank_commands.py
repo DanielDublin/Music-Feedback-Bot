@@ -34,16 +34,18 @@ class RankCommands(commands.Cog):
         second_role = sorted_roles[1] if len(sorted_roles) > 1 else None
 
         # get the date the role was added
-        last_updated_date = self.google_sheet.retrieve_time(user.id)
+        last_updated_date = await asyncio.to_thread(self.google_sheet.retrieve_time, user.id)
         # If AOTW is top, return second role
         # If no AOTW, return top role
         if top_role.name == "Artist of the Week" or top_role.name == "Moderators":
             if second_role:
-                await interaction.followup.send(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
+                calc_time = await asyncio.to_thread(self.google_sheet.calculate_time, user.id)
+                await interaction.followup.send(f"{user.mention} has the {second_role.mention} role. This role was added on: {last_updated_date} *({calc_time} days ago)*.", ephemeral=True)
             else:
                 await interaction.followup.send("This member has only one role.", ephemeral=True)
         else:
-            await interaction.followup.send(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.", ephemeral=True)
+            calc_time = await asyncio.to_thread(self.google_sheet.calculate_time, user.id)
+            await interaction.followup.send(f"{user.mention} has the {top_role.mention} role. This role was added on: {last_updated_date} *({calc_time} days ago)*.", ephemeral=True)
 
     # adds role to member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
@@ -53,7 +55,7 @@ class RankCommands(commands.Cog):
         await interaction.response.defer(thinking=True)
         
         # add to Google Sheet
-        self.google_sheet.add_user_spreadsheet(user.id, user.name)
+        await asyncio.to_thread(self.google_sheet.add_user_spreadsheet, user.id, user.name)
 
         # define lower ranks
         # exclude Headliners/UF/Gilded/TRMFRs because they stay along with Headliners
@@ -63,14 +65,15 @@ class RankCommands(commands.Cog):
             # check if the member already has the role
             if role in user.roles:
                 # get date role was added
-                last_updated_date = self.google_sheet.retrieve_time(user.id, role.name)
+                last_updated_date = await asyncio.to_thread(self.google_sheet.retrieve_time, user.id, role.name)
+                calc_time = await asyncio.to_thread(self.google_sheet.calculate_time, user.id)
                 await interaction.followup.send(
-                    f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date} *({self.google_sheet.calculate_time(user.id)} days ago)*.")
+                    f"{user.mention} already has {role.mention}. This role was added on: {last_updated_date} *({calc_time} days ago)*.")
             else:
                 # add the new role to the user
                 await user.add_roles(role, atomic=True)
                 # add role update to spreadsheet
-                self.google_sheet.update_rank_spreadsheet(user.id, role.name, is_rankup = True)
+                await asyncio.to_thread(self.google_sheet.update_rank_spreadsheet, user.id, role.name, True)
                 await interaction.followup.send(f"{role.mention} was added to {user.mention}.")
 
                 # remove lower-ranked roles
@@ -99,7 +102,7 @@ class RankCommands(commands.Cog):
         await interaction.response.defer(thinking=True)
 
         # add to Google Sheet
-        self.google_sheet.add_user_spreadsheet(user.id, user.name)
+        await asyncio.to_thread(self.google_sheet.add_user_spreadsheet, user.id, user.name)
 
         # define higher ranks
         higher_rank_names = ["Groupies", "Stagehands", "Supporting Acts", "Headliners", "MF Gilded", "The Real MFrs"]
@@ -120,7 +123,7 @@ class RankCommands(commands.Cog):
                             # add -1 from index of role
                             await user.add_roles(new_role)
                             # update spreadsheet
-                            self.google_sheet.update_rank_spreadsheet(user.id, new_role.name, is_rankup = False)
+                            await asyncio.to_thread(self.google_sheet.update_rank_spreadsheet, user.id, new_role.name, False)
                             await interaction.followup.send(
                                 f"{role.mention} was removed from {user.mention}. They are now {new_role.mention}.")
 
@@ -129,14 +132,15 @@ class RankCommands(commands.Cog):
     @group.command(name="history", description="Get rank history for member")
     async def history(self, interaction: discord.Interaction, user: discord.Member):
         await interaction.response.defer(thinking=True)
-        history = self.google_sheet.get_history(user.id)
+        history = await asyncio.to_thread(self.google_sheet.get_history, user.id)
         if history:
             # format the history into a string
             history_message = '\n'.join(history)
             # embed formatting
             embed = discord.Embed(title="Rank History", color=0x7e016f)
             embed.add_field(name=f"{user.name}", value=f"{history_message}", inline=False)
-            embed.add_field(name=f"Last Role Added: {self.google_sheet.calculate_time(user.id)} days ago.", value="", inline=False)
+            calc_time = await asyncio.to_thread(self.google_sheet.calculate_time, user.id)
+            embed.add_field(name=f"Last Role Added: {calc_time} days ago.", value="", inline=False)
             await interaction.followup.send(embed=embed)
         else:
             await interaction.followup.send("User not in the database.")

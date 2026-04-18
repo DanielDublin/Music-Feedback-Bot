@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:fallendeity.github.io)",
+      "WebFetch(domain:discordpy.readthedocs.io)",
+      "Bash(python:*)",
+      "Bash(py:*)"
+    ]
+  }
+}

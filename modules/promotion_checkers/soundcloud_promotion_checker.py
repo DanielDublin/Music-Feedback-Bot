@@ -118,7 +118,7 @@ async def check_soundcloud(message):
             .replace(" ", "").replace("-", "").replace("_", "").lower()
         soundcloud_default_user_name = soundcloud_default_user_name \
             .replace(" ", "").replace("-", "").replace("_", "").lower()
-        discord_global_name = author.global_name \
+        discord_global_name = (author.global_name or "") \
             .replace(" ", "").replace("-", "").replace("_", "").lower()
         discord_display_name = author.display_name \
             .replace(" ", "").replace("-", "").replace("_", "").lower()

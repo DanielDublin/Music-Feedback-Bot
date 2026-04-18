@@ -138,7 +138,7 @@ class Admin(commands.Cog):
 
     # Mod clear points (Applying the same logic as remove for consistency and correctness)
     @group.command(name="clear", description="Use to reset all the points from a user.\n```/mfpoints clear @user/user_id```")
-    async def clear(self, interaction: discord.Interaction, user: discord.Member, points: int = 1): # `points` argument is unused here, consider removing if not needed.
+    async def clear(self, interaction: discord.Interaction, user: discord.Member):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("https://media.tenor.com/nEhFMtR35LQAAAAC/you-have-no-power-here-gandalf.gif", ephemeral=True)
             return

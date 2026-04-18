@@ -1,3 +1,4 @@
+import asyncio
 import json
 import gspread
 import time
@@ -106,7 +107,7 @@ class GoogleSheet:
             return time_difference.days
         
     async def get_outdated_for_all_users(self, guild):
-        all_data = self.sheet.get_all_values()
+        all_data = await asyncio.to_thread(self.sheet.get_all_values)
         
         user_dates = []
         
