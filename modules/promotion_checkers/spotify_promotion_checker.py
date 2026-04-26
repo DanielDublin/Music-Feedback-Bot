@@ -1,5 +1,6 @@
 import re
 import asyncio
+import logging
 import discord
 import urlextract
 import spotipy
@@ -16,6 +17,8 @@ SPOTIFY_CLIENT_SECRET = os.environ.get('SPOTIFY_CLIENT_SECRET')
 url_extractor = urlextract.URLExtract()
 # Create a Spotify client
 sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET))
+
+logger = logging.getLogger(__name__)
 
 def extract_spotify_urls(message_content):
     # Function to extract URLs from text
@@ -56,7 +59,7 @@ def fetch_artist_name(spotify_url):
             return artist_names
             
     except spotipy.SpotifyException:
-        print(f"Error processing Spotify link: {spotify_url}")
+        logger.warning(f"Error processing Spotify link: {spotify_url}")
         return None
 
 
@@ -88,6 +91,6 @@ async def check_spotify(message):
                 return True
 
         except discord.errors.NotFound:
-            print(f"Unable to fetch the user's profile.")
+            logger.warning("Unable to fetch the user's profile.")
 
     return False

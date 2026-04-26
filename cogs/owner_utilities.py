@@ -1,10 +1,12 @@
 from ast import Delete
 import discord
-import database.db as db
+import logging
 from discord.ext import commands
 from data.constants import BOT_DEV_ID, SERVER_ID, CO_DEV_ID
 import json
 from functools import wraps
+
+logger = logging.getLogger(__name__)
 
 class Owner_Utilities(commands.Cog):
     def __init__(self, bot):
@@ -30,7 +32,7 @@ class Owner_Utilities(commands.Cog):
         with open('MF_Points.json', 'r') as json_file:
             data = json.load(json_file)
 
-        await db.json_migration(data)
+        await self.bot.db.json_migration(data)
         await ctx.channel.send("finished migration process")
 
     # Mod migrate json
@@ -39,7 +41,7 @@ class Owner_Utilities(commands.Cog):
     async def migrate_warnings(self, ctx: discord.Message):
 
         await ctx.channel.send("starting warning migration process")
-        await db.migrate_warnings()
+        await self.bot.db.migrate_warnings()
         await ctx.channel.send("finished warning migration process")
         
 
@@ -63,7 +65,7 @@ class Owner_Utilities(commands.Cog):
         discord_user_data = await self.prepare_discord_user_data(guild, json_data)
 
         # Update SQL user data
-        await db.migrate_warnings_extreme(discord_user_data)
+        await self.bot.db.migrate_warnings_extreme(discord_user_data)
         await ctx.channel.send("finished warning migration process")
         
 
@@ -117,7 +119,7 @@ class Owner_Utilities(commands.Cog):
         user_warnings = {}
         for user_id, warnings in json_data.items():
             if user_id in banned_user_ids:
-                print(f"User {user_id} is on the ban list. Ignoring.")
+                logger.info(f"User {user_id} is on the ban list; skipping warnings migration")
             else:
                 user_warnings[user_id] = warnings
 

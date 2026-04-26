@@ -1,36 +1,38 @@
 import asyncio
 import discord
-import database.db as db
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from data.constants import THREADS_CHANNEL
+
+logger = logging.getLogger(__name__)
 
 class DiscordHelpers:
     def __init__(self, bot, points_logic_instance=None):
         self.bot = bot
         self._points_logic = points_logic_instance
 
-    async def unarchive_thread(self, existing_thread):
+    async def unarchive_thread(self, existing_thread) -> None:
         if existing_thread.archived:
             await existing_thread.edit(archived=False)
 
-    async def archive_thread(self, existing_thread):
+    async def archive_thread(self, existing_thread) -> None:
         if not existing_thread.archived:
             await asyncio.sleep(5)
             await existing_thread.edit(archived=True)
 
-    def get_message_link(self, ctx):
+    def get_message_link(self, ctx) -> str:
         channel_id = ctx.message.channel.id
         message_id = ctx.message.id
         guild_id = ctx.guild.id
         return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
 
-    def get_formatted_time(self):
+    def get_formatted_time(self) -> str:
         eastern = ZoneInfo("America/New_York")
         current_time = datetime.now(eastern)
         return current_time.strftime("%B %d, %Y %H:%M")
 
-    async def load_feedback_cog(self, ctx=None, user_id=None):
+    async def load_feedback_cog(self, ctx=None, user_id=None) -> tuple | None:
         from .points_logic import PointsLogic
 
         feedback_cog = self.bot.get_cog("FeedbackThreads")
@@ -49,12 +51,12 @@ class DiscordHelpers:
 
             thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
         else:
-            print(f"[load_feedback_cog] User {ctx.author.id} not found in user_thread — thread was not created before load_feedback_cog was called")
+            logger.warning(f"[load_feedback_cog] User {ctx.author.id} not found in user_thread — thread was not created before load_feedback_cog was called")
             raise RuntimeError(f"No feedback thread found for user {ctx.author.id}")
 
         return thread, ticket_counter, points_logic, user_id
     
-    async def load_threads_cog(self, ctx):
+    async def load_threads_cog(self, ctx) -> tuple:
 
         # Get the FeedbackThreads cog instance
         feedback_cog = self.bot.get_cog("FeedbackThreads")
@@ -71,31 +73,31 @@ class DiscordHelpers:
 
     
     @staticmethod
-    async def get_thread_id_no_ctx(bot, user_id: int):
+    async def get_thread_id_no_ctx(bot, user_id: int) -> int | None:
 
         feedback_cog = bot.get_cog("FeedbackThreads")
 
         if not feedback_cog:
-            print("Feedback cog not loaded.")
+            logger.error("Feedback cog not loaded.")
             return None
 
         user_thread = feedback_cog.user_thread
-        print(user_thread)
+        logger.debug("user_thread: %s", user_thread)
 
         thread_info = user_thread.get(user_id)
         if thread_info:
             thread_id = thread_info[0]  # first item is the thread ID
             return thread_id
         else:
-            print(f"No thread found for user ID: {user_id}")
+            logger.warning(f"No thread found for user ID: {user_id}")
             return None 
         
     @staticmethod
-    async def delete_user_from_user_thread(bot, user_id: int):
+    async def delete_user_from_user_thread(bot, user_id: int) -> None:
         feedback_cog = bot.get_cog("FeedbackThreads")
 
         if not feedback_cog:
-            print("Feedback cog not loaded.")
+            logger.error("Feedback cog not loaded.")
             return
 
         user_thread = feedback_cog.user_thread
@@ -105,17 +107,17 @@ class DiscordHelpers:
 
 
     @staticmethod
-    async def delete_user_from_db(bot, user_id: int):
+    async def delete_user_from_db(bot, user_id: int) -> None:
 
         feedback_cog = bot.get_cog("FeedbackThreads")
 
         if not feedback_cog:
-            print("Feedback cog not loaded.")
+            logger.error("Feedback cog not loaded.")
             return
 
         feedback_cog.sqlitedatabase.delete_user(user_id)
 
-    def shorten_message(self, content: str, max_length: int):
+    def shorten_message(self, content: str, max_length: int) -> str:
         if len(content) > max_length:
             return content[:max_length - 3] + "..."
         

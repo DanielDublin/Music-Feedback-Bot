@@ -5,10 +5,13 @@ Loads the trained SimpleML model for feedback quality prediction
 
 import os
 import asyncio
+import logging
 import joblib
 import numpy as np
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 class FeedbackQualityPredictor:
     """Predicts if feedback is good quality (Pass/Fail)"""
@@ -19,14 +22,14 @@ class FeedbackQualityPredictor:
         self.vectorizer = None
         self.loaded = False
         
-    def load_model(self):
+    def load_model(self) -> None:
         """Load the trained model and vectorizer"""
         model_path = self.model_dir / 'model.pkl'
         vectorizer_path = self.model_dir / 'vectorizer.pkl'
         
-        print(f"🔍 Current working directory: {os.getcwd()}")
-        print(f"🔍 Looking for model at: {model_path.resolve()}")
-        print(f"🔍 Looking for vectorizer at: {vectorizer_path.resolve()}")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Looking for model at: {model_path.resolve()}")
+        logger.info(f"Looking for vectorizer at: {vectorizer_path.resolve()}")
         
         if not model_path.exists():
             raise FileNotFoundError(f"Model not found at {model_path.resolve()}")
@@ -37,12 +40,12 @@ class FeedbackQualityPredictor:
             self.model = joblib.load(model_path)
             self.vectorizer = joblib.load(vectorizer_path)
             self.loaded = True
-            print(f"✅ Model loaded successfully from {self.model_dir}")
+            logger.info(f"Model loaded successfully from {self.model_dir}")
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
+            logger.error("Error loading model", exc_info=True)
             raise  # Re-raise the exception
     
-    def extract_features(self, feedback_text):
+    def extract_features(self, feedback_text: str) -> dict:
         """Extract features from feedback text"""
         features = {}
         
@@ -121,7 +124,7 @@ class FeedbackQualityPredictor:
         
         return features
     
-    def predict(self, feedback_text):
+    def predict(self, feedback_text: str) -> dict:
         """Predict if feedback is Pass or Fail quality"""
         if not self.loaded:
             raise ValueError("Model not loaded. Call load_model() first.")
@@ -146,7 +149,7 @@ class FeedbackQualityPredictor:
                 'is_good': is_good
             }
         except Exception as e:
-            print(f"❌ Prediction error: {e}")
+            logger.error("Prediction error", exc_info=True)
             raise  # Re-raise the exception
 
 # Global instance
@@ -160,7 +163,7 @@ def get_predictor():
         _predictor.load_model()  # This will now raise an exception if it fails
     return _predictor
 
-async def predict_feedback_quality(feedback_text):
+async def predict_feedback_quality(feedback_text: str) -> dict:
     """Async wrapper for prediction — runs CPU-bound sklearn work off the event loop."""
     import asyncio
     def _predict():

@@ -2,7 +2,6 @@ from os import makedirs
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime
-import database.db as db
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
 from modules.cooldowns import admin_bypass_cooldown
 from modules.genres import fetch_band_genres
@@ -15,15 +14,14 @@ from cogs.feedback_threads.modules.threads_manager import ThreadsManager
 class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.pfp_url =""
         self.helpers = DiscordHelpers(self.bot)
         self.deleted_messages = set() # store the messages deleted when mfs with 0 points
         self.cleanup_deleted_messages.start()
 
         
-    def guild_only(ctx):
+    async def cog_check(self, ctx: commands.Context) -> bool:
         return ctx.guild is not None
-    
+
 
     async def handle_feedback_command_validity(self, ctx, mention):
         
@@ -71,22 +69,17 @@ class General(commands.Cog):
         return True
 
     # MF points - Shows how many points the current user has
-    @commands.check(guild_only)
     @commands.command(help = f"Use to check how many MF points you have.")
     @admin_bypass_cooldown(1, 10)
     async def points(self, ctx: commands.Context, user: discord.Member = None):
-
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
 
         # Gathering data
         if user is None:
             user = ctx.author
 
         guild = ctx.guild
-        points = await db.fetch_points(str(user.id))
-        rank = await db.fetch_rank(str(user.id))
+        points = await self.bot.db.fetch_points(str(user.id))
+        rank = await self.bot.db.fetch_rank(str(user.id))
         pfp = user.display_avatar.url
         
         msg_out1 = f"You have **{points}** MF point(s)."
@@ -101,20 +94,15 @@ class General(commands.Cog):
         embed.add_field(name="__MF Points__", value=msg_out1, inline=False)
         embed.add_field(name="__MF Rank__", value=msg_out2,
                         inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await ctx.channel.send(embed=embed)
 
     # MF leaderboard
-    @commands.check(guild_only)
     @commands.command(aliases=["leaderboard"],
                       help = f"(Use to see the leaderboard.")
     @admin_bypass_cooldown(1, 10)
     async def top(self, ctx: commands.Context):
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-
-        top_users = await db.fetch_top_users()
+        top_users = await self.bot.db.fetch_top_users()
         guild = ctx.guild
         names = ''
         avatar = guild.icon.url
@@ -133,38 +121,31 @@ class General(commands.Cog):
         embed.set_author(name="Top Music Feedbackers", icon_url=guild.icon.url)
         embed.add_field(name="Members", value=names, inline=False)
         embed.set_thumbnail(url=avatar)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await ctx.channel.send(embed=embed)
 
         # Add points
-    @commands.check(guild_only)
     @commands.command(name="R",
                       help = f"Use to submit feedback.", brief = "@username")
     @admin_bypass_cooldown(1, 10)
     async def MFR_command(self, ctx: commands.Context):
 
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-            
-
         mention = ctx.author.mention    
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
-        await db.add_points(str(ctx.author.id), 1)
-        
-        points = int(await db.fetch_points(str(ctx.author.id)))
+        await self.bot.db.add_points(str(ctx.author.id), 1)
+
+        points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel
 
         await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).", delete_after=4)
 
-        # load cog needed to use variables
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
-
-        await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
-
-        thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
+        feedback_cog = self.bot.get_cog("FeedbackThreads")
+        result = await feedback_cog.record_feedback(ctx)
+        if result is None:
+            return
+        thread, ticket_counter = result
 
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(
@@ -176,7 +157,7 @@ class General(commands.Cog):
             ),
             inline=False
 )
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await channel.send(embed=embed)  # Logs channel
 
 
@@ -195,17 +176,10 @@ class General(commands.Cog):
 
 
     # Use points
-    @commands.check(guild_only)
     @commands.command(name="S",
                       help = f"Use to ask for feedback.", brief = "(link, file, text)")
     @admin_bypass_cooldown(1, 10)
     async def MFs_command(self, ctx: commands.Context):
-
-
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-            
 
         mention = ctx.author.mention    
         if not await self.handle_feedback_command_validity(ctx, mention):
@@ -213,23 +187,21 @@ class General(commands.Cog):
         
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
-        points = int(await db.fetch_points(str(ctx.author.id)))
+        points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
 
-        # load cog needed to use variables
-        feedback_cog, user_thread, sqlitedatabase = await self.helpers.load_threads_cog(ctx)
+        feedback_cog = self.bot.get_cog("FeedbackThreads")
 
-        if points:  # user have points, reduce them and send message + log
+        if points > 0:  # user have points, reduce them and send message + log
 
             points -= 1
-            await db.reduce_points(str(ctx.author.id), 1)
+            await self.bot.db.reduce_points(str(ctx.author.id), 1)
             await ctx.channel.send(f"{mention} have used 1 MF point. You now have **{points}** MF point(s).",
                                    delete_after=4)
-            
-            # Check if user has a feedback thread
-            # Called_from_zero used to flag if the member is using <MFS with no points
-            await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
 
-            thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
+            result = await feedback_cog.record_spend(ctx)
+            if result is None:
+                return
+            thread, ticket_counter = result
 
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(name=f"Feedback Notice - {self.helpers.get_formatted_time()}",
@@ -239,13 +211,13 @@ class General(commands.Cog):
                                 f"🔴 [Ticket #{ticket_counter}]({thread.jump_url})"
                             ),
                             inline=False)
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=embed)
 
         else:  # User doesn't have points
 
             try:
-                
+
                 await self.send_messages_to_user(ctx.message)
 
                 await ctx.channel.send(
@@ -259,14 +231,13 @@ class General(commands.Cog):
                                        f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
                                        delete_after=60)
-                
+
             # store the message id so that we can ensure it was deleted due to actually having 0 points
             self.deleted_messages.add(ctx.message.id)
-            
+
             await ctx.message.delete()
 
-            # Check if user has a feedback thread
-            # Called_from_zero used to flag if the member is using <MFS with no points (TRUE to throw exception)
+            # Called_from_zero=True flags this as a zero-points <MFS attempt
             await feedback_cog.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=True)
 
             thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
@@ -282,24 +253,13 @@ class General(commands.Cog):
                 ),
                 inline=False
             )
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=embed)
 
 
-    @commands.check(guild_only)
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')
     @admin_bypass_cooldown(1, 60)
-    async def genres(self, ctx: commands.Context, band_name: str):
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-
-        words = ctx.message.content.split()
-        band_name = " ".join(words[2:])
-        if not band_name:
-            await ctx.channel.send("Please provide a band name.")
-            return
-
+    async def genres(self, ctx: commands.Context, *, band_name: str):
         result, thumbnail_url = await fetch_band_genres(band_name)
 
         embed = discord.Embed(color=0x7e016f)
@@ -307,23 +267,12 @@ class General(commands.Cog):
         embed.add_field(name=f"{band_name.title()}:", value=result, inline=False)
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await ctx.channel.send(embed=embed)
 
-    @commands.check(guild_only)
     @commands.command(help = "Use to present 10 similar bands to a wanted band.", brief = '(Band Name)')
     @admin_bypass_cooldown(1, 60)
-    async def similar(self, ctx: commands.Context, band_name: str):
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-
-        words = ctx.message.content.split()
-        band_name = " ".join(words[2:])
-        if not band_name:
-            await ctx.channel.send("Please provide a band name.")
-            return
-
+    async def similar(self, ctx: commands.Context, *, band_name: str):
         result, thumbnail_url = await fetch_similar_bands(band_name)
 
         embed = discord.Embed(color=0x7e016f)
@@ -331,7 +280,7 @@ class General(commands.Cog):
         embed.add_field(name=f"{band_name.title()}:", value=result, inline=False)
         if thumbnail_url:
             embed.set_thumbnail(url=thumbnail_url)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await ctx.channel.send(embed=embed)
         
 
@@ -344,6 +293,17 @@ class General(commands.Cog):
         """Periodically clear stale message IDs — entries older than ~1 hour were never matched"""
         if self.deleted_messages:
             self.deleted_messages.clear()
+
+
+    async def cog_command_error(self, ctx: commands.Context, error: Exception):
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"{ctx.author.mention}, this command is on cooldown. Try again in {error.retry_after:.1f}s.", delete_after=10)
+        elif isinstance(error, commands.CheckFailure):
+            pass  # guild_only check — silently ignore DM attempts
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"{ctx.author.mention}, missing required argument: `{error.param.name}`.", delete_after=10)
+        else:
+            raise error  # let the global handler deal with it
 
 
 async def setup(bot):

@@ -1,12 +1,17 @@
 import discord
+import logging
 from discord.ext import commands
 from cogs.slash_commands.get_member_card import GetMemberCard
+from cogs.member_cards.member_data import MemberData
+from cogs.member_cards.member_card_renderer import render_member_card
 from data.constants import GENERAL_CHAT_CHANNEL_ID, AOTW_SUBMISSIONS, FINISHED_MUSIC, RELEASE_PARTY, MODERATORS_CHANNEL_ID
 import aiohttp
 from PIL import Image, ImageDraw
 import io
 import emoji
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class AddRankMemberCard(commands.Cog):
     def __init__(self, bot):
@@ -15,13 +20,11 @@ class AddRankMemberCard(commands.Cog):
 
     async def generate_mf_card(self, member: discord.Member, guild: discord.Guild):
         """Generate a member card file and view without sending it."""
-        cog = self.bot.get_cog("MemberCards")
-        if not cog:
-            raise Exception("MemberCards cog is not loaded.")
+        member_data = MemberData(self.bot)
 
         discord_username = member.display_name
-        pfp_url = await cog.get_pfp(member)
-        join_date = await cog.get_join_date(member)
+        pfp_url = await member_data.get_pfp(member)
+        join_date = await member_data.get_join_date(member)
 
         if isinstance(join_date, str):
             try:
@@ -29,29 +32,29 @@ class AddRankMemberCard(commands.Cog):
             except ValueError:
                 join_date = datetime.now()
 
-        rank_str = await cog.get_rank(member)
+        rank_str = await member_data.get_rank(member)
         is_top_feedback, numeric_points = False, 0
         try:
-            is_top_feedback, numeric_points = await cog.get_points(member)
-        except Exception as e:
-            print(f"Error calling get_points for {member.display_name}: {str(e)}")
+            is_top_feedback, numeric_points = await member_data.get_points(member)
+        except Exception:
+            logger.error(f"Error calling get_points for {member.display_name}", exc_info=True)
 
-        all_main_genres_roles, all_daw_roles, all_instruments_roles = await cog.get_roles_by_colors(member)
-        message_count = await cog.get_message_count(member)
+        all_main_genres_roles, all_daw_roles, all_instruments_roles = await member_data.get_roles_by_colors(member)
+        message_count = await member_data.get_message_count(member)
 
         random_msg_content = "A true MFR"
         random_msg_url = None
         try:
-            retrieved_msg_data = await cog.get_random_message(member)
+            retrieved_msg_data = await member_data.get_random_message(member)
             if retrieved_msg_data and isinstance(retrieved_msg_data, (tuple, list)) and len(retrieved_msg_data) >= 2:
                 random_msg_content, random_msg_url = retrieved_msg_data[:2]
             else:
-                print(f"Debug: Invalid retrieved_msg_data for {member.display_name}: {retrieved_msg_data}")
-        except Exception as e:
-            print(f"Error fetching random message for {member.display_name}: {str(e)}")
+                logger.debug(f"Invalid retrieved_msg_data for {member.display_name}: {retrieved_msg_data}")
+        except Exception:
+            logger.error(f"Error fetching random message for {member.display_name}", exc_info=True)
             random_msg_content = "An unexpected error occurred while looking for a message."
 
-        last_music = await cog.get_last_finished_music(member)
+        last_music = await member_data.get_last_finished_music(member)
 
         server_name = guild.name
         release_link = last_music if last_music and (last_music.startswith("http://") or last_music.startswith("https://")) else None
@@ -61,7 +64,7 @@ class AddRankMemberCard(commands.Cog):
         async with aiohttp.ClientSession() as session:
             async with session.get(pfp_url) as resp:
                 if resp.status != 200:
-                    print(f"Failed to fetch PFP for {member.display_name}. Status: {resp.status}")
+                    logger.warning(f"Failed to fetch PFP for {member.display_name}. Status: {resp.status}")
                     pfp = Image.new("RGBA", (120, 120), (100, 100, 100, 255))
                 else:
                     pfp_data = io.BytesIO(await resp.read())
@@ -72,9 +75,9 @@ class AddRankMemberCard(commands.Cog):
         pfp.putalpha(mask)
 
         animated = True
-        card_buffer, file_ext, log_collector = self.get_member_card.generate_card(  # Updated unpacking
+        card_buffer, file_ext, log_collector = await render_member_card(
             pfp, discord_username, server_name, rank_str, numeric_points, message_count, join_date,
-            (img_width, img_height), self.get_member_card.font_path, animated=animated, random_msg=random_msg_content,
+            (img_width, img_height), animated=animated, random_msg=random_msg_content,
             is_top_feedback=is_top_feedback,
             relevant_roles=[role.name for role in member.roles],
             all_genres_roles=all_main_genres_roles,
@@ -112,9 +115,9 @@ class AddRankMemberCard(commands.Cog):
         general_chat_channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
         if general_chat_channel:
             await general_chat_channel.send(file=file_to_send, view=view_to_send)
-            print(f"Member card sent to general chat for {user.display_name}")
+            logger.info(f"Member card sent to general chat for {user.display_name}")
         else:
-            print("General chat channel not found.")
+            logger.warning("General chat channel not found.")
 
     async def rank_message(self, user, role):
 

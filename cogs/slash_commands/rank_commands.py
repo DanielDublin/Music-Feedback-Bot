@@ -1,27 +1,38 @@
 import discord
 import asyncio
+import logging
 from datetime import datetime, timedelta
 from discord.ext import commands
 from discord import app_commands
 from database.google_sheet import GoogleSheet
 from data.constants import GENERAL_CHAT_CHANNEL_ID
+from data.config import RANK_ORDER, LOWER_RANKS
 from cogs.member_cards.add_rank_member_card import AddRankMemberCard
 from cogs.feedback_threads.modules.check_rank_embed import PaginationView
+
+logger = logging.getLogger(__name__)
 
 
 class RankCommands(commands.Cog):
     def __init__(self, bot, google_sheet):
         self.bot = bot
-        self.pfp_url = ""
         self.google_sheet = google_sheet
         self.add_rank_member_card = AddRankMemberCard(bot)
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.guild is None:
+            await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+            return False
+        return True
+
     # able to be used by admins + mods
-    group = app_commands.Group(name="ranks", description="View the rank interface and commands")
+    group = app_commands.Group(name="ranks", description="View the rank interface and commands", guild_only=True)
 
     # return current rank + when assigned
     @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @app_commands.checks.cooldown(1, 10.0, key=lambda i: i.user.id)
     @group.command(name="current", description="Return the member's current rank and date given")
+    @app_commands.describe(user="The member to look up")
     async def current_rank(self, interaction: discord.Interaction, user: discord.Member):
         
         await interaction.response.defer(thinking=True)
@@ -49,7 +60,9 @@ class RankCommands(commands.Cog):
 
     # adds role to member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @app_commands.checks.cooldown(1, 15.0, key=lambda i: i.user.id)
     @group.command(name="add", description="Add role to member")
+    @app_commands.describe(user="The member to rank up", role="The rank role to assign")
     async def add_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
         
         await interaction.response.defer(thinking=True)
@@ -59,7 +72,7 @@ class RankCommands(commands.Cog):
 
         # define lower ranks
         # exclude Headliners/UF/Gilded/TRMFRs because they stay along with Headliners
-        lower_rank_names = {"Groupies", "Stagehands", "Supporting Acts"}
+        lower_rank_names = LOWER_RANKS
 
         if role in user.guild.roles:
             # check if the member already has the role
@@ -89,15 +102,17 @@ class RankCommands(commands.Cog):
                     await self.add_rank_member_card.send_rank_member_card(user, role)
                     try:
                         await self.add_rank_member_card.rank_message(user, role)
-                    except Exception as e:      
-                        print(f"Error sending rank message: {e}")
+                    except Exception as e:
+                        logger.error("Error sending rank message", exc_info=True)
                 except Exception as e:
-                    print(f"Error sending rank member card: {e}")
+                    logger.error("Error sending rank member card", exc_info=True)
 
 
     # removes role from member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @app_commands.checks.cooldown(1, 15.0, key=lambda i: i.user.id)
     @group.command(name="remove", description="Remove role from member")
+    @app_commands.describe(user="The member to rank down", role="The rank role to remove")
     async def remove_role(self, interaction: discord.Interaction, user: discord.Member, role: discord.Role):
         await interaction.response.defer(thinking=True)
 
@@ -105,7 +120,7 @@ class RankCommands(commands.Cog):
         await asyncio.to_thread(self.google_sheet.add_user_spreadsheet, user.id, user.name)
 
         # define higher ranks
-        higher_rank_names = ["Groupies", "Stagehands", "Supporting Acts", "Headliners", "MF Gilded", "The Real MFrs"]
+        higher_rank_names = RANK_ORDER
 
         if role in user.guild.roles:
             # check if member has role first
@@ -129,7 +144,9 @@ class RankCommands(commands.Cog):
 
     # gets rank history for member
     @app_commands.checks.has_any_role('Admins', 'Moderators')
+    @app_commands.checks.cooldown(1, 10.0, key=lambda i: i.user.id)
     @group.command(name="history", description="Get rank history for member")
+    @app_commands.describe(user="The member whose rank history to retrieve")
     async def history(self, interaction: discord.Interaction, user: discord.Member):
         await interaction.response.defer(thinking=True)
         history = await asyncio.to_thread(self.google_sheet.get_history, user.id)

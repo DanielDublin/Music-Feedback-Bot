@@ -1,8 +1,10 @@
 import discord
+import logging
 from discord.ui import Button, View
-import database.db as db
 from data.constants import AOTW_SUBMISSIONS, AOTW_VOTES
 import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class PollView(View):
@@ -116,7 +118,7 @@ class CreatePoll:
         poll_channel = self.bot.get_channel(AOTW_SUBMISSIONS)
         
         if not poll_channel:
-            print("AOTW submissions channel not found!")
+            logger.error("AOTW submissions channel not found!")
             return None
         
         # Send to AOTW submissions channel
@@ -224,9 +226,9 @@ class CreatePoll:
                 await messages[0].edit(content=results_text)
         except discord.HTTPException as e:
             if e.status == 429:  # Rate limited
-                print(f"⚠️ Rate limited when updating votes channel. Waiting...")
+                logger.warning("Rate limited when updating votes channel.")
             else:
-                print(f"❌ Error updating votes channel: {e}")
+                logger.error("Error updating votes channel", exc_info=True)
     
     async def determine_the_winner(self):
         votes_channel = self.bot.get_channel(AOTW_VOTES)

@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import gspread
 import time
 from datetime import timedelta
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class GoogleSheet:
     def __init__(self, key_file_path, sheet_name):
@@ -23,7 +26,7 @@ class GoogleSheet:
             credentials = Credentials.from_service_account_info(key_file_dict, scopes=scope)
             self.gc = gspread.authorize(credentials)
             self.sheet = self.gc.open(self.sheet_name).sheet1
-            print("Successfully connected to the Google Sheet")
+            logger.info("Successfully connected to the Google Sheet")
 
     # time for sheet
     def time(self):
@@ -40,7 +43,7 @@ class GoogleSheet:
             self.sheet.append_row([str(user_id), username])
 
     # adds updated rank info to spreadsheet for add_role
-    def update_rank_spreadsheet(self, user_id, role, is_rankup):
+    def update_rank_spreadsheet(self, user_id, role, is_rankup: bool) -> None:
         # find the row with the given user
         cell_row = self.sheet.find(str(user_id))
         if cell_row:
@@ -48,13 +51,16 @@ class GoogleSheet:
             # find the next available column in the user_row
             user_row_values = self.sheet.row_values(user_row)
             next_available_col = len(user_row_values) + 1
-            if is_rankup:
-                self.sheet.update_cell(user_row, next_available_col, f"Ranked up to {role}")
-            else:
-                self.sheet.update_cell(user_row, next_available_col, f"Ranked down to {role}")
-            # fill in date
-            next_available_col = len(user_row_values) + 2
-            self.sheet.update_cell(user_row, next_available_col, self.time())
+
+            rank_text = f"Ranked up to {role}" if is_rankup else f"Ranked down to {role}"
+            date_text = self.time()
+
+            # Write both cells in a single API call instead of two update_cell() calls
+            cells = [
+                gspread.Cell(user_row, next_available_col, rank_text),
+                gspread.Cell(user_row, next_available_col + 1, date_text),
+            ]
+            self.sheet.update_cells(cells)
 
 
     # gets the time of last role update

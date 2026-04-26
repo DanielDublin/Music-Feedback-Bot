@@ -200,21 +200,14 @@ class HelpMenu(menus.Menu):
 class HelpCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self._pfp_url = None  # cached so we don't hit the API on every command
 
     def guild_only(ctx):
         return ctx.guild is not None
 
-    async def _get_pfp_url(self):
-        if self._pfp_url is None:
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self._pfp_url = creator_user.avatar.url
-        return self._pfp_url
-
     @commands.check(guild_only)
     @commands.command(help="Use to see this menu.")
     async def help(self, ctx):
-        pfp_url = await self._get_pfp_url()
+        pfp_url = await self.bot.get_owner_pfp_url()
         self.menu = HelpMenu(self.bot, pfp_url)
         await self.menu.start(ctx)
 

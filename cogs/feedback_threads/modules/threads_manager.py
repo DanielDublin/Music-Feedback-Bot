@@ -1,10 +1,13 @@
 import discord
+import logging
 from datetime import datetime
 import asyncio
 from .helpers import DiscordHelpers
 from .points_logic import PointsLogic
 from .embeds import Embeds
 from data.constants import THREADS_CHANNEL
+
+logger = logging.getLogger(__name__)
 
 class ThreadsManager:
     def __init__(self, bot, sqlitedatabase, user_thread):
@@ -16,15 +19,15 @@ class ThreadsManager:
         self.helpers = DiscordHelpers(bot)
         self.embeds = Embeds(bot, user_thread)
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
 
         await self.bot.wait_until_ready()
         self.threads_channel = self.bot.get_channel(THREADS_CHANNEL)
 
         if not self.threads_channel:
-            print(f"Error: THREADS_CHANNEL with ID {THREADS_CHANNEL} not found.")
+            logger.error(f"THREADS_CHANNEL with ID {THREADS_CHANNEL} not found.")
 
-    async def check_if_feedback_thread(self, ctx, called_from_zero=False):
+    async def check_if_feedback_thread(self, ctx, called_from_zero: bool = False) -> tuple[discord.Thread, int]:
 
         thread = None
         ticket_counter = None
@@ -41,9 +44,11 @@ class ThreadsManager:
 
         return thread, ticket_counter
 
-    async def create_new_thread(self, ctx, called_from_zero=False):
+    async def create_new_thread(self, ctx, called_from_zero: bool = False) -> discord.Thread:
 
-        # channel to send threads for all members
+        if self.threads_channel is None:
+            raise RuntimeError(f"THREADS_CHANNEL ({THREADS_CHANNEL}) is unavailable; cannot create feedback thread.")
+
         message = await self.threads_channel.send(f"<@{ctx.author.id}> | {ctx.author.name} | {ctx.author.id}")
 
         thread = await self.threads_channel.create_thread(
@@ -76,7 +81,7 @@ class ThreadsManager:
         # return for archive use
         return thread
 
-    async def existing_thread(self, ctx, called_from_zero=False):
+    async def existing_thread(self, ctx, called_from_zero: bool = False) -> discord.Thread:
 
         # increase ticket counter in dictionary
         self.user_thread[ctx.author.id][1] += 1

@@ -1,6 +1,8 @@
 import discord
-import database.db as db
+import logging
 from discord.ext import commands
+
+logger = logging.getLogger(__name__)
 from database.threads_db import SQLiteDatabase # Or from database.db import SQLiteDatabase
 from .modules.threads_manager import ThreadsManager
 from data.constants import FEEDBACK_CHANNEL_ID, ADMINS_ROLE_ID, THREADS_CHANNEL, FEEDBACK_CATEGORY_ID
@@ -29,12 +31,65 @@ class FeedbackThreads(commands.Cog):
                 if data:
                     self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in data}
                     self.threads_manager.user_thread = self.user_thread
-                    print(f"user_thread repopulated from SQLite Database: {len(self.user_thread)} entries")
+                    logger.info(f"user_thread repopulated from SQLite Database: {len(self.user_thread)} entries")
                 else:
-                    print("initialize_sqldb: No data in SQLite Database to repopulate the user_thread dictionary")
+                    logger.warning("initialize_sqldb: No data in SQLite Database to repopulate the user_thread dictionary")
 
             return self.user_thread
     
+    async def cog_load(self):
+        data = self.sqlitedatabase.fetch_all_users()
+        if data:
+            self.user_thread = {user_id: [thread_id, ticket_counter] for user_id, thread_id, ticket_counter in data}
+            self.threads_manager.user_thread = self.user_thread
+            logger.info(f"user_thread loaded from SQLite: {len(self.user_thread)} entries")
+        else:
+            logger.warning("cog_load: SQLite database is empty")
+
+    async def record_feedback(self, ctx: commands.Context):
+        """Called by general.py after a successful <MFR. Returns (thread, ticket_counter) or None."""
+        try:
+            await self.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+        except Exception:
+            logger.error("record_feedback: thread operation failed for %s", ctx.author.id, exc_info=True)
+            return None
+        thread_info = self.user_thread.get(ctx.author.id)
+        if thread_info is None:
+            return None
+        thread_id, ticket_counter = thread_info
+        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        return thread, ticket_counter
+
+    async def record_spend(self, ctx: commands.Context):
+        """Called by general.py after a successful <MFS. Returns (thread, ticket_counter) or None."""
+        try:
+            await self.threads_manager.check_if_feedback_thread(ctx=ctx, called_from_zero=False)
+        except Exception:
+            logger.error("record_spend: thread operation failed for %s", ctx.author.id, exc_info=True)
+            return None
+        thread_info = self.user_thread.get(ctx.author.id)
+        if thread_info is None:
+            return None
+        thread_id, ticket_counter = thread_info
+        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        return thread, ticket_counter
+
+    async def record_admin_adjustment(self, interaction: discord.Interaction, target: discord.Member):
+        """Called by admin.py for /mfpoints. Returns thread or None on failure."""
+        from cogs.feedback_threads.modules.ctx_class import ContextLike
+        target_ctx = ContextLike(interaction=interaction, command=None, custom_author=target)
+        try:
+            await self.threads_manager.check_if_feedback_thread(target_ctx, called_from_zero=False)
+        except Exception:
+            logger.error("record_admin_adjustment: thread operation failed for %s", target.id, exc_info=True)
+            return None
+        thread_info = self.user_thread.get(target.id)
+        if thread_info is None:
+            return None
+        thread_id, _ = thread_info
+        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        return thread
+
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         if before.author.bot:

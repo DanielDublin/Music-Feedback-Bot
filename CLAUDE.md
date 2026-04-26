@@ -75,3 +75,20 @@ Key submodules:
 
 ### Constants and Environment Switching
 `data/constants.py` contains all hardcoded Discord IDs (channel IDs, role IDs, user IDs). There are two complete blocks: **PROD** (active) and **TESTING** (commented out). To switch environments, comment/uncomment the respective block — do not mix IDs from both blocks.
+
+### Logging Convention
+Every module uses the standard Python `logging` module. **Never use `print()`.** The pattern is:
+
+```python
+import logging
+logger = logging.getLogger(__name__)
+```
+
+Use appropriate levels:
+- `logger.debug(...)` — verbose tracing (per-message processing steps, cache hits)
+- `logger.info(...)` — normal operational events (cog loaded, task completed, role changed)
+- `logger.warning(...)` — recoverable issues (channel not found, rate limited)
+- `logger.error("...", exc_info=True)` — failures with full traceback; replaces `print(e)` + `traceback.print_exc()`
+- `logger.critical(...)` — fatal startup failures only
+
+The root logger is configured in `bot.py:main()` with a `_ColoredFormatter` that colorizes terminal output by level (DEBUG=grey, INFO=blue, WARNING=yellow, ERROR=red, CRITICAL=bold red).

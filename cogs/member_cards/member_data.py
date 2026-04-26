@@ -1,32 +1,30 @@
 import discord
-import requests 
-import json 
-import os
 import re
 import random
+import logging
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
-import database.db as db 
-from data.constants import SERVER_ID, FINISHED_MUSIC, AOTW_CHANNEL, GENERAL_CHAT_CHANNEL_ID, INTRO_MUSIC
-from discord.ext import commands
-import traceback 
 from typing import Union
+from data.constants import FINISHED_MUSIC, AOTW_CHANNEL, GENERAL_CHAT_CHANNEL_ID, INTRO_MUSIC
+from data.config import AOTW_ROLE_NAME, FANS_ROLE_NAME, ROLES_TO_IGNORE
 
-load_dotenv()
-token = os.environ.get('DISCORD_TOKEN') 
+logger = logging.getLogger(__name__)
 
-class MemberCards(commands.Cog):
 
-    def __init__(self, bot):
+class MemberData:
+    """Fetches and holds Discord data for a guild member. Not a cog."""
+
+    TARGET_MAIN_GENRES = (0x8d, 0x8c, 0x8c)
+    TARGET_DAW = (0x61, 0x55, 0xa6)
+    TARGET_INSTRUMENTS = (0xe3, 0xab, 0xff)
+
+    def __init__(self, bot: discord.Client) -> None:
         self.bot = bot
-        self.TARGET_MAIN_GENRES = self._hex_to_rgb("#8d8c8c") 
-        self.TARGET_DAW = self._hex_to_rgb("#6155a6") 
-        self.TARGET_INSTRUMENTS = self._hex_to_rgb("#e3abff") 
 
-    def _hex_to_rgb(self, hex_color):
+    @staticmethod
+    def _hex_to_rgb(hex_color: str) -> tuple:
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-    
+
     async def get_username(self, member: discord.Member) -> str:
         return member.display_name
 
@@ -40,47 +38,42 @@ class MemberCards(commands.Cog):
         return member.joined_at
 
     async def get_rank(self, member: discord.Member) -> str:
-        aotw = "Artist of the Week"
-        fans_role_name = "Fans" 
-        roles_to_ignore = ["POO CAFE", "kangaroo", "emo nemo", "Event Host"]
-
-        for role in reversed(member.roles): 
-            if role.name in roles_to_ignore:
+        for role in reversed(member.roles):
+            if role.name in ROLES_TO_IGNORE:
                 continue
-            
             if role.name != "@everyone" and not role.is_bot_managed() and not role.is_integration():
-                if role.name == aotw:
-                    return aotw
-                elif role.name == fans_role_name:
-                    return fans_role_name
+                if role.name == AOTW_ROLE_NAME:
+                    return AOTW_ROLE_NAME
+                elif role.name == FANS_ROLE_NAME:
+                    return FANS_ROLE_NAME
                 else:
-                    return role.name 
-        return "No specific rank" 
-            
+                    return role.name
+        return "No specific rank"
+
     async def get_points(self, member: discord.Member):
-        raw_points = await db.fetch_points(str(member.id))
+        raw_points = await self.bot.db.fetch_points(str(member.id))
 
         try:
             points = int(raw_points)
         except (ValueError, TypeError):
-            print(f"Warning: Could not convert raw points '{raw_points}' to int for member {member.display_name}. Defaulting to 0.")
+            logger.warning(f"Could not convert raw points '{raw_points}' to int for member {member.display_name}. Defaulting to 0.")
             points = 0
 
         is_top_feedback = False
         try:
-            top_users = await db.top_10()
+            top_users = await self.bot.db.top_10()
             for user_data in top_users:
                 if user_data.get("user_id") == str(member.id):
                     is_top_feedback = True
-                    break 
-        except Exception as e:
-            print(f"Error fetching top 10 users from DB: {e}")
+                    break
+        except Exception:
+            logger.error("Error fetching top 10 users from DB", exc_info=True)
             is_top_feedback = False
 
         return is_top_feedback, points
-            
+
     async def get_message_count(self, member: discord.Member) -> int:
-        return 0 
+        raise NotImplementedError("get_message_count is not implemented")
 
     async def get_last_finished_music(self, member: discord.Member) -> str:
         """
@@ -96,105 +89,94 @@ class MemberCards(commands.Cog):
         aotw_channel = self.bot.get_channel(AOTW_CHANNEL)
 
         rank = await self.get_rank(member)
-        aotw_role_name = "Artist of the Week"
-        fans_role_name = "Fans"
 
-        # Helper to extract URL from a message
-        # UPDATED: Prioritize message.jump_url if attachments exist
         def extract_url_from_message(message: discord.Message) -> Union[str, None]:
             if message.attachments:
-                return str(message.jump_url) # Redirect to the message if it has an attachment
-            
+                return str(message.jump_url)
             url_detect_pattern = r"(https?://\S+|www\.\S+)"
             detected_urls = re.findall(url_detect_pattern, message.content)
             if detected_urls:
                 return detected_urls[0].strip('<>')
-            return None # No direct link found in content or attachments
+            return None
 
-
-        # --- AOTW Logic (Highest Priority) ---
-        if rank == aotw_role_name and aotw_channel and isinstance(aotw_channel, discord.TextChannel):
-            print(f"Checking AOTW channel ({aotw_channel.name}) for {member.display_name}...")
+        if rank == AOTW_ROLE_NAME and aotw_channel and isinstance(aotw_channel, discord.TextChannel):
+            logger.debug(f"Checking AOTW channel ({aotw_channel.name}) for {member.display_name}...")
             try:
                 async for message in aotw_channel.history(limit=5):
                     url = extract_url_from_message(message)
                     if url:
-                        print(f"Found AOTW message with URL: {url}")
+                        logger.debug(f"Found AOTW message with URL: {url}")
                         return url
-
             except discord.Forbidden:
-                print(f"Bot lacks permissions to read AOTW channel history.")
+                logger.warning("Bot lacks permissions to read AOTW channel history.")
                 return "Cannot access AOTW channel to find release."
-            except discord.HTTPException as e:
-                print(f"HTTP error fetching AOTW history: {e}")
+            except discord.HTTPException:
+                logger.error("HTTP error fetching AOTW history", exc_info=True)
                 return "Error fetching AOTW release."
 
-        # --- Fans (Intro Music) Logic ---
-        elif rank == fans_role_name:
+        elif rank == FANS_ROLE_NAME:
             if intro_music_channel and isinstance(intro_music_channel, discord.TextChannel):
-                print(f"Checking Intro Music channel ({intro_music_channel.name}) for {member.display_name} (Fans)...")
+                logger.debug(f"Checking Intro Music channel ({intro_music_channel.name}) for {member.display_name} (Fans)...")
                 try:
-                    async for message in intro_music_channel.history(limit=100): 
+                    async for message in intro_music_channel.history(limit=100):
                         if message.author.id == member.id:
                             url = extract_url_from_message(message)
                             if url:
-                                print(f"Found last intro music link for {member.display_name}: {url}")
+                                logger.debug(f"Found last intro music link for {member.display_name}: {url}")
                                 return url
-                    
-                    print(f"No recent intro music message with a link/attachment found for {member.display_name}.")
+                    logger.debug(f"No recent intro music message with a link/attachment found for {member.display_name}.")
                     return "No intro music link found."
                 except discord.Forbidden:
-                    print(f"Bot lacks permissions to read Intro Music channel history.")
+                    logger.warning("Bot lacks permissions to read Intro Music channel history.")
                     return "Cannot access Intro Music channel to find release."
-                except discord.HTTPException as e:
-                    print(f"HTTP error fetching Intro Music history: {e}")
+                except discord.HTTPException:
+                    logger.error("HTTP error fetching Intro Music history", exc_info=True)
                     return "Error fetching intro music release."
             else:
-                print("Intro Music channel not found or not a text channel.")
+                logger.warning("Intro Music channel not found or not a text channel.")
                 return "Could not retrieve intro music info."
 
-        # --- Default (Finished Music) Logic for other members ---
-        else: # Covers all other roles (non-AOTW, non-Fans)
+        else:
             if finished_music_channel and isinstance(finished_music_channel, discord.TextChannel):
-                print(f"Checking Finished Music channel ({finished_music_channel.name}) for {member.display_name} (Default)...")
+                logger.debug(f"Checking Finished Music channel ({finished_music_channel.name}) for {member.display_name} (Default)...")
                 try:
-                    async for message in finished_music_channel.history(limit=100): 
+                    async for message in finished_music_channel.history(limit=100):
                         if message.author.id == member.id:
                             url = extract_url_from_message(message)
                             if url:
-                                print(f"Found last finished music link for {member.display_name}: {url}")
+                                logger.debug(f"Found last finished music link for {member.display_name}: {url}")
                                 return url
                             elif message.attachments:
                                 return str(message.jump_url)
                             else:
                                 continue
-                    print(f"No recent finished music message found for {member.display_name}.")
+                    logger.debug(f"No recent finished music message found for {member.display_name}.")
                     return "No music finished yet."
                 except discord.Forbidden:
-                    print(f"Bot lacks permissions to read Finished Music channel history.")
+                    logger.warning("Bot lacks permissions to read Finished Music channel history.")
                     return "Cannot access Finished Music channel to find release."
-                except discord.HTTPException as e:
-                    print(f"HTTP error fetching Finished Music history: {e}")
+                except discord.HTTPException:
+                    logger.error("HTTP error fetching Finished Music history", exc_info=True)
                     return "Error fetching finished music release."
             else:
-                print("Finished Music channel not found or not a text channel.")
+                logger.warning("Finished Music channel not found or not a text channel.")
                 return "Could not retrieve finished music info."
 
-    async def generate_random_date_range(self, member_join_date: datetime) -> tuple[datetime, datetime]:
+    async def generate_random_date_range(self, member_join_date: datetime) -> tuple:
         if member_join_date.tzinfo is None:
             member_join_date = member_join_date.replace(tzinfo=timezone.utc)
 
         now_utc = datetime.now(timezone.utc)
         time_since_join = now_utc - member_join_date
 
-        if time_since_join.total_seconds() <= 0: 
+        if time_since_join.total_seconds() <= 0:
             start_of_day = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
             end_of_day = now_utc.replace(hour=23, minute=59, second=59, microsecond=999999)
             return start_of_day, end_of_day
 
         random_seconds_offset = random.uniform(0, time_since_join.total_seconds())
         random_timedelta = timedelta(seconds=random_seconds_offset)
-        
+
         random_date_chosen = member_join_date + random_timedelta
 
         start_of_day_utc = random_date_chosen.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -202,28 +184,25 @@ class MemberCards(commands.Cog):
 
         return start_of_day_utc, end_of_day_utc
 
-    async def get_random_message(self, member: discord.Member) -> tuple[str, Union[str, None]]:
+    async def get_random_message(self, member: discord.Member) -> tuple:
         """
         Retrieves a random message by the member from the general chat channel.
-        This function is intended for members who are NOT 'Fans' or 'Artist of the Week',
-        as their specific music links are handled by get_last_finished_music.
         Returns a tuple of (message_content, message_jump_url).
         """
         member_join_date_dt = await self.get_join_date(member)
         general_chat_channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
 
         if not general_chat_channel or not isinstance(general_chat_channel, discord.TextChannel):
-            print(f"Error: GENERAL_CHAT_CHANNEL (ID: {GENERAL_CHAT_CHANNEL_ID}) not found or not a text channel.")
+            logger.error(f"GENERAL_CHAT_CHANNEL (ID: {GENERAL_CHAT_CHANNEL_ID}) not found or not a text channel.")
             return "Couldn't find the general chat channel to look for messages!", None
 
         async def search_general_chat_for_random_message(channel: discord.TextChannel, join_date: datetime):
-            # Strategy 1: Try 10 random days
             random_day_attempts = 10
-            print(f"Attempting {random_day_attempts} random days for {member.display_name} in {channel.name}...")
+            logger.debug(f"Attempting {random_day_attempts} random days for {member.display_name} in {channel.name}...")
             for attempt in range(random_day_attempts):
                 start_of_day, end_of_day = await self.generate_random_date_range(join_date)
-                
-                print(f"  Random Attempt {attempt + 1}: Searching on {start_of_day.strftime('%Y-%m-%d')}")
+
+                logger.debug(f"  Random Attempt {attempt + 1}: Searching on {start_of_day.strftime('%Y-%m-%d')}")
 
                 messages_by_member_on_day = []
                 try:
@@ -231,66 +210,60 @@ class MemberCards(commands.Cog):
                         if message.author.id == member.id:
                             if message.content and message.content.strip():
                                 messages_by_member_on_day.append(message)
-                    
+
                     if messages_by_member_on_day:
                         chosen_message = random.choice(messages_by_member_on_day)
-                        # For random messages, we always return the jump_url along with content
-                        print(f"  SUCCESS (Random): Found message on {start_of_day.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
+                        logger.debug(f"  SUCCESS (Random): Found message on {start_of_day.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
                         return chosen_message.content, chosen_message.jump_url
 
                 except discord.Forbidden:
-                    print(f"  Error: Bot lacks permissions to read history in {channel.name}. Aborting random attempts.")
+                    logger.warning(f"Bot lacks permissions to read history in {channel.name}. Aborting random attempts.")
                     return "I don't have permission to look through message history in that channel.", None
-                except discord.HTTPException as e:
-                    print(f"  Error: HTTP error fetching history for {channel.name} (random day): {e}. Aborting random attempts.")
+                except discord.HTTPException:
+                    logger.error(f"HTTP error fetching history for {channel.name} (random day)", exc_info=True)
                     return "Something went wrong trying to fetch message history. Please try again later!", None
-                except Exception as e:
-                    print(f"  Error: An unexpected error occurred (random day): {e}. Aborting random attempts.")
-                    traceback.print_exc()
+                except Exception:
+                    logger.error("Unexpected error during random day search", exc_info=True)
                     return "An unexpected error occurred while looking for a message.", None
 
-            print(f"Finished {random_day_attempts} random attempts for {member.display_name}. No suitable message found.")
+            logger.debug(f"Finished {random_day_attempts} random attempts for {member.display_name}. No suitable message found.")
 
-            # --- Strategy 2: If random days fail, try the past 3 consecutive days ---
             now_utc = datetime.now(timezone.utc)
             recent_days_to_check = 3
 
-            print(f"Trying past {recent_days_to_check} consecutive days for {member.display_name} in {channel.name}...")
+            logger.debug(f"Trying past {recent_days_to_check} consecutive days for {member.display_name} in {channel.name}...")
+            all_recent_candidates = []
             for i in range(recent_days_to_check):
                 target_date = now_utc - timedelta(days=i)
                 start_of_day = target_date.replace(hour=0, minute=0, second=0, microsecond=0)
                 end_of_day = target_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-                print(f"  Recent Attempt {i + 1}: Searching on {start_of_day.strftime('%Y-%m-%d')}")
+                logger.debug(f"  Recent Attempt {i + 1}: Searching on {start_of_day.strftime('%Y-%m-%d')}")
 
-                messages_by_member_on_day = []
                 try:
                     async for message in channel.history(limit=100, after=start_of_day, before=end_of_day):
                         if message.author.id == member.id:
                             if message.content and message.content.strip():
-                                messages_by_member_on_day.append(message)
-
-                    if messages_by_member_on_day:
-                        chosen_message = random.choice(messages_by_member_on_day)
-                        # For random messages, we always return the jump_url along with content
-                        print(f"  SUCCESS (Recent): Found message on {start_of_day.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
-                        return chosen_message.content, chosen_message.jump_url
+                                all_recent_candidates.append(message)
 
                 except discord.Forbidden:
-                    print(f"  Error: Bot lacks permissions to read history in {channel.name}. Aborting recent checks.")
+                    logger.warning(f"Bot lacks permissions to read history in {channel.name}. Aborting recent checks.")
                     return "I don't have permission to look through recent message history in that channel.", None
-                except discord.HTTPException as e:
-                    print(f"  Error: HTTP error fetching history for {channel.name} (recent day): {e}. Aborting recent checks.")
+                except discord.HTTPException:
+                    logger.error(f"HTTP error fetching history for {channel.name} (recent day)", exc_info=True)
                     return "Something went wrong trying to fetch recent message history. Please try again later!", None
-                except Exception as e:
-                    print(f"  Error: An unexpected error occurred (recent day): {e}. Aborting recent checks.")
-                    traceback.print_exc() 
+                except Exception:
+                    logger.error("Unexpected error during recent day search", exc_info=True)
                     return "An unexpected error occurred while looking for a recent message.", None
-            
-            return f"A true MFR", None
-        
-        return await search_general_chat_for_random_message(general_chat_channel, member_join_date_dt)
 
+            if all_recent_candidates:
+                chosen_message = random.choice(all_recent_candidates)
+                logger.debug(f"  SUCCESS (Recent): Found message from {chosen_message.created_at.strftime('%Y-%m-%d')}: {chosen_message.jump_url}")
+                return chosen_message.content, chosen_message.jump_url
+
+            return "A true MFR", None
+
+        return await search_general_chat_for_random_message(general_chat_channel, member_join_date_dt)
 
     async def get_roles(self, member: discord.Member):
         relevant_roles = []
@@ -299,7 +272,7 @@ class MemberCards(commands.Cog):
                 relevant_roles.append(role.name)
         return relevant_roles
 
-    async def get_roles_by_colors(self, member: discord.Member) -> tuple[list[str], list[str], list[str]]:
+    async def get_roles_by_colors(self, member: discord.Member) -> tuple:
         main_genres_roles = []
         daw_roles = []
         instruments_roles = []
@@ -316,12 +289,9 @@ class MemberCards(commands.Cog):
                 daw_roles.append(role.name)
             elif role_rgb == self.TARGET_INSTRUMENTS:
                 instruments_roles.append(role.name)
-            
+
         main_genres_roles.sort()
         daw_roles.sort()
         instruments_roles.sort()
 
         return main_genres_roles, daw_roles, instruments_roles
-
-async def setup(bot):
-    await bot.add_cog(MemberCards(bot))

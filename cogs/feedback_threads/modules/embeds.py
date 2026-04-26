@@ -1,5 +1,4 @@
 import discord
-import database.db as db
 from .helpers import DiscordHelpers
 
 class Embeds:
@@ -11,8 +10,8 @@ class Embeds:
 
     async def mfr(self, ctx, ticket_counter):
 
-        points = int(await db.fetch_points(str(ctx.author.id)))
-        
+        points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
+
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
         description=f"{self.helpers.get_formatted_time()}",
@@ -27,7 +26,7 @@ class Embeds:
 
     async def mfs(self, ctx, ticket_counter):
 
-        points = int(await db.fetch_points(str(ctx.author.id)))
+        points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -58,7 +57,7 @@ class Embeds:
 
     async def mod_add_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, points=0):
 
-        total_points = int(await db.fetch_points(str(user.id)))
+        total_points = int(await self.bot.db.fetch_points(str(user.id)))
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -74,7 +73,7 @@ class Embeds:
 
     async def mod_remove_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, points=0):
 
-        total_points = int(await db.fetch_points(str(user.id)))
+        total_points = int(await self.bot.db.fetch_points(str(user.id)))
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",
@@ -89,7 +88,7 @@ class Embeds:
 
     async def mod_clear_points(self, interaction: discord.Interaction, user: discord.Member, ticket_counter, cleared_points=0):
 
-        total_points = int(await db.fetch_points(str(user.id)))
+        total_points = int(await self.bot.db.fetch_points(str(user.id)))
 
         embed = discord.Embed(
         title=f"Ticket #{ticket_counter}",

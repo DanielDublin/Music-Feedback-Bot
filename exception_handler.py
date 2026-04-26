@@ -1,22 +1,22 @@
 import discord
-import traceback
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-# Define a function to handle exceptions
 async def handle_exception(ctx, error):
-    # Get the cog name if available
     cog_name = "Unknown"
     try:
         cog_name = getattr(ctx.command.cog, "qualified_name", "Unknown Cog")
         if cog_name is None:
             cog_name = "Unknown"
-            print("someone tried to use a command that doesnt exist")
+            logger.info("someone tried to use a command that doesnt exist")
     except Exception as cog_error:
         try:
             await ctx.send(f"No such command exists.")
             return
         except Exception as e:
-            print("No permissions to send message\n" + str(e) + "\n" + str(cog_error))
+            logger.error(f"No permissions to send message\n{e}\n{cog_error}")
 
     try:
         if isinstance(error, discord.ext.commands.CommandOnCooldown):
@@ -28,10 +28,8 @@ async def handle_exception(ctx, error):
         elif isinstance(error, discord.ext.commands.BadArgument):
             await ctx.send(f"Invalid argument in the command. Please check your input.")
         else:
-            # Handle other unexpected errors
             orig = getattr(error, 'original', error)
-            print(f"UNHANDLED ERROR in {cog_name}: {orig!r}")
-            traceback.print_exception(type(orig), orig, orig.__traceback__)
+            logger.error(f"UNHANDLED ERROR in {cog_name}: {orig!r}", exc_info=(type(orig), orig, orig.__traceback__))
             await ctx.send(f"An error occurred while executing the command.")
     except Exception as e:
-        print(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n{str(e)}")
+        logger.error(f"ERROR IN HANDLE EXCEPTION from cog {cog_name}\n{e}", exc_info=True)

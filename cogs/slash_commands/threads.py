@@ -6,7 +6,6 @@ from ..feedback_threads.modules.helpers import DiscordHelpers
 class ThreadSearch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.pfp_url = ""
 
     group = app_commands.Group(name="threads", description="View the threads commands")
 

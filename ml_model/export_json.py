@@ -1,63 +1,60 @@
+import asyncio
 import discord
 import json
+import logging
 from data.constants import EXPORTS_CHANNEL, CO_DEV_ID
+
+logger = logging.getLogger(__name__)
+
 
 class ExportJson:
 
     def __init__(self, client):
-        """Initialize with Discord client to access channels"""
         self.client = client
 
-    # take data from feedback monitor and export to json file
-    def export_to_json(self, data, filename="feedback_json.json"):
+    def _write_json(self, data: list, filename: str) -> None:
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
 
-        with open(filename, 'w') as json_file:
-            json.dump(data, json_file, indent=4)
+    def _read_json(self, filename: str) -> list:
+        with open(filename, 'r') as f:
+            return json.load(f)
 
-        print(f"✅ Exported feedback data to {filename}")
+    async def export_to_json(self, data, filename="feedback_json.json") -> bool:
+        await asyncio.to_thread(self._write_json, data, filename)
+        logger.debug("Exported feedback data to %s", filename)
         return True
-    
-    async def count_entries(self, filename="feedback_json.json"):
-        """Check entry count and send to mod channel if >= 20"""
+
+    async def count_entries(self, filename="feedback_json.json") -> int:
         try:
-            with open(filename, 'r') as json_file:
-                data = json.load(json_file)
+            data = await asyncio.to_thread(self._read_json, filename)
 
-                if len(data) >= 20:
-                    # Get the mod channel
-                    mod_channel = self.client.get_channel(EXPORTS_CHANNEL)
-                    
-                    if mod_channel is None:
-                        print(f"❌ Could not find channel with ID {EXPORTS_CHANNEL}")
-                        return len(data)
+            if len(data) >= 20:
+                mod_channel = self.client.get_channel(EXPORTS_CHANNEL)
 
-                    file_path = filename  # Use the filename parameter consistently
-                    
-                    # Create a discord.File object
-                    discord_file = discord.File(file_path)
-                    
-                    # Send the file to the channel  
-                    await mod_channel.send(
-                        f"<@{CO_DEV_ID}> New Export!",
-                        allowed_mentions=discord.AllowedMentions(users=True)  # Changed from roles=True
-                    )
-                    await mod_channel.send(file=discord_file, content=f"📊 Feedback export - {len(data)} entries")
-                    print(f"✅ Sent {len(data)} feedback entries to mod channel")
+                if mod_channel is None:
+                    logger.error("Could not find exports channel %s", EXPORTS_CHANNEL)
+                    return len(data)
 
-                    # Once sent, clear the file
-                    with open(filename, 'w') as json_file:
-                        json.dump([], json_file, indent=4)
-                    
-                    print(f"🧹 Cleared {filename}")
+                discord_file = discord.File(filename)
+                await mod_channel.send(
+                    f"<@{CO_DEV_ID}> New Export!",
+                    allowed_mentions=discord.AllowedMentions(users=True)
+                )
+                await mod_channel.send(file=discord_file, content=f"📊 Feedback export - {len(data)} entries")
+                logger.info("Sent %d feedback entries to exports channel", len(data))
 
-                return len(data)
+                await asyncio.to_thread(self._write_json, [], filename)
+                logger.debug("Cleared %s", filename)
+
+            return len(data)
 
         except FileNotFoundError:
-            print("⚠️ Feedback file not found")
+            logger.warning("Feedback file not found: %s", filename)
             return 0
         except json.JSONDecodeError:
-            print(f"❌ Invalid JSON in {filename}")
+            logger.error("Invalid JSON in %s", filename)
             return 0
-        except Exception as e:
-            print(f"❌ Error in count_entries: {e}")
+        except Exception:
+            logger.error("Error in count_entries", exc_info=True)
             return 0

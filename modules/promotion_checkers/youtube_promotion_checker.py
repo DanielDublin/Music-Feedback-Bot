@@ -1,6 +1,7 @@
 import re
 import os
 import asyncio
+import logging
 import discord
 import yt_dlp as youtube_dl
 import urlextract
@@ -8,6 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_TOKEN')
+
+logger = logging.getLogger(__name__)
 
 # youtube_dl options
 ydl_opts = {
@@ -88,9 +91,9 @@ async def handle_videos(message):
                 return True
 
         except discord.errors.NotFound:
-            print("Unable to fetch the user's profile.")
+            logger.warning("Unable to fetch the user's profile.")
         except Exception as e:
-            print(str(e))
+            logger.error("Error checking YouTube video", exc_info=True)
     return False
 
 
@@ -142,9 +145,9 @@ async def handle_channels(message):
                 return True
 
         except discord.errors.NotFound:
-            print("Unable to fetch the user's profile.")
+            logger.warning("Unable to fetch the user's profile.")
         except Exception as e:
-            print(str(e))
+            logger.error("Error checking YouTube channel", exc_info=True)
     return False
 
 

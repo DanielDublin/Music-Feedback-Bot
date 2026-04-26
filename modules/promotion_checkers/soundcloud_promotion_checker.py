@@ -1,5 +1,6 @@
 import re
 import aiohttp
+import logging
 import discord
 import urlextract
 from bs4 import BeautifulSoup
@@ -7,6 +8,8 @@ from bs4 import BeautifulSoup
 
 # Initialize the URL extractor 
 url_extractor = urlextract.URLExtract()
+
+logger = logging.getLogger(__name__)
 
 
 def extract_soundcloud_url(message_content):
@@ -100,17 +103,17 @@ async def check_soundcloud(message):
     for url in short_urls:
         expanded_url = await expand_soundcloud_url(url)
         if expanded_url is None:
-            print("error while expanding url from soundcloud")
+            logger.warning("Error while expanding URL from SoundCloud")
             continue
 
         soundcloud_default_user_name = extract_soundcloud_channel_name(expanded_url)
         if soundcloud_default_user_name is None:
-            print("error while getting username from soundcloud")
+            logger.warning("Error while getting username from SoundCloud")
             continue
 
         soundcloud_user_display_name = await fetch_soundcloud_display_name(expanded_url)
         if soundcloud_user_display_name is None:
-            print("error while getting display name from soundcloud")
+            logger.warning("Error while getting display name from SoundCloud")
             continue
 
         author = message.author
@@ -133,6 +136,6 @@ async def check_soundcloud(message):
                 return True
 
         except discord.errors.NotFound:
-            print(f"Unable to fetch the user's profile.")
+            logger.warning("Unable to fetch the user's profile.")
 
     return False

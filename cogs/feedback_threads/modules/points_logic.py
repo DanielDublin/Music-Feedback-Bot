@@ -1,13 +1,14 @@
 import discord
-import database.db as db
+import logging
 from .embeds import Embeds
 from .helpers import DiscordHelpers
 from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
 
+logger = logging.getLogger(__name__)
+
 class PointsLogic:
     def __init__(self, bot, user_thread):
         self.bot = bot
-        self.pfp_url =""
         self.user_thread = user_thread
         self.embeds = Embeds(bot, user_thread)
         self.helpers = DiscordHelpers(bot)
@@ -61,15 +62,11 @@ class PointsLogic:
         try:
             embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, deleted_content)
         except Exception as e:
-            print(e)
+            logger.error("Error creating mfs_with_zero_points embed", exc_info=True)
         await thread.send(f"<@&{ADMINS_ROLE_ID}>")
         await thread.send(embed=embed)
 
     async def MFS_to_MFR_edit(self, before: discord.Message, after: discord.Message, thread, ticket_counter):
-
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         shortened_before_content = self.helpers.shorten_message(before.content, 1000)
@@ -78,8 +75,8 @@ class PointsLogic:
         user_id = str(after.author.id)
         points_to_add = 2
     
-        await db.add_points(user_id, points_to_add)
-        total_points = int(await db.fetch_points(str(user_id)))
+        await self.bot.db.add_points(user_id, points_to_add)
+        total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
         # send information to user in the original channel
         await after.channel.send( 
@@ -108,14 +105,10 @@ class PointsLogic:
             ),
             inline=False
         )
-        log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
-        await channel.send(embed=log_embed) 
+        log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
+        await channel.send(embed=log_embed)
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, thread, ticket_counter):
-
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
 
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         shortened_before_content = self.helpers.shorten_message(before.content, 1000)
@@ -124,12 +117,11 @@ class PointsLogic:
         user_id = str(after.author.id)
         points_to_remove = 2
 
-        points_available = int(await db.fetch_points(str(user_id)))
-        await db.reduce_points(user_id, points_to_remove)
-        total_points = int(await db.fetch_points(str(user_id)))
+        points_available = int(await self.bot.db.fetch_points(str(user_id)))
 
-        # if the user has greater than the points that need to be removed, it's a valid edit
         if points_available >= points_to_remove:
+            await self.bot.db.reduce_points(user_id, points_to_remove)
+            total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
             # send information to user in the original channel
             await after.channel.send( 
@@ -158,7 +150,7 @@ class PointsLogic:
                 ),
                 inline=False
             )
-            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=log_embed) 
         
         # otherwise, they don't have the points to use
@@ -168,8 +160,8 @@ class PointsLogic:
             await after.delete()
 
             # reset the points
-            await db.reset_points(user_id)
-            total_points = int(await db.fetch_points(str(user_id)))
+            await self.bot.db.reset_points(user_id)
+            total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
             # send information to user
             await after.channel.send( 
@@ -197,16 +189,11 @@ class PointsLogic:
                 ),
                 inline=False
             )
-            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=log_embed)
 
     
     async def MFR_delete(self, message: discord.Message, thread: discord.Thread, ticket_counter: int):
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            if creator_user and creator_user.avatar:
-                self.pfp_url = creator_user.avatar.url
-
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         if not channel:
             return
@@ -216,9 +203,9 @@ class PointsLogic:
         user_id = str(message.author.id)
         points_to_remove = 1
 
-        points_available = await db.fetch_points(user_id)
-        await db.reduce_points(user_id, points_to_remove)
-        total_points = await db.fetch_points(user_id)
+        points_available = await self.bot.db.fetch_points(user_id)
+        await self.bot.db.reduce_points(user_id, points_to_remove)
+        total_points = await self.bot.db.fetch_points(user_id)
 
         # if a user deletes an MFR message (1 points available) after sending a MFS message (0 points available), then moderators should be tagged due to chances of submitting feedback with technically 0 points
 
@@ -243,7 +230,7 @@ class PointsLogic:
             try:
                 await thread.send(embed=embed)
             except Exception as e:
-                print(e)
+                logger.error("Error sending thread embed", exc_info=True)
                 
 
             embed = discord.Embed(color=0x7e016f)
@@ -256,14 +243,14 @@ class PointsLogic:
                 ),
                 inline=False
             )
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=embed)
 
         elif points_available == 0:
 
             # prevent points going negative
-            await db.reset_points(user_id)
-            total_points = int(await db.fetch_points(str(user_id)))
+            await self.bot.db.reset_points(user_id)
+            total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
             await channel.send(f"<@&{ADMINS_ROLE_ID}>")
 
@@ -290,16 +277,10 @@ class PointsLogic:
                 ),
                 inline=False
             )
-            embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+            embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
             await channel.send(embed=embed)
 
     async def MFS_delete(self, message: discord.Message, thread: discord.Thread, ticket_counter: int):
-
-        if self.pfp_url == "":
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            if creator_user and creator_user.avatar:
-                self.pfp_url = creator_user.avatar.url
-
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         if not channel:
             return
@@ -307,8 +288,8 @@ class PointsLogic:
         deleted_content = self.helpers.shorten_message(message.content, 1000)
 
         user_id = str(message.author.id)
-        # don't need to remove any points since <MFS handled that; no points given in return 
-        total_points = await db.fetch_points(user_id)
+        # don't need to remove any points since <MFS handled that; no points given in return
+        total_points = await self.bot.db.fetch_points(user_id)
 
         delete_notice = await message.channel.send(
             f"{message.author.mention} deleted their submission.\n\n"
@@ -334,7 +315,7 @@ class PointsLogic:
             ),
             inline=False
         )
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
         await channel.send(embed=embed)
 
 

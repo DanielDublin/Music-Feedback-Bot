@@ -7,12 +7,10 @@ class Guild_events(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.queue = [] # initiate array for queue
-        self.pfp_url = ""
         
-    def guild_only(ctx):
+    async def cog_check(self, ctx: commands.Context) -> bool:
         return ctx.guild is not None
 
-    @commands.check(guild_only)
     @commands.command(help = "Use to submit entries to events.", brief = "(link, file, text)")
     @admin_bypass_cooldown(1, 5)
     async def submit(self, ctx):
@@ -24,14 +22,13 @@ class Guild_events(commands.Cog):
             GENERAL_CHAT_CHANNEL_ID
         ]
 
-        # add author to the queue
-        self.queue.append(ctx.author.mention)
-
         if not ctx.channel.id in allowed_channels_list:
             await ctx.channel.send(
-                    f"{ctx.author.mention}, please use the correct channel to post your submission.", delete_after=60) 
+                    f"{ctx.author.mention}, please use the correct channel to post your submission.", delete_after=60)
             await ctx.message.delete()
             return
+
+        self.queue.append(ctx.author.mention)
         
         file = None
         
@@ -44,11 +41,8 @@ class Guild_events(commands.Cog):
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(name=":ballot_box_with_check:  Success!",
                         value=f"{ctx.author.mention}, your submission has been received.", inline=False)
-        if not self.pfp_url:
-            creator_user = await self.bot.fetch_user(self.bot.owner_id)
-            self.pfp_url = creator_user.avatar.url
-        
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        pfp_url = await self.bot.get_owner_pfp_url()
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
         await ctx.channel.send(embed=embed)
         channel = self.bot.get_channel(MOD_SUBMISSION_LOGGER_CHANNEL_ID)
         await channel.send(
@@ -58,7 +52,6 @@ class Guild_events(commands.Cog):
 
     # queue command
     @commands.command(help="Displays the queue of submissions.")
-    @commands.check(guild_only)
     async def queue(self, ctx):
         # handle if queue empty
         if not self.queue:
@@ -74,13 +67,12 @@ class Guild_events(commands.Cog):
         for index, item in enumerate(self.queue, start = 1):
             queue_message += f"{index}. {item}\n"
         embed.add_field(name="Submissions", value=queue_message, inline=False)
-        embed.set_footer(text=f"Made by FlamingCore", icon_url=self.pfp_url)
+        embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
 
         await ctx.send(embed=embed)
 
     # only allow members with Event Host role to run clearq command
     @commands.command(help="Displays the queue of submissions.")
-    @commands.check(guild_only)
     async def clearq(self, ctx):
         event_host = discord.utils.get(ctx.guild.roles, name="Event Host")
         if event_host in ctx.author.roles:

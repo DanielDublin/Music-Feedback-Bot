@@ -1,5 +1,8 @@
 import sqlite3
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SQLiteDatabase:
     def __init__(self):
@@ -14,7 +17,7 @@ class SQLiteDatabase:
             self.cursor = self.connection.cursor()
             self.create_table()
         except sqlite3.Error as e:
-            print(f"Error connecting to database: {e}")
+            logger.error(f"Error connecting to database: {e}", exc_info=True)
             raise
 
     def create_table(self):
@@ -37,10 +40,10 @@ class SQLiteDatabase:
                 )
             ''')
             self.connection.commit()
-            print("SQLite database created or already exists")
+            logger.info("SQLite database created or already exists")
 
         except sqlite3.Error as e:
-            print(f"Error creating table: {e}")
+            logger.error(f"Error creating table: {e}", exc_info=True)
 
     def fetch_all_users(self):
         """
@@ -53,8 +56,8 @@ class SQLiteDatabase:
             return rows 
 
         except sqlite3.Error as e:
-            print(f"Error querying users: {e}")
-            return [] 
+            logger.error(f"Error querying users: {e}", exc_info=True)
+            return []
 
 
     def insert_user(self, user_id: int, thread_id: int, ticket_counter: int = 1):
@@ -81,7 +84,7 @@ class SQLiteDatabase:
             return user_id
         
         except sqlite3.Error as e:
-            print(f"Error inserting user: {e}")
+            logger.error(f"Error inserting user: {e}", exc_info=True)
             return None
 
     def update_ticket_counter(self, user_id, ticket_counter):
@@ -101,7 +104,7 @@ class SQLiteDatabase:
             self.connection.commit()
 
         except sqlite3.Error as e:
-            print(f"Error updating ticket_counter: {e}")
+            logger.error(f"Error updating ticket_counter: {e}", exc_info=True)
 
     def delete_user(self, user_id):
         """
@@ -118,7 +121,7 @@ class SQLiteDatabase:
             self.connection.commit()
 
         except sqlite3.Error as e:
-            print(f"Error deleting user: {e}")
+            logger.error(f"Error deleting user: {e}", exc_info=True)
 
 
     def close_connection(self):
@@ -128,10 +131,10 @@ class SQLiteDatabase:
 
         try:
             self.connection.close()
-            print("Database connection closed")
+            logger.info("Database connection closed")
 
         except sqlite3.Error as e:
-            print(f"Error closing connection: {e}")
+            logger.error(f"Error closing connection: {e}", exc_info=True)
 
     def __del__(self):
         """
