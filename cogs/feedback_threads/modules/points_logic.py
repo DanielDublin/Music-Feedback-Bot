@@ -205,18 +205,22 @@ class PointsLogic:
             return
 
         deleted_content = self.helpers.shorten_message(message.content, 1000)
-
         user_id = str(message.author.id)
-        points_to_remove = 1
+
+        # If message was posted during a Prime Time window and content is cached,
+        # check whether it qualified for double points.
+        prime_time_cog = self.bot.get_cog("PrimeTime")
+        if prime_time_cog and message.content and prime_time_cog.was_during_prime_time(message.created_at):
+            feedback_text = message.content
+            if feedback_text.upper().startswith("<MFR"):
+                feedback_text = feedback_text[4:].lstrip()
+            points_to_remove = 2 if len(feedback_text) >= 300 else 1
+        else:
+            points_to_remove = 1
 
         points_available = await self.bot.db.fetch_points(user_id)
         await self.bot.db.reduce_points(user_id, points_to_remove)
         total_points = await self.bot.db.fetch_points(user_id)
-
-        # if a user deletes an MFR message (1 points available) after sending a MFS message (0 points available), then moderators should be tagged due to chances of submitting feedback with technically 0 points
-
-        # if points available before removing the points is 0, then they used that 1 point somewhere
-        # we can't look at total points being 0 because this would trigger to be true if they just did MFR and then deleted
 
         if points_available > 0:
 
@@ -224,7 +228,6 @@ class PointsLogic:
                 f"{message.author.mention} deleted their feedback and lost **{points_to_remove}** MF Points. You now have **{total_points}** MF Points.\n\n"
                 f"You will need to repost the feedback or give feedback again to regain the point. Visit <#{FEEDBACK_ACCESS_CHANNEL_ID}> for more information."
             )
-
             await delete_notice.delete(delay=60)
 
             embed = await self.embeds.MFR_to_delete_embed(
@@ -235,9 +238,8 @@ class PointsLogic:
             )
             try:
                 await thread.send(embed=embed)
-            except Exception as e:
+            except Exception:
                 logger.error("Error sending thread embed", exc_info=True)
-                
 
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(
@@ -254,7 +256,6 @@ class PointsLogic:
 
         elif points_available == 0:
 
-            # prevent points going negative
             await self.bot.db.reset_points(user_id)
             total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
@@ -266,10 +267,10 @@ class PointsLogic:
             )
 
             embed = await self.embeds.MFR_to_delete_embed_with_no_points(
-            deleted_content=deleted_content,
-            ticket_counter=ticket_counter,
-            points_removed=points_to_remove,
-            total_points=total_points
+                deleted_content=deleted_content,
+                ticket_counter=ticket_counter,
+                points_removed=points_to_remove,
+                total_points=total_points
             )
             await thread.send(embed=embed)
 

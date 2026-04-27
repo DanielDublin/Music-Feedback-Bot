@@ -126,20 +126,44 @@ class General(commands.Cog):
 
         # Add points
     @commands.command(name="R",
-                      help = f"Use to submit feedback.", brief = "@username")
+                      help=f"Use to submit feedback.", brief="@username")
     @admin_bypass_cooldown(1, 10)
     async def MFR_command(self, ctx: commands.Context):
 
-        mention = ctx.author.mention    
+        mention = ctx.author.mention
         if not await self.handle_feedback_command_validity(ctx, mention):
             return
 
-        await self.bot.db.add_points(str(ctx.author.id), 1)
+        # Strip <MFR prefix to get the feedback body for length check
+        feedback_text = ctx.message.content
+        if feedback_text.upper().startswith("<MFR"):
+            feedback_text = feedback_text[4:].lstrip()
 
+        prime_time_cog = self.bot.get_cog("PrimeTime")
+        if prime_time_cog and prime_time_cog.is_active() and len(feedback_text) >= 300:
+            pts = 2
+        else:
+            pts = 1
+
+        await self.bot.db.add_points(str(ctx.author.id), pts)
         points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
-        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID) # feedback log channel
+        channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
 
-        await ctx.channel.send(f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).", delete_after=4)
+        if pts == 2:
+            await ctx.channel.send(
+                f"{mention} has gained 2 MF points (Prime Time bonus). You now have **{points}** MF point(s).",
+                delete_after=4
+            )
+        else:
+            await ctx.channel.send(
+                f"{mention} has gained 1 MF point. You now have **{points}** MF point(s).",
+                delete_after=4
+            )
+            if prime_time_cog and prime_time_cog.is_active():
+                await ctx.channel.send(
+                    f"{mention}, your feedback is under 300 characters — quality threshold not met for the Prime Time bonus.",
+                    delete_after=10
+                )
 
         feedback_cog = self.bot.get_cog("FeedbackThreads")
         result = await feedback_cog.record_feedback(ctx)
@@ -156,9 +180,9 @@ class General(commands.Cog):
                 f"🟢 [Ticket #{ticket_counter}]({thread.jump_url})"
             ),
             inline=False
-)
+        )
         embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-        await channel.send(embed=embed)  # Logs channel
+        await channel.send(embed=embed)
 
 
     async def send_messages_to_user(self, message: discord.Message):
