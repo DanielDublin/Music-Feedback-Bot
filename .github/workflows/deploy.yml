@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-        # will deploy when code merged to main
+      # will deploy when code merged to main
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          version: 'latest'
+          version: "latest"
 
           # uses mf-bot-cicd service account
       - name: Authenticate with GCP Service Account
@@ -37,9 +37,7 @@ jobs:
             if [ -f requirements.txt ]; then pip3 install --user -r requirements.txt; else echo 'No requirements.txt found'; fi && \
             tmux list-sessions || true && \
             tmux kill-session -t watchdog_session || true && \
-            tmux new -d -s watchdog_session 'cd /home/bots4fun1/Music-Feedback-Bot && python3 ./watchdog.py' || { echo 'Failed to start watchdog.py'; exit 1; } && \
+            tmux new -d -s watchdog_session 'cd /home/bots4fun1/Music-Feedback-Bot && python3.14 ./watchdog.py' || { echo 'Failed to start watchdog.py'; exit 1; } && \
             sleep 5 && \
             tmux list-sessions || true
           "
-        
-
