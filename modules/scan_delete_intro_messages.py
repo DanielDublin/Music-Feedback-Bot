@@ -17,7 +17,7 @@ class MessageCleaner(commands.Cog):
         if self.clean_old_messages.is_running():
             self.clean_old_messages.cancel()
 
-    def cog_load(self):
+    async def cog_load(self):
         if not self.clean_old_messages.is_running():
             self.clean_old_messages.start()
 

@@ -107,7 +107,7 @@ initial_extensions = [
 
 # Load slash command cogs
 slash_extensions = [
-    # 'cogs.slash_commands.timer_cogs.timer',
+    'cogs.slash_commands.timer',
     'cogs.slash_commands.admin',
     'cogs.slash_commands.rank_commands',
     'cogs.slash_commands.threads',

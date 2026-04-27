@@ -3,7 +3,7 @@ import asyncio
 import logging
 from discord.ext import commands
 from discord import app_commands
-from cogs.aotw.create_poll import CreatePoll
+from cogs.aotw.create_poll import CreatePoll, PollView
 from cogs.aotw.configure_channel import ConfigureChannel
 from data.constants import AOTW_CHANNEL, AOTW_SUBMISSIONS, MODERATORS_CHANNEL_ID, AOTW_ROLE, AOTW_VOTES
 
@@ -19,6 +19,16 @@ class AOTWEvent(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.channel_config = ConfigureChannel(bot)
+        self._active_poll: CreatePoll | None = None
+
+    async def cog_load(self):
+        poll = CreatePoll.restore(self.bot)
+        if poll is None:
+            return
+        view = PollView(poll, poll.names, poll.emojis, poll.messages)
+        self.bot.add_view(view, message_id=poll._poll_message_id)
+        self._active_poll = poll
+        logger.info("[AOTW] Restored active poll from disk (message ID: %s, %d voters)", poll._poll_message_id, len(poll.voters))
 
     async def wait_for_winner_response(self, winner_info, winner_channel, winner_member):
         """
@@ -127,6 +137,17 @@ class AOTWEvent(commands.Cog):
         except Exception as e:
             await mod_channel.send(f"❌ Error initializing channels: {e}")
 
+        # clear votes channel so vote tracking starts fresh for the new cycle
+        try:
+            votes_channel = self.bot.get_channel(AOTW_VOTES)
+            if votes_channel:
+                await votes_channel.purge(limit=None)
+                await mod_channel.send("✅ Cleared votes channel for new cycle")
+            else:
+                await mod_channel.send("⚠️ WARNING: Could not find votes channel to clear")
+        except Exception as e:
+            await mod_channel.send(f"❌ Error clearing votes channel: {e}")
+
         # change perms for aotw submissions
         try:
             await self.channel_config.change_voting_perms()
@@ -154,6 +175,7 @@ class AOTWEvent(commands.Cog):
             names = await poll.scrape_channel_for_names(interaction, channel_id)
             embed, emojis = await poll.create_embed(interaction, names)
             await poll.react_to_embed(interaction, embed, emojis, names)
+            self._active_poll = poll
             await mod_channel.send("✅ Poll created")
         except Exception as e:
             await mod_channel.send(f"❌ Error creating poll: {e}")
@@ -289,6 +311,13 @@ class AOTWEvent(commands.Cog):
             await interaction.followup.send("❌ Error reading submissions!")
             return
 
+        # Clear persisted poll state — winner is being determined
+        if self._active_poll:
+            self._active_poll._clear_state()
+            self._active_poll = None
+        else:
+            CreatePoll._clear_state()
+
         # SECOND: Determine the winner from votes
         try:
             winner_data = await poll.determine_the_winner()
@@ -362,10 +391,7 @@ class AOTWEvent(commands.Cog):
             return
         
         # Get the winner as a Discord Member object
-        winner_member = interaction.guild.get_member_named(winner_name)
-        if not winner_member:
-            winner_member = discord.utils.get(interaction.guild.members, name=winner_name)
-        
+        winner_member = discord.utils.get(interaction.guild.members, display_name=winner_name)
         if not winner_member:
             for member in interaction.guild.members:
                 if member.name == winner_name or member.display_name == winner_name:

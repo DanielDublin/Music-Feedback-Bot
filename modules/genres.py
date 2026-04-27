@@ -1,7 +1,7 @@
 import aiohttp
 import os
+from urllib.parse import quote
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 
 
 load_dotenv()
@@ -17,24 +17,20 @@ async def _get_session() -> aiohttp.ClientSession:
     return _session
 
 
-async def _get_image(data):
-    artist_url = data.get('artist', {}).get('url')
-    if not artist_url:
-        return None
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+async def _get_image(artist_name: str) -> str | None:
+    url = f"https://api.deezer.com/search/artist?q={quote(artist_name)}&limit=1"
     session = await _get_session()
-    async with session.get(artist_url, headers=headers) as response:
+    async with session.get(url) as response:
         if response.status != 200:
             return None
-        soup = BeautifulSoup(await response.text(), 'html.parser')
-        meta_tag = soup.find('meta', {'property': 'og:image'})
-        if meta_tag and meta_tag.get('content'):
-            return meta_tag['content']
+        data = await response.json(content_type=None)
+        artists = data.get('data', [])
+        if artists:
+            return artists[0].get('picture_xl') or artists[0].get('picture_big')
     return None
 
 
 async def fetch_band_genres(band_name):
-    default_image = 'https://lastfm.freetls.fastly.net/i/u/avatar170s/4128a6eb29f94943c9d206c08e625904.jpg'
     base_url = 'http://ws.audioscrobbler.com/2.0/'
     params = {
         'method': 'artist.getinfo',
@@ -58,5 +54,5 @@ async def fetch_band_genres(band_name):
     else:
         genres = "No genre information available."
 
-    image_url = await _get_image(data) or default_image
+    image_url = await _get_image(band_name)
     return (genres, image_url)

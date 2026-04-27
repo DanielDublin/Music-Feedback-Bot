@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 # youtube_dl options
 ydl_opts = {
     'outtmpl': '%(id)s.%(ext)s',
-    'quiet': True,  # Optional: Set this to True to suppress output messages
+    'quiet': True,
+    'no_warnings': True,
 }
 
 # YT URL patterns

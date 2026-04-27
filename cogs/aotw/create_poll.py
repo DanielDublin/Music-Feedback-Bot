@@ -1,8 +1,12 @@
 import discord
 import logging
+import json
+import os
 from discord.ui import Button, View
 from data.constants import AOTW_SUBMISSIONS, AOTW_VOTES
 import datetime
+
+_STATE_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'aotw_votes.json')
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +37,60 @@ class PollView(View):
 class CreatePoll:
     def __init__(self, bot):
         self.bot = bot
-        self.messages = {}  # Store message content for each user
-        self.voter_choices = {}  # Store user ID to option index mapping
+        self.messages = {}
+        self.voter_choices = {}
+        self._poll_message_id = None
+        self._poll_channel_id = None
+
+    def _save_state(self):
+        try:
+            data = {
+                'active': True,
+                'poll_message_id': self._poll_message_id,
+                'poll_channel_id': self._poll_channel_id,
+                'names': getattr(self, 'names', []),
+                'emojis': getattr(self, 'emojis', []),
+                'messages': self.messages,
+                'votes': {str(k): v for k, v in getattr(self, 'votes', {}).items()},
+                'voters': list(getattr(self, 'voters', set())),
+                'voter_choices': {str(k): v for k, v in self.voter_choices.items()},
+            }
+            os.makedirs(os.path.dirname(_STATE_FILE), exist_ok=True)
+            with open(_STATE_FILE, 'w') as f:
+                json.dump(data, f)
+        except Exception:
+            logger.error("Failed to save poll state", exc_info=True)
+
+    @staticmethod
+    def _clear_state():
+        try:
+            if os.path.exists(_STATE_FILE):
+                os.remove(_STATE_FILE)
+        except Exception:
+            logger.error("Failed to clear poll state", exc_info=True)
+
+    @classmethod
+    def restore(cls, bot):
+        if not os.path.exists(_STATE_FILE):
+            return None
+        try:
+            with open(_STATE_FILE, 'r') as f:
+                data = json.load(f)
+            if not data.get('active'):
+                return None
+            instance = cls(bot)
+            instance.names = data['names']
+            instance.emojis = data['emojis']
+            instance.messages = data['messages']
+            instance.votes = {int(k): v for k, v in data['votes'].items()}
+            instance.voters = set(data['voters'])
+            instance.voter_choices = {int(k): v for k, v in data['voter_choices'].items()}
+            instance._poll_message_id = data.get('poll_message_id')
+            instance._poll_channel_id = data.get('poll_channel_id')
+            return instance
+        except Exception:
+            logger.error("Failed to restore poll state", exc_info=True)
+            return None
 
     async def scrape_channel_for_names(self, ctx, channel_id):
         """
@@ -47,29 +103,21 @@ class CreatePoll:
         Returns:
             list: List of user names in chronological order (oldest first).
         """
-        user = ctx.user if hasattr(ctx, 'user') else ctx.author
-        
-        if user.name != self.bot.user.name:
-            channel = self.bot.get_channel(channel_id)
-            names = []
-            seen_names = set()
-            self.messages = {}  # Reset messages dict
+        channel = self.bot.get_channel(channel_id)
+        names = []
+        seen_names = set()
+        self.messages = {}
 
-            # Get messages in reverse (oldest first)
-            messages_list = []
-            async for message in channel.history(limit=50, oldest_first=True):
-                if message.author.name != self.bot.user.name:
-                    messages_list.append(message)
-            
-            # Process messages in chronological order
-            for message in messages_list:
-                display_name = message.author.display_name
-                if display_name not in seen_names:
-                    names.append(display_name)
-                    seen_names.add(display_name)
-                    self.messages[display_name] = message.content
+        async for message in channel.history(limit=50, oldest_first=True):
+            if message.author.id == self.bot.user.id:
+                continue
+            display_name = message.author.display_name
+            if display_name not in seen_names:
+                names.append(display_name)
+                seen_names.add(display_name)
+                self.messages[display_name] = message.content
 
-            return names
+        return names
 
     async def create_embed(self, ctx, names):
         emojis = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿']
@@ -123,7 +171,10 @@ class CreatePoll:
         
         # Send to AOTW submissions channel
         self.poll_message = await poll_channel.send(embed=embed, view=view)
-        
+        self._poll_message_id = self.poll_message.id
+        self._poll_channel_id = poll_channel.id
+        self._save_state()
+
         return self.poll_message
     
     async def handle_vote(self, interaction, option_index, option_name):
@@ -150,8 +201,9 @@ class CreatePoll:
         # Record vote
         self.votes[option_index] += 1
         self.voters.add(user_id)
-        self.voter_choices[user_id] = option_index  # Store who voted for whom
-        
+        self.voter_choices[user_id] = option_index
+        self._save_state()
+
         # Update votes channel
         await self.update_votes_channel()
         
