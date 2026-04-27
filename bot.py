@@ -48,6 +48,7 @@ bot.remove_command('help')
 
 @bot.tree.command(name="sync", description="Force sync commands", guild=discord.Object(id=SERVER_ID))
 async def sync(interaction: discord.Interaction):
+    await bot.tree.sync()
     await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
     await interaction.response.send_message("Commands synced", ephemeral=True)
 
@@ -79,6 +80,7 @@ async def on_ready():
         # for command in tree.get_commands():
         #     print(f"- {command.name}: {command.description}")
 
+        await bot.tree.sync()
         await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
 
         logger.info('Sync-ed slash commands')

@@ -1,6 +1,5 @@
 from discord.ext import commands
 from discord import app_commands
-from data.constants import SERVER_ID
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.embeds import Embeds
 import discord
@@ -137,7 +136,6 @@ class Admin(commands.Cog):
 
     @app_commands.command(name="reload", description="Reload a bot extension by name")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.guilds(discord.Object(id=SERVER_ID))
     @app_commands.describe(extension="Extension path (e.g. cogs.general)")
     @app_commands.autocomplete(extension=extension_autocomplete)
     async def reload_extension(self, interaction: discord.Interaction, extension: str):
@@ -150,7 +148,6 @@ class Admin(commands.Cog):
 
     @app_commands.command(name="status", description="Show bot status")
     @app_commands.checks.has_permissions(administrator=True)
-    @app_commands.guilds(discord.Object(id=SERVER_ID))
     async def status(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         latency = round(self.bot.latency * 1000)

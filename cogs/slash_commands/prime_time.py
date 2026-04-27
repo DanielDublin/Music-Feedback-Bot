@@ -10,9 +10,9 @@ from discord.ext import commands
 
 from data.constants import (
     AUDIO_FEEDBACK,
+    FEEDBACK_DISCUSSION_CHANNEL_ID,
     GENERAL_CHAT_CHANNEL_ID,
     LYRIC_FEEDBACK,
-    FEEDBACK_DISCUSSION_CHANNEL_ID,
 )
 
 logger = logging.getLogger(__name__)
