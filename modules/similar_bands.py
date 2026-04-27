@@ -18,8 +18,9 @@ async def _get_session() -> aiohttp.ClientSession:
 
 
 async def _get_image(artist_url):
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     session = await _get_session()
-    async with session.get(artist_url) as response:
+    async with session.get(artist_url, headers=headers) as response:
         if response.status != 200:
             return None
         soup = BeautifulSoup(await response.text(), 'html.parser')

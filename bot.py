@@ -189,17 +189,22 @@ async def main():
 
 class _ColoredFormatter(logging.Formatter):
     _COLORS = {
-        logging.DEBUG:    '\033[37m',         # grey
-        logging.INFO:     '\033[94m',         # bright blue
-        logging.WARNING:  '\033[93m',         # bright yellow
-        logging.ERROR:    '\033[91m',         # bright red
-        logging.CRITICAL: '\033[1m\033[91m',  # bold bright red
+        logging.INFO:     '\033[94m',   # bright blue — levelname only
+        logging.WARNING:  '\033[91m',   # bright red  — levelname only
+        logging.ERROR:    '\033[91m',   # bright red  — levelname only
+        logging.CRITICAL: '\033[91m',   # bright red  — levelname only
     }
     _RESET = '\033[0m'
 
     def format(self, record: logging.LogRecord) -> str:
-        color = self._COLORS.get(record.levelno, self._RESET)
-        return f"{color}{super().format(record)}{self._RESET}"
+        color = self._COLORS.get(record.levelno)
+        if color:
+            original = record.levelname
+            record.levelname = f"{color}{original}{self._RESET}"
+            result = super().format(record)
+            record.levelname = original
+            return result
+        return super().format(record)
 
 
 if __name__ == "__main__":

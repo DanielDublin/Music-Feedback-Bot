@@ -25,6 +25,8 @@ async def handle_exception(ctx, error):
             await ctx.send(f"You don't have permissions to use the command.")
         elif isinstance(error, discord.ext.commands.CheckFailure):
             await ctx.send(f"You don't meet the requirements to use the command.")
+        elif isinstance(error, discord.ext.commands.MissingRequiredArgument):
+            await ctx.send(f"Missing required argument: `{error.param.name}`. Please check the command usage.")
         elif isinstance(error, discord.ext.commands.BadArgument):
             await ctx.send(f"Invalid argument in the command. Please check your input.")
         else:

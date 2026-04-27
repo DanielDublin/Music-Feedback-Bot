@@ -63,7 +63,7 @@ class MemberData:
         try:
             top_users = await self.bot.db.top_10()
             for user_data in top_users:
-                if user_data.get("user_id") == str(member.id):
+                if user_data["user_id"] == str(member.id):
                     is_top_feedback = True
                     break
         except Exception:
@@ -73,7 +73,7 @@ class MemberData:
         return is_top_feedback, points
 
     async def get_message_count(self, member: discord.Member) -> int:
-        raise NotImplementedError("get_message_count is not implemented")
+        return 0
 
     async def get_last_finished_music(self, member: discord.Member) -> str:
         """

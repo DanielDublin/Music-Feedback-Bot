@@ -6,10 +6,12 @@ Loads the trained SimpleML model for feedback quality prediction
 import os
 import asyncio
 import logging
+import warnings
 import joblib
 import numpy as np
 import re
 from pathlib import Path
+from sklearn.exceptions import InconsistentVersionWarning
 
 logger = logging.getLogger(__name__)
 
@@ -37,13 +39,18 @@ class FeedbackQualityPredictor:
             raise FileNotFoundError(f"Vectorizer not found at {vectorizer_path.resolve()}")
         
         try:
-            self.model = joblib.load(model_path)
-            self.vectorizer = joblib.load(vectorizer_path)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
+                self.model = joblib.load(model_path)
+                self.vectorizer = joblib.load(vectorizer_path)
+            # Re-save to update the embedded sklearn version, suppressing this warning on future loads
+            joblib.dump(self.model, model_path)
+            joblib.dump(self.vectorizer, vectorizer_path)
             self.loaded = True
             logger.info(f"Model loaded successfully from {self.model_dir}")
         except Exception as e:
             logger.error("Error loading model", exc_info=True)
-            raise  # Re-raise the exception
+            raise
     
     def extract_features(self, feedback_text: str) -> dict:
         """Extract features from feedback text"""

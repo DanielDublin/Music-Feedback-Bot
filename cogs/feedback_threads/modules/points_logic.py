@@ -15,6 +15,9 @@ class PointsLogic:
 
     async def send_embed_new_thread(self, ctx, thread, ticket_counter, called_from_zero=False):
 
+        if ctx.command is None:
+            return
+
         user_id = ctx.author.id
         ticket_counter = ticket_counter
 
@@ -30,6 +33,9 @@ class PointsLogic:
                 await self.handle_mfs_submissions(ctx, thread, ticket_counter)
 
     async def send_embed_existing_thread(self, ctx, user_id=None, ticket_counter=None, thread=None, called_from_zero=False):
+
+        if ctx.command is None:
+            return
 
         user_id = ctx.author.id
         ticket_counter = ticket_counter
