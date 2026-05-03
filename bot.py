@@ -23,7 +23,6 @@ server_id = os.environ.get('SERVER_ID')
 # Initialize the bot
 intents = discord.Intents.default()
 intents.members = True
-intents.typing = True
 intents.presences = True
 intents.message_content = True
 

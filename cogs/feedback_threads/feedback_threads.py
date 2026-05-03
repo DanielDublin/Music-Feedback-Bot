@@ -92,71 +92,77 @@ class FeedbackThreads(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        if before.author.bot:
-            return
-
-        if before.channel.id == FEEDBACK_CHANNEL_ID:
-
-            before_content_normalized = before.content.strip().lower()
-            after_content_normalized = after.content.strip().lower()
-
-            user_id = after.author.id
-            thread_info = self.user_thread.get(user_id)
-            if thread_info is None:
-                return
-            thread_id, ticket_counter = thread_info
-            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
-            if thread is None:
+        try:
+            if before.author.bot:
                 return
 
-            # MFS to MFR
-            if "<mfs" in before_content_normalized and "<mfr" in after_content_normalized: 
+            if before.channel.id == FEEDBACK_CHANNEL_ID:
 
-                await self.points_logic.MFS_to_MFR_edit(before, after, thread, ticket_counter)
+                before_content_normalized = before.content.strip().lower()
+                after_content_normalized = after.content.strip().lower()
 
-            # MFR to MFS
-            elif "<mfr" in before_content_normalized and "<mfs" in after_content_normalized:
+                user_id = after.author.id
+                thread_info = self.user_thread.get(user_id)
+                if thread_info is None:
+                    return
+                thread_id, ticket_counter = thread_info
+                thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+                if thread is None:
+                    return
 
-                await self.points_logic.MFR_to_MFS_edit(before, after, thread, ticket_counter)
+                # MFS to MFR
+                if "<mfs" in before_content_normalized and "<mfr" in after_content_normalized:
+
+                    await self.points_logic.MFS_to_MFR_edit(before, after, thread, ticket_counter)
+
+                # MFR to MFS
+                elif "<mfr" in before_content_normalized and "<mfs" in after_content_normalized:
+
+                    await self.points_logic.MFR_to_MFS_edit(before, after, thread, ticket_counter)
+        except Exception:
+            logger.error("on_message_edit failed for message %s", before.id, exc_info=True)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        if message.author.bot:
-            return
-        
-        if message.channel.category_id == FEEDBACK_CATEGORY_ID:
-
-            message_content_normalized = message.content.strip().lower()
-
-            user_id = message.author.id
-            thread_info = self.user_thread.get(user_id)
-            if thread_info is None:
-                return
-            thread_id, ticket_counter = thread_info
-            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
-            if thread is None:
+        try:
+            if message.author.bot:
                 return
 
-            # if mfr is in content that was deleted, take away the points
-            if "<mfr" in message_content_normalized:
+            if message.channel.category_id == FEEDBACK_CATEGORY_ID:
 
-                await self.points_logic.MFR_delete(message, thread, ticket_counter)
+                message_content_normalized = message.content.strip().lower()
 
-            #else if mfs is in content deleted, send message that the user needs more points/contact mods if a mistake
-            elif "<mfs" in message_content_normalized:
-
-                # lazy-load General cog in case it wasn't ready at __init__ time
-                if self.general is None:
-                    self.general = self.bot.get_cog('General')
-
-                # check if the message id is due to manual deletion of the else statement in MFS
-                if self.general is not None and message.id in self.general.deleted_messages:
-                    # if it is, this means that the message was manually deleted and to not throw this embed; delete the id
-                    self.general.deleted_messages.discard(message.id)
+                user_id = message.author.id
+                thread_info = self.user_thread.get(user_id)
+                if thread_info is None:
                     return
-                
-                else:
-                    await self.points_logic.MFS_delete(message, thread, ticket_counter)
+                thread_id, ticket_counter = thread_info
+                thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+                if thread is None:
+                    return
+
+                # if mfr is in content that was deleted, take away the points
+                if "<mfr" in message_content_normalized:
+
+                    await self.points_logic.MFR_delete(message, thread, ticket_counter)
+
+                #else if mfs is in content deleted, send message that the user needs more points/contact mods if a mistake
+                elif "<mfs" in message_content_normalized:
+
+                    # lazy-load General cog in case it wasn't ready at __init__ time
+                    if self.general is None:
+                        self.general = self.bot.get_cog('General')
+
+                    # check if the message id is due to manual deletion of the else statement in MFS
+                    if self.general is not None and message.id in self.general.deleted_messages:
+                        # if it is, this means that the message was manually deleted and to not throw this embed; delete the id
+                        self.general.deleted_messages.discard(message.id)
+                        return
+
+                    else:
+                        await self.points_logic.MFS_delete(message, thread, ticket_counter)
+        except Exception:
+            logger.error("on_message_delete failed for message %s", message.id, exc_info=True)
                 
 
 

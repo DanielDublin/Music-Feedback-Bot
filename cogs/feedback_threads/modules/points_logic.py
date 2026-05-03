@@ -67,8 +67,9 @@ class PointsLogic:
 
         try:
             embed = await self.embeds.mfs_with_zero_points(message, ticket_counter, deleted_content)
-        except Exception as e:
+        except Exception:
             logger.error("Error creating mfs_with_zero_points embed", exc_info=True)
+            return
         await thread.send(f"<@&{ADMINS_ROLE_ID}>")
         await thread.send(embed=embed)
 

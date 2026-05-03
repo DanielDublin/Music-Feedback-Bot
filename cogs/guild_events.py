@@ -1,7 +1,10 @@
 import discord
+import logging
 from discord.ext import commands
 from data.constants import MFL_INFO, SUBMISSIONS_CHANNEL_ID, GENERAL_CHAT_CHANNEL_ID, MOD_SUBMISSION_LOGGER_CHANNEL_ID, SUBMISSIONS_CHANNEL_XMAS_ID
 from modules.cooldowns import admin_bypass_cooldown
+
+logger = logging.getLogger(__name__)
 
 class Guild_events(commands.Cog):
     def __init__(self, bot):
@@ -45,6 +48,9 @@ class Guild_events(commands.Cog):
         embed.set_footer(text=f"Made by FlamingCore", icon_url=pfp_url)
         await ctx.channel.send(embed=embed)
         channel = self.bot.get_channel(MOD_SUBMISSION_LOGGER_CHANNEL_ID)
+        if not channel:
+            logger.error("MOD_SUBMISSION_LOGGER_CHANNEL_ID %s not found", MOD_SUBMISSION_LOGGER_CHANNEL_ID)
+            return
         await channel.send(
             f"-----------\n**Sent from:** <#{ctx.channel.id}>\n**Submitted by:**"
             f" <@!{ctx.author.id}>\n {ctx.message.content}",

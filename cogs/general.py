@@ -1,8 +1,11 @@
 from os import makedirs
 import discord
+import logging
 from discord.ext import commands, tasks
 from datetime import datetime
 from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
+
+logger = logging.getLogger(__name__)
 from modules.cooldowns import admin_bypass_cooldown
 from modules.genres import fetch_band_genres
 from modules.similar_bands import fetch_similar_bands
@@ -27,7 +30,7 @@ class General(commands.Cog):
         
         if ctx.channel.category is None or ctx.channel.category_id != FEEDBACK_CATEGORY_ID:  #  checks if its the right channels
             try:
-                
+
                 await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
                     f"{mention}, please use the correct channel to give feedback.\nYour request was DMed to you for future"
@@ -36,6 +39,7 @@ class General(commands.Cog):
                 await ctx.message.delete()
                 return False
             except Exception:
+                logger.warning("Could not DM user %s (wrong channel)", ctx.author.id, exc_info=True)
                 await ctx.channel.send(f'{mention}, you did not use the correct channel to use feedback.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
                                        f'\nPlease contact Moderators for help or re-read'
@@ -47,7 +51,7 @@ class General(commands.Cog):
 
         if '<mfr' in ctx.message.content.lower().replace(' ','') and '<mfs' in ctx.message.content.lower().replace(' ',''):  # checks if no mfs + mfr
             try:
-                
+
                 await self.send_messages_to_user(ctx.message)
                 await ctx.channel.send(
                     f'{mention}, you posted the commands in the wrong format, '
@@ -57,12 +61,13 @@ class General(commands.Cog):
                 await ctx.message.delete()
                 return False
             except Exception:
+                logger.warning("Could not DM user %s (wrong format)", ctx.author.id, exc_info=True)
                 await ctx.channel.send(f'{mention}, you posted the commands in the wrong format, '
                                        f'``<MFR`` and ``<MFS`` are 2 different commands.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
                                        f'\nPlease contact Moderators for help or re-read'
                                        f' <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions._',
-                                       delete_after=60)  
+                                       delete_after=60)
                 await ctx.message.delete()
                 return False
             
@@ -166,6 +171,9 @@ class General(commands.Cog):
                 )
 
         feedback_cog = self.bot.get_cog("FeedbackThreads")
+        if not feedback_cog:
+            logger.error("FeedbackThreads cog not loaded during MFR command")
+            return
         result = await feedback_cog.record_feedback(ctx)
         if result is None:
             return
@@ -214,6 +222,9 @@ class General(commands.Cog):
         points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
 
         feedback_cog = self.bot.get_cog("FeedbackThreads")
+        if not feedback_cog:
+            logger.error("FeedbackThreads cog not loaded during MFS command")
+            return
 
         if points > 0:  # user have points, reduce them and send message + log
 
@@ -250,6 +261,7 @@ class General(commands.Cog):
                     f" reference.\nPlease re-read <#{FEEDBACK_ACCESS_CHANNEL_ID}> for further instructions.",
                     delete_after=60)
             except Exception:
+                logger.warning("Could not DM user %s (0 points MFS)", ctx.author.id, exc_info=True)
                 await ctx.channel.send(f'{mention}, you do not have any MF points. Please give feedback first.'
                                        f'\n**ATTENTION**: _We could not DM you with a copy of your submission.'
                                        f'\nPlease contact Moderators for help or re-read'

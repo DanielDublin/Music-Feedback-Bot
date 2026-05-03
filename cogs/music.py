@@ -80,16 +80,25 @@ class NotesView(discord.ui.View):
         return []
 
     def build_embed(self) -> discord.Embed:
-        """Rebuild items and return embed for the current state."""
+        embed = discord.Embed(color=0x7e016f)
+        embed.set_footer(text="Made by FlamingCore", icon_url=self.pfp_url)
+        self.clear_items()
+
+        raw = self._get_options(output=True)
+
+        # Terminal state: string leaf (Info section scale/key descriptions)
+        if isinstance(raw, str):
+            name = self.selections[-1] if self.selections else "Info"
+            embed.set_author(name=name, icon_url=self.guild_icon_url)
+            embed.description = raw
+            if self.current_level > 0:
+                self.add_item(_NavButton("↩️ Back", 'back', self))
+            return embed
+
         options = self._get_options()
         self.current_options = options
         pages = [options[i:i + self.OPTIONS_PER_PAGE] for i in range(0, len(options), self.OPTIONS_PER_PAGE)]
         self.page_index = max(0, min(self.page_index, max(len(pages) - 1, 0)))
-
-        embed = discord.Embed(color=0x7e016f)
-        embed.set_footer(text="Made by FlamingCore", icon_url=self.pfp_url)
-
-        self.clear_items()
 
         # Terminal state: show Degree / Chords / Notes values
         is_terminal = (
@@ -97,14 +106,14 @@ class NotesView(discord.ui.View):
             and {"Degree", "Chords", "Notes"}.issubset(set(options))
         )
         if is_terminal:
-            values = self._get_options(output=True)
             chord_name = self.selections[-1] if self.selections else "Unknown Chords"
             embed.set_author(name=f"{chord_name} Chords", icon_url=self.guild_icon_url)
             for key in ("Degree", "Chords", "Notes"):
-                val = values.get(key, "")
+                val = raw.get(key, "")
                 if val:
                     embed.add_field(name=key, value=f"`{val.replace('{degree}', '°')}`", inline=True)
-            self.stop()
+            if self.current_level > 0:
+                self.add_item(_NavButton("↩️ Back", 'back', self))
             return embed
 
         current_page = pages[self.page_index] if pages else []

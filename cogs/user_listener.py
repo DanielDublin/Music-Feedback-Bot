@@ -36,7 +36,7 @@ class User_listener(commands.Cog):
             await self.handle_wrong_prefix(message)
 
         if message.author.id == DYNO_ID:  # is a warning
-            if len(message.embeds[0].fields):
+            if message.embeds and len(message.embeds[0].fields):
 
                 await self.handle_warnings(message, True)
 
@@ -176,6 +176,9 @@ class User_listener(commands.Cog):
 
         if warnings >= 3:
             warning_log_channel = self.bot.get_channel(WARNING_CHANNEL)
+            if not warning_log_channel:
+                logger.error("WARNING_CHANNEL %s not found", WARNING_CHANNEL)
+                return
 
             pfp = target_user.display_avatar.url
             embed = discord.Embed(color=0x7e016f)
@@ -226,6 +229,9 @@ class User_listener(commands.Cog):
         
         if is_promoting:
             channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+            if not channel:
+                logger.error("MODERATORS_CHANNEL_ID %s not found", MODERATORS_CHANNEL_ID)
+                return
 
             pfp = ctx.author.display_avatar.url
             embed = discord.Embed(color=0x7e016f)
