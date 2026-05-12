@@ -18,16 +18,16 @@ STATE_FILE = Path(__file__).resolve().parent.parent / "data" / "captcha_counter.
 # Walked bottom-up; the last tier whose threshold <= count wins.
 _TIERS: list[tuple[int, str, discord.Color, str]] = [
     (0,    "Awaiting First Contact", discord.Color.from_rgb(170, 170, 170),
-     "The defense grid is online. The honey pot is set. No catches yet."),
+     "The defense grid is online. No threats yet."),
     (1,    "Rookie Defender",        discord.Color.gold(),
-     "First blood. Captcha.bot stretches its arms and gets to work."),
+     "First catch. The captcha gate held."),
     (10,   "Sentinel",               discord.Color.orange(),
-     "The bots are starting to notice this server. They keep coming. They keep failing."),
+     "The bots are testing the gate. The gate doesn't blink."),
     (50,   "Captcha Master",         discord.Color.red(),
-     "Half a hundred attempts denied. Word is getting out: don't try it here."),
+     "Half a hundred attempts denied. Word travels fast in botnet circles."),
     (100,  "Bot Reaper",             discord.Color.dark_red(),
      "Triple digits. Somewhere a botnet operator is updating their spreadsheet."),
-    (500,  "MFL DEMIGOD",            discord.Color.purple(),
+    (500,  "MF DEMIGOD",             discord.Color.purple(),
      "Five hundred souls turned away. Folk songs are being written about this server."),
     (1000, "FORTRESS ETERNAL",       discord.Color.from_rgb(60, 0, 90),
      "Four digits. The walls are made of bones now. The bots know fear."),
@@ -36,11 +36,11 @@ _TIERS: list[tuple[int, str, discord.Color, str]] = [
 _FOOTERS = [
     "Each number is a bot that thought it had a chance.",
     "Captcha.bot, silently doing the lord's work.",
-    "The honey pot is full. The bots are not invited.",
     "Welcome to the wall. The bots are not.",
-    "Tonight on MFL: another bot eats dirt.",
+    "Tonight on MF: another bot eats dirt.",
     "This channel pays rent in deflated egos.",
     "Sleep tight. The grid is watching.",
+    "Captchas: the great filter.",
 ]
 
 # One-time celebration thresholds posted as their own message in the channel
@@ -48,11 +48,11 @@ _FOOTERS = [
 _MILESTONES: dict[int, str] = {
     1:    "🎉 **First catch!** The Defense Grid has tasted bot.",
     10:   "🔟 **Ten bots down.** Captcha.bot stretches its claws.",
-    25:   "🦾 **Twenty-five.** They keep coming. We keep eating.",
+    25:   "🦾 **Twenty-five.** They keep coming. We keep winning.",
     50:   "💀 **Fifty bots denied.** Halfway to triple digits.",
     100:  "🏆 **TRIPLE DIGITS.** The grid bows to no bot.",
     250:  "🔥 **250 souls collected.** Captcha.bot is unstoppable.",
-    500:  "⚡ **500 BOTS.** Welcome to MFL DEMIGOD status.",
+    500:  "⚡ **500 BOTS.** Welcome to MF DEMIGOD status.",
     1000: "👑 **FOUR. ZEROS.** This isn't a server anymore — it's a fortress.",
     2500: "🌌 **2,500 catches.** Bot insurance companies hate this server.",
     5000: "🛸 **5,000.** At this point we should be writing papers.",
@@ -106,7 +106,7 @@ def _build_embed_and_view(state: dict) -> tuple[discord.Embed, discord.ui.View]:
     _, tier_name, color, flavor = _tier_for(count)
 
     embed = discord.Embed(
-        title="🛡️  MFL DEFENSE GRID  🛡️",
+        title="🛡️  MF CAPTCHA DEFENSE GRID  🛡️",
         description=flavor,
         color=color,
     )
