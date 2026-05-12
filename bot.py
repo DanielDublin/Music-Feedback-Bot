@@ -23,8 +23,8 @@ server_id = os.environ.get('SERVER_ID')
 # Initialize the bot
 intents = discord.Intents.default()
 intents.members = True
-intents.presences = True
 intents.message_content = True
+intents.moderation = True  # required for on_audit_log_entry_create
 
 class MFBot(commands.Bot):
     _owner_pfp_url: str = ""
@@ -102,7 +102,8 @@ initial_extensions = [
     'modules.scan_delete_intro_messages',
     'cogs.feedback_threads.feedback_threads',
     'ml_model.feedback_monitor',
-    'cogs.finished_music_message'
+    'cogs.finished_music_message',
+    'cogs.captcha_counter'
     # Add more cogs as needed
 ]
 

@@ -5,7 +5,6 @@ from discord.ext import commands
 import modules.promotion_checkers.soundcloud_promotion_checker as SCP_checker
 import modules.promotion_checkers.youtube_promotion_checker as YT_checker
 import modules.promotion_checkers.spotify_promotion_checker as Spoti_checker
-from datetime import datetime, timedelta
 from data.constants import WARNING_CHANNEL, MODERATORS_CHANNEL_ID, MODERATORS_ROLE_ID, GENERAL_CHAT_CHANNEL_ID, \
     MUSIC_RECCOMENDATIONS_CHANNEL_ID, MUSIC_CHANNEL_ID, DYNO_ID, QUARANTINE_LOG_CHANNEL_ID, QUARANTINE_ROLE_ID, BOT_LOG
 
@@ -79,26 +78,22 @@ class User_listener(commands.Cog):
             
 
 
-    # User left - reset his points
+    # User left - reset their points. If this turns out to be a kick, the
+    # on_audit_log_entry_create listener below follows up with the kick-specific
+    # writes. Both DB calls are idempotent so the firing order doesn't matter.
     @commands.Cog.listener()
     async def on_member_remove(self, member):
+        await self.bot.db.reset_points(str(member.id))
 
-        audit_log_entry = None
-
-        try:
-            async for entry in member.guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
-                cutoff_time = discord.utils.utcnow() - timedelta(minutes=2)
-                if entry.target == member and entry.created_at >= cutoff_time:
-                    audit_log_entry = entry
-        except discord.Forbidden:
-            pass  # bot lacks VIEW_AUDIT_LOG; treat as voluntary leave
-
-        if audit_log_entry is not None:
-            # User was kicked
-            await self.bot.db.reset_points(str(member.id), True)
-            await self.bot.db.add_kick(str(member.id))
-        else:
-            await self.bot.db.reset_points(str(member.id))
+    @commands.Cog.listener()
+    async def on_audit_log_entry_create(self, entry: discord.AuditLogEntry):
+        if entry.action != discord.AuditLogAction.kick:
+            return
+        target_id = entry.target.id if entry.target else None
+        if target_id is None:
+            return
+        await self.bot.db.reset_points(str(target_id), True)
+        await self.bot.db.add_kick(str(target_id))
                         
 
 

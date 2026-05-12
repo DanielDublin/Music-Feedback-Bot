@@ -142,37 +142,52 @@ class FeedbackMonitor(commands.Cog):
             logger.error("Unhandled exception in on_message listener", exc_info=True)
 
     @commands.Cog.listener()
-    async def on_reaction_add(self, reaction, user):
-        """Handle validation reactions from moderators"""
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Handle validation reactions from moderators. Raw variant so reactions
+        on messages not in the bot's message cache (e.g. after a restart) still
+        fire."""
 
         try:
-            if user.bot:
+            if payload.channel_id != DEV_SPAM:
+                return
+            if payload.message_id not in self.pending_validations:
                 return
 
-            if reaction.message.channel.id != DEV_SPAM:
+            emoji = str(payload.emoji)
+            if emoji not in ("✅", "❌"):
                 return
 
-            if reaction.message.id not in self.pending_validations:
-                return
-
-            validation_data = self.pending_validations[reaction.message.id]
-
+            validation_data = self.pending_validations[payload.message_id]
             if validation_data.validated:
-                logger.debug("Message %s already validated", reaction.message.id)
+                logger.debug("Message %s already validated", payload.message_id)
                 return
 
+            user = payload.member
+            if user is None or user.bot:
+                return
+
+            channel = self.bot.get_channel(payload.channel_id)
+            if channel is None:
+                try:
+                    channel = await self.bot.fetch_channel(payload.channel_id)
+                except discord.HTTPException:
+                    logger.error("Could not fetch DEV_SPAM channel", exc_info=True)
+                    return
             try:
-                if str(reaction.emoji) == "✅":
-                    logger.info("Correct prediction validation by %s (ID: %s)", user.name, user.id)
-                    await self._handle_validation(reaction.message, validation_data, True, user)
-                elif str(reaction.emoji) == "❌":
-                    logger.info("Incorrect prediction validation by %s (ID: %s)", user.name, user.id)
-                    await self._handle_validation(reaction.message, validation_data, False, user)
-            except Exception:
-                logger.error("Error handling reaction", exc_info=True)
+                mod_message = await channel.fetch_message(payload.message_id)
+            except discord.NotFound:
+                self.pending_validations.pop(payload.message_id, None)
+                return
+
+            is_correct = emoji == "✅"
+            logger.info(
+                "%s prediction validation by %s (ID: %s)",
+                "Correct" if is_correct else "Incorrect", user.name, user.id,
+            )
+            await self._handle_validation(mod_message, validation_data, is_correct, user)
 
         except Exception:
-            logger.error("Unhandled exception in on_reaction_add listener", exc_info=True)
+            logger.error("Unhandled exception in on_raw_reaction_add listener", exc_info=True)
 
     async def _handle_validation(self, mod_message, validation_data, is_correct, validator):
         """Handle validation of prediction"""

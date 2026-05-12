@@ -1,163 +1,137 @@
 import re
 import os
-import asyncio
 import logging
-import discord
-import yt_dlp as youtube_dl
+import aiohttp
 import urlextract
+from cachetools import TTLCache
 from dotenv import load_dotenv
+
+from modules.promotion_checkers.name_matching import is_match, discord_identity
 
 load_dotenv()
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_TOKEN')
 
 logger = logging.getLogger(__name__)
 
-# youtube_dl options
-ydl_opts = {
-    'outtmpl': '%(id)s.%(ext)s',
-    'quiet': True,
-    'no_warnings': True,
-}
+YT_VIDEOS_ENDPOINT = "https://www.googleapis.com/youtube/v3/videos"
+YT_CHANNELS_ENDPOINT = "https://www.googleapis.com/youtube/v3/channels"
 
-# YT URL patterns
-youtube_url_pattern1 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_-]+)&list=([A-Za-z0-9_-]+)')
-youtube_url_pattern2 = re.compile(r'(https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_-]+)')
-youtube_url_pattern3 = re.compile(r'(https?://)?youtu\.be/([A-Za-z0-9_-]+)(?:\?.*)?$')
+# Cache video/channel metadata for an hour to save quota and latency on
+# reposts. Race conditions just cost an extra API call -- no correctness issue.
+_video_cache: TTLCache = TTLCache(maxsize=1024, ttl=3600)
+_channel_cache: TTLCache = TTLCache(maxsize=1024, ttl=3600)
 
-
-# Initialize the URL extractor 
 url_extractor = urlextract.URLExtract()
 
-
-# Function to extract the video ID from a YouTube URL
-def extract_youtube_video_id(url):
-    if youtube_url_pattern1.match(url.replace('\n', "")):
-        match = youtube_url_pattern1.search(url)
-        if match:
-            return match.group(2)
-    elif youtube_url_pattern2.match(url):
-        match = youtube_url_pattern2.search(url.replace('\n', ""))
-        if match:
-            return match.group(2)
-    elif youtube_url_pattern3.match(url):
-        match = youtube_url_pattern3.search(url.replace('\n', ""))
-        if match:
-            return match.group(2)
-    return None
+# YouTube URL patterns. Channel handles (@foo) are matched separately so we
+# can hit channels.list?forHandle instead of videos.list.
+_video_patterns = [
+    re.compile(r'(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_-]+)'),
+    re.compile(r'(?:https?://)?youtu\.be/([A-Za-z0-9_-]+)'),
+    re.compile(r'(?:https?://)?(?:www\.)?youtube\.com/shorts/([A-Za-z0-9_-]+)'),
+]
+_channel_pattern = re.compile(r'(?:https?://)?(?:www\.)?youtube\.com/(@[A-Za-z0-9_.\-]+)')
 
 
-# Function to extract URLs from text
-def extract_video_urls(content):
-    out_links = []
-    pattern = r'.*https?://'
-
-    urls = list(url_extractor.find_urls(content))
-    for url in urls:
-        if 'youtu' in url and "channel" not in url and "@" not in url:
-            cleaned_url = re.sub(pattern, '', url)
-            out_links.append(cleaned_url)
-        else:
-            out_links.append(url)
-    return out_links
+def extract_youtube_video_ids(content: str) -> list[str]:
+    ids = []
+    for url in url_extractor.find_urls(content):
+        for pat in _video_patterns:
+            m = pat.search(url)
+            if m:
+                ids.append(m.group(1))
+                break
+    return ids
 
 
-async def handle_videos(message):
-    # Extract YouTube video ID from the URL
-    youtube_links = extract_video_urls(message.content)
-    if youtube_links is None:
+def extract_youtube_channel_handles(content: str) -> list[str]:
+    handles = []
+    for url in url_extractor.find_urls(content):
+        m = _channel_pattern.search(url)
+        if m:
+            handles.append(m.group(1))
+    return handles
+
+
+async def _fetch_video_info(session: aiohttp.ClientSession, video_id: str):
+    """Return (channel_title, video_title) or None."""
+    if video_id in _video_cache:
+        return _video_cache[video_id]
+    if not YOUTUBE_API_KEY:
+        logger.warning("YOUTUBE_TOKEN not configured; cannot fetch video info")
+        return None
+    params = {"part": "snippet", "id": video_id, "key": YOUTUBE_API_KEY}
+    try:
+        async with session.get(YT_VIDEOS_ENDPOINT, params=params, timeout=10) as resp:
+            if resp.status != 200:
+                logger.warning(
+                    "YouTube videos.list returned %d for %s", resp.status, video_id,
+                )
+                return None
+            data = await resp.json()
+    except Exception:
+        logger.error("Error calling YouTube videos.list", exc_info=True)
+        return None
+    items = data.get("items", [])
+    if not items:
+        return None
+    snippet = items[0].get("snippet", {})
+    result = (snippet.get("channelTitle", ""), snippet.get("title", ""))
+    _video_cache[video_id] = result
+    return result
+
+
+async def _fetch_channel_title(session: aiohttp.ClientSession, handle: str):
+    """Return channel display title for an @handle, or None."""
+    if handle in _channel_cache:
+        return _channel_cache[handle]
+    if not YOUTUBE_API_KEY:
+        return None
+    params = {"part": "snippet", "forHandle": handle, "key": YOUTUBE_API_KEY}
+    try:
+        async with session.get(YT_CHANNELS_ENDPOINT, params=params, timeout=10) as resp:
+            if resp.status != 200:
+                logger.warning(
+                    "YouTube channels.list returned %d for %s", resp.status, handle,
+                )
+                return None
+            data = await resp.json()
+    except Exception:
+        logger.error("Error calling YouTube channels.list", exc_info=True)
+        return None
+    items = data.get("items", [])
+    if not items:
+        return None
+    title = items[0].get("snippet", {}).get("title", "")
+    _channel_cache[handle] = title
+    return title
+
+
+async def check_youtube(message) -> bool:
+    content = message.content
+    video_ids = extract_youtube_video_ids(content)
+    handles = extract_youtube_channel_handles(content)
+    if not video_ids and not handles:
         return False
 
-    for link in youtube_links:
-        youtube_video_id = extract_youtube_video_id(link)
-        if youtube_video_id is None:
-            continue
-
-        try:
-            # Get the author's profile
-            profile = message.author
-
-            vid_id = youtube_video_id  # capture loop variable for closure
-            def _extract():
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    return ydl.extract_info(f'https://www.youtube.com/watch?v={vid_id}', download=False)
-
-            info = await asyncio.to_thread(_extract)
-            creator = info.get('uploader')
-
-            # Check if the author's username or display name contains the YouTube creator's name
-            discord_global_name = (profile.global_name or "").replace(" ", "").lower()
-            discord_display_name = profile.display_name.replace(" ", "").lower()
-            creator = creator.replace(" ", "").lower()
-            if creator and (creator.lower() == discord_global_name or creator.lower() == discord_display_name):
-                return True
-
-        except discord.errors.NotFound:
-            logger.warning("Unable to fetch the user's profile.")
-        except Exception as e:
-            logger.error("Error checking YouTube video", exc_info=True)
-    return False
-
-
-# Function to extract URLs from text
-def extract_channel_urls(content):
-    out_links = []
-    pattern = r'.*https?://'
-
-    urls = list(url_extractor.find_urls(content))
-    for url in urls:
-        if 'youtu' in url and "@" in url:
-            cleaned_url = re.sub(pattern, '', url)
-            out_links.append(cleaned_url)
-    return out_links
-
-
-def get_youtube_channel_info(channel_url):
-    pattern = r'\.com/(@[\w-]+)'
-    # Use re.search to find the match
-    match = re.search(pattern, channel_url)
-    # Extract the username if a match is found
-    if match:
-        username = match.group(1)[1:]
-        return username
-    return None
-
-
-async def handle_channels(message):
-    # Extract YouTube video ID from the URL
-    youtube_links = extract_channel_urls(message.content)
-    if youtube_links is None:
-        return False
-
-    for link in youtube_links:
-
-        try:
-            # Get the author's profile
-            profile = message.author
-
-            creator = get_youtube_channel_info(link)
-            if creator is None:
+    discord_names = discord_identity(message.author)
+    async with aiohttp.ClientSession() as session:
+        for vid in video_ids:
+            info = await _fetch_video_info(session, vid)
+            if info is None:
                 continue
-
-            # Check if the author's username or display name contains the YouTube creator's name
-            discord_global_name = (profile.global_name or "").replace(" ", "").lower()
-            discord_display_name = profile.display_name.replace(" ", "").lower()
-            creator = creator.replace(" ", "").lower()
-            if creator.lower() == discord_global_name or creator.lower() == discord_display_name:
+            channel_title, video_title = info
+            if is_match([channel_title, video_title], discord_names):
                 return True
 
-        except discord.errors.NotFound:
-            logger.warning("Unable to fetch the user's profile.")
-        except Exception as e:
-            logger.error("Error checking YouTube channel", exc_info=True)
+        for handle in handles:
+            # Always include the bare handle text as a cheap fallback in case
+            # the API lookup fails (or the channel was renamed away from it).
+            candidates = [handle.lstrip("@")]
+            title = await _fetch_channel_title(session, handle)
+            if title:
+                candidates.append(title)
+            if is_match(candidates, discord_names):
+                return True
+
     return False
-
-
-async def check_youtube(message):
-
-    out = await handle_videos(message)
-    if out:
-        return True
-    else:
-        out = await handle_channels(message)
-
-    return out

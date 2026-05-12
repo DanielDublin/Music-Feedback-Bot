@@ -16,6 +16,7 @@
 *.sln 
 *.vcxproj.filters
 mf-bot-402714-b394f37c96dc.json
+data/captcha_counter.json
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
