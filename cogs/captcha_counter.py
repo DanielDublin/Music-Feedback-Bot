@@ -101,34 +101,40 @@ def _save_state(state: dict) -> None:
     os.replace(tmp, STATE_FILE)
 
 
-def _build_embed_and_view(state: dict) -> tuple[discord.Embed, discord.ui.View]:
-    count = int(state.get("count", 0))
-    _, tier_name, color, flavor = _tier_for(count)
+class CounterDisplay(discord.ui.LayoutView):
+    """Components V2 layout: a single Container holding the title, flavor,
+    rank/last-catch line, the disabled count button, and a small footer line.
+    Rendering puts the button visually inside the container's bordered card."""
 
-    embed = discord.Embed(
-        title="🛡️  MF CAPTCHA DEFENSE GRID  🛡️",
-        description=flavor,
-        color=color,
-    )
-    embed.add_field(name="Rank", value=tier_name, inline=True)
-    last_ts = state.get("last_catch_ts")
-    if last_ts:
-        embed.add_field(name="Last Catch", value=f"<t:{int(last_ts)}:R>", inline=True)
-    else:
-        embed.add_field(name="Last Catch", value="never", inline=True)
-    embed.set_footer(text=random.choice(_FOOTERS))
+    def __init__(self, state: dict):
+        super().__init__(timeout=None)
+        count = int(state.get("count", 0))
+        _, tier_name, color, flavor = _tier_for(count)
 
-    view = discord.ui.View(timeout=None)
-    view.add_item(
-        discord.ui.Button(
-            label=f"Bots Caught: {count}",
-            emoji="🤖",
-            style=_button_style(count),
-            disabled=True,
-            custom_id="captcha_counter:display",
+        last_ts = state.get("last_catch_ts")
+        last_catch = f"<t:{int(last_ts)}:R>" if last_ts else "never"
+        footer = random.choice(_FOOTERS)
+
+        container = discord.ui.Container(
+            discord.ui.TextDisplay("## 🛡️  MF CAPTCHA DEFENSE GRID  🛡️"),
+            discord.ui.TextDisplay(flavor),
+            discord.ui.TextDisplay(
+                f"**Rank:** {tier_name}  •  **Last Catch:** {last_catch}"
+            ),
+            discord.ui.Separator(),
+            discord.ui.ActionRow(
+                discord.ui.Button(
+                    label=f"Bots Caught: {count}",
+                    emoji="🤖",
+                    style=_button_style(count),
+                    disabled=True,
+                    custom_id="captcha_counter:display",
+                )
+            ),
+            discord.ui.TextDisplay(f"-# {footer}"),
+            accent_color=color,
         )
-    )
-    return embed, view
+        self.add_item(container)
 
 
 class CaptchaCounter(commands.Cog):
@@ -153,21 +159,33 @@ class CaptchaCounter(commands.Cog):
         if channel is None:
             return
 
-        embed, view = _build_embed_and_view(self.state)
+        view = CounterDisplay(self.state)
         msg_id = self.state.get("message_id")
         if msg_id:
             try:
                 msg = await channel.fetch_message(msg_id)
-                await msg.edit(embed=embed, view=view)
-                return
+                try:
+                    # Components V2 messages can't carry content/embeds, so
+                    # explicitly clear those when editing in case the existing
+                    # message was the older embed-based render.
+                    await msg.edit(view=view, embed=None, content=None)
+                    return
+                except discord.HTTPException as e:
+                    # Likely an embed -> V2 layout switch which Discord rejects
+                    # via edit; fall through to delete + repost.
+                    logger.info("Counter edit failed, recreating message: %s", e)
+                    try:
+                        await msg.delete()
+                    except discord.HTTPException:
+                        pass
             except discord.NotFound:
                 logger.info("Stored captcha counter message missing; recreating")
             except discord.HTTPException:
-                logger.error("Failed to edit captcha counter message", exc_info=True)
+                logger.error("Failed to fetch captcha counter message", exc_info=True)
                 return
 
         try:
-            msg = await channel.send(embed=embed, view=view)
+            msg = await channel.send(view=view)
         except discord.HTTPException:
             logger.error("Failed to send captcha counter message", exc_info=True)
             return
