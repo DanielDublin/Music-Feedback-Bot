@@ -52,14 +52,18 @@ class PointsLogic:
                 await self.handle_mfs_submissions(ctx, thread, ticket_counter)
 
     async def handle_mfr_submissions(self, ctx, thread, ticket_counter):
-        
         embed = await self.embeds.mfr(ctx, ticket_counter)
-        await thread.send(embed=embed)
-            
-    async def handle_mfs_submissions(self, ctx, thread, ticket_counter):
+        try:
+            await thread.send(embed=embed)
+        except Exception:
+            logger.error("Error sending MFR embed to thread %s", thread.id, exc_info=True)
 
+    async def handle_mfs_submissions(self, ctx, thread, ticket_counter):
         embed = await self.embeds.mfs(ctx, ticket_counter)
-        await thread.send(embed=embed)
+        try:
+            await thread.send(embed=embed)
+        except Exception:
+            logger.error("Error sending MFS embed to thread %s", thread.id, exc_info=True)
 
     async def handle_zero_points_submission(self, message: discord.Message, thread, ticket_counter: int):
 
@@ -98,7 +102,10 @@ class PointsLogic:
         points_added=points_to_add,
         total_points=total_points
         )
-        await thread.send(embed=embed)
+        try:
+            await thread.send(embed=embed)
+        except Exception:
+            logger.error("Error sending MFS_to_MFR embed to thread %s", thread.id, exc_info=True)
 
         # send log
         log_embed = discord.Embed(color=0x7e016f)
@@ -113,7 +120,10 @@ class PointsLogic:
             inline=False
         )
         log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-        await channel.send(embed=log_embed)
+        try:
+            await channel.send(embed=log_embed)
+        except Exception:
+            logger.error("Error sending MFS_to_MFR log to channel", exc_info=True)
 
     async def MFR_to_MFS_edit(self, before: discord.Message, after: discord.Message, thread, ticket_counter):
 
@@ -143,7 +153,10 @@ class PointsLogic:
             points_removed=points_to_remove,
             total_points=total_points
             )
-            await thread.send(embed=embed)
+            try:
+                await thread.send(embed=embed)
+            except Exception:
+                logger.error("Error sending MFR_to_MFS embed to thread %s", thread.id, exc_info=True)
 
             # send log
             log_embed = discord.Embed(color=0x7e016f)
@@ -158,8 +171,11 @@ class PointsLogic:
                 inline=False
             )
             log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-            await channel.send(embed=log_embed) 
-        
+            try:
+                await channel.send(embed=log_embed)
+            except Exception:
+                logger.error("Error sending MFR_to_MFS log to channel", exc_info=True)
+
         # otherwise, they don't have the points to use
         else:
 
@@ -171,10 +187,10 @@ class PointsLogic:
             total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
             # send information to user
-            await after.channel.send( 
+            await after.channel.send(
                 f"{after.author.mention}, this system is 1-for-1 and you do not have enough MF Points available to use. Give feedback first."
                 f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>." )
-            
+
             # send ticket
             embed = await self.embeds.MFR_to_MFS_with_no_points_embed(
             original_message=shortened_before_content,
@@ -183,7 +199,10 @@ class PointsLogic:
             points_removed=points_to_remove,
             total_points=total_points
             )
-            await thread.send(embed=embed)
+            try:
+                await thread.send(embed=embed)
+            except Exception:
+                logger.error("Error sending MFR_to_MFS_no_points embed to thread %s", thread.id, exc_info=True)
 
             # send the log
             log_embed = discord.Embed(color=0x7e016f)
@@ -197,7 +216,10 @@ class PointsLogic:
                 inline=False
             )
             log_embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-            await channel.send(embed=log_embed)
+            try:
+                await channel.send(embed=log_embed)
+            except Exception:
+                logger.error("Error sending MFR_to_MFS_no_points log to channel", exc_info=True)
 
     
     async def MFR_delete(self, message: discord.Message, thread: discord.Thread, ticket_counter: int):
@@ -311,7 +333,10 @@ class PointsLogic:
         ticket_counter=ticket_counter,
         total_points=total_points
         )
-        await thread.send(embed=embed)
+        try:
+            await thread.send(embed=embed)
+        except Exception:
+            logger.error("Error sending MFS_delete embed to thread %s", thread.id, exc_info=True)
 
         embed = discord.Embed(color=0x7e016f)
         embed.add_field(
@@ -324,7 +349,10 @@ class PointsLogic:
             inline=False
         )
         embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-        await channel.send(embed=embed)
+        try:
+            await channel.send(embed=embed)
+        except Exception:
+            logger.error("Error sending MFS_delete log to channel", exc_info=True)
 
 
 

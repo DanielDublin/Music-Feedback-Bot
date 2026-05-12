@@ -57,7 +57,11 @@ class FeedbackThreads(commands.Cog):
         if thread_info is None:
             return None
         thread_id, ticket_counter = thread_info
-        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        try:
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        except Exception:
+            logger.error("record_feedback: failed to fetch thread %s for %s", thread_id, ctx.author.id, exc_info=True)
+            return None
         return thread, ticket_counter
 
     async def record_spend(self, ctx: commands.Context):
@@ -71,7 +75,11 @@ class FeedbackThreads(commands.Cog):
         if thread_info is None:
             return None
         thread_id, ticket_counter = thread_info
-        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        try:
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        except Exception:
+            logger.error("record_spend: failed to fetch thread %s for %s", thread_id, ctx.author.id, exc_info=True)
+            return None
         return thread, ticket_counter
 
     async def record_admin_adjustment(self, interaction: discord.Interaction, target: discord.Member):
@@ -87,7 +95,11 @@ class FeedbackThreads(commands.Cog):
         if thread_info is None:
             return None
         thread_id, _ = thread_info
-        thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        try:
+            thread = self.bot.get_channel(thread_id) or await self.bot.fetch_channel(thread_id)
+        except Exception:
+            logger.error("record_admin_adjustment: failed to fetch thread %s for %s", thread_id, target.id, exc_info=True)
+            return None
         return thread
 
     @commands.Cog.listener()

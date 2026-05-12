@@ -61,14 +61,18 @@ class AddRankMemberCard(commands.Cog):
 
         img_width, img_height = 600, 300
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(pfp_url) as resp:
-                if resp.status != 200:
-                    logger.warning(f"Failed to fetch PFP for {member.display_name}. Status: {resp.status}")
-                    pfp = Image.new("RGBA", (120, 120), (100, 100, 100, 255))
-                else:
-                    pfp_data = io.BytesIO(await resp.read())
-                    pfp = Image.open(pfp_data).convert("RGBA").resize((120, 120), Image.Resampling.LANCZOS)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(pfp_url) as resp:
+                    if resp.status != 200:
+                        logger.warning(f"Failed to fetch PFP for {member.display_name}. Status: {resp.status}")
+                        pfp = Image.new("RGBA", (120, 120), (100, 100, 100, 255))
+                    else:
+                        pfp_data = io.BytesIO(await resp.read())
+                        pfp = Image.open(pfp_data).convert("RGBA").resize((120, 120), Image.Resampling.LANCZOS)
+        except aiohttp.ClientError as e:
+            logger.warning(f"Network error fetching PFP for {member.display_name}: {e}")
+            pfp = Image.new("RGBA", (120, 120), (100, 100, 100, 255))
 
         mask = Image.new("L", pfp.size, 0)
         ImageDraw.Draw(mask).ellipse((0, 0, *pfp.size), fill=255)

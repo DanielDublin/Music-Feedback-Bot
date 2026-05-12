@@ -5,7 +5,13 @@
       "WebFetch(domain:fallendeity.github.io)",
       "WebFetch(domain:discordpy.readthedocs.io)",
       "Bash(python:*)",
-      "Bash(py:*)"
+      "Bash(py:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Desktop\\\\Hobby projects\\\\current\\\\MF BOT\" -Recurse -Filter \"*.py\")",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Desktop\\\\Hobby projects\\\\current\\\\MF BOT\" -Filter \"*.py\" -Recurse -Exclude venv)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "WebFetch(domain:docs.discord.com)",
+      "Bash(git add *)"
     ]
   }
 }
