@@ -117,11 +117,13 @@ class CounterDisplay(discord.ui.LayoutView):
 
         container = discord.ui.Container(
             discord.ui.TextDisplay("## 🛡️  MF CAPTCHA DEFENSE GRID  🛡️"),
+            discord.ui.Separator(visible=False, spacing=discord.SeparatorSpacing.large),
             discord.ui.TextDisplay(flavor),
+            discord.ui.Separator(visible=True, spacing=discord.SeparatorSpacing.large),
             discord.ui.TextDisplay(
-                f"**Rank:** {tier_name}  •  **Last Catch:** {last_catch}"
+                f"**Rank:** {tier_name}\n**Last Catch:** {last_catch}"
             ),
-            discord.ui.Separator(),
+            discord.ui.Separator(visible=True, spacing=discord.SeparatorSpacing.large),
             discord.ui.ActionRow(
                 discord.ui.Button(
                     label=f"Bots Caught: {count}",
@@ -131,6 +133,7 @@ class CounterDisplay(discord.ui.LayoutView):
                     custom_id="captcha_counter:display",
                 )
             ),
+            discord.ui.Separator(visible=False, spacing=discord.SeparatorSpacing.large),
             discord.ui.TextDisplay(f"-# {footer}"),
             accent_color=color,
         )
