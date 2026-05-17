@@ -177,3 +177,34 @@ async def predict_feedback_quality(feedback_text: str) -> dict:
         predictor = get_predictor()  # may load model files on first call
         return predictor.predict(feedback_text)
     return await asyncio.to_thread(_predict)
+
+
+# Minimum confidence in a "good" prediction needed to qualify for the
+# Prime Time 2x bonus. Tune here without touching the callers.
+BONUS_QUALITY_THRESHOLD = 0.65
+
+
+async def quality_qualifies_for_bonus(
+    feedback_text: str,
+    threshold: float = BONUS_QUALITY_THRESHOLD,
+) -> bool | None:
+    """True iff the ML model labels this feedback as 'good' with confidence >= threshold.
+
+    Returns None when the predictor can't run (model not loaded, exception, empty result).
+    Callers should pick a fallback rule on None — typically the 300-char length check —
+    so a model outage doesn't silently strip the bonus from every user.
+    """
+    if not feedback_text or not feedback_text.strip():
+        return False
+    try:
+        result = await predict_feedback_quality(feedback_text)
+    except Exception:
+        logger.error("quality_qualifies_for_bonus: predictor errored", exc_info=True)
+        return None
+    if not result:
+        return None
+    try:
+        return bool(result.get('is_good')) and float(result.get('probability', 0)) >= threshold
+    except (TypeError, ValueError):
+        logger.error("quality_qualifies_for_bonus: unexpected predictor result %r", result)
+        return None
