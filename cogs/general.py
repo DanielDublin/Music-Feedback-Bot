@@ -3,7 +3,13 @@ import discord
 import logging
 from discord.ext import commands, tasks
 from datetime import datetime
-from data.constants import FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID, SERVER_OWNER_ID, FEEDBACK_CATEGORY_ID
+from data.constants import (
+    AUDIO_FEEDBACK,
+    FEEDBACK_ACCESS_CHANNEL_ID,
+    FEEDBACK_CATEGORY_ID,
+    FEEDBACK_CHANNEL_ID,
+    SERVER_OWNER_ID,
+)
 
 logger = logging.getLogger(__name__)
 from modules.cooldowns import admin_bypass_cooldown
@@ -12,6 +18,7 @@ from modules.similar_bands import fetch_similar_bands
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from cogs.feedback_threads.modules.points_logic import PointsLogic
 from cogs.feedback_threads.modules.threads_manager import ThreadsManager
+from ml_model.ml_model_loader import quality_qualifies_for_bonus
 
 
 class General(commands.Cog):
@@ -145,10 +152,18 @@ class General(commands.Cog):
             feedback_text = feedback_text[4:].lstrip()
 
         prime_time_cog = self.bot.get_cog("PrimeTime")
-        if prime_time_cog and prime_time_cog.is_active() and len(feedback_text) >= 300:
-            pts = 2
-        else:
-            pts = 1
+        pts = 1
+        if prime_time_cog and prime_time_cog.is_active():
+            # In the audio channel, trust the ML quality bot. Lyric channel and
+            # any ML outage fall back to the historical 300-char rule so a model
+            # failure doesn't silently strip the bonus from everyone.
+            qualifies: bool | None = None
+            if ctx.channel.id == AUDIO_FEEDBACK:
+                qualifies = await quality_qualifies_for_bonus(feedback_text)
+            if qualifies is None:
+                qualifies = len(feedback_text) >= 300
+            if qualifies:
+                pts = 2
 
         await self.bot.db.add_points(str(ctx.author.id), pts)
         points = int(await self.bot.db.fetch_points(str(ctx.author.id)))
@@ -165,8 +180,18 @@ class General(commands.Cog):
                 delete_after=4
             )
             if prime_time_cog and prime_time_cog.is_active():
+                if ctx.channel.id == AUDIO_FEEDBACK:
+                    reason = (
+                        "our quality bot wasn't confident enough this feedback is actionable. "
+                        "Try giving more specific, technical, or critical notes to earn the 2x bonus."
+                    )
+                else:
+                    reason = (
+                        "your feedback is under 300 characters — Prime Time 2x bonus in this "
+                        "channel needs longer feedback."
+                    )
                 await ctx.channel.send(
-                    f"{mention}, your feedback is under 300 characters — quality threshold not met for the Prime Time bonus.",
+                    f"{mention}, {reason}",
                     delete_after=10
                 )
 
@@ -190,7 +215,10 @@ class General(commands.Cog):
             inline=False
         )
         embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-        await channel.send(embed=embed)
+        if channel is None:
+            logger.error("MFR: FEEDBACK_CHANNEL_ID %s not cached; skipping log embed", FEEDBACK_CHANNEL_ID)
+        else:
+            await channel.send(embed=embed)
 
 
     async def send_messages_to_user(self, message: discord.Message):
@@ -247,7 +275,10 @@ class General(commands.Cog):
                             ),
                             inline=False)
             embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-            await channel.send(embed=embed)
+            if channel is None:
+                logger.error("MFS: FEEDBACK_CHANNEL_ID %s not cached; skipping log embed", FEEDBACK_CHANNEL_ID)
+            else:
+                await channel.send(embed=embed)
 
         else:  # User doesn't have points
 
@@ -278,8 +309,6 @@ class General(commands.Cog):
 
             thread, ticket_counter, points_logic, user_id = await self.helpers.load_feedback_cog(ctx)
 
-            await channel.send(f"<@{SERVER_OWNER_ID}>:")
-
             embed = discord.Embed(color=0x7e016f)
             embed.add_field(
                 name=f"ALERT - {self.helpers.get_formatted_time()}",
@@ -290,7 +319,11 @@ class General(commands.Cog):
                 inline=False
             )
             embed.set_footer(text=f"Made by FlamingCore", icon_url=await self.bot.get_owner_pfp_url())
-            await channel.send(embed=embed)
+            if channel is None:
+                logger.error("MFS: FEEDBACK_CHANNEL_ID %s not cached; skipping 0-points alert", FEEDBACK_CHANNEL_ID)
+            else:
+                await channel.send(f"<@{SERVER_OWNER_ID}>:")
+                await channel.send(embed=embed)
 
 
     @commands.command(help = "Use to present the band's genres.", brief = '(Band Name)')

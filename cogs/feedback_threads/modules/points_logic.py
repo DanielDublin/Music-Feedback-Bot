@@ -1,8 +1,10 @@
+import asyncio
 import discord
 import logging
 from .embeds import Embeds
 from .helpers import DiscordHelpers
-from data.constants import ADMINS_ROLE_ID, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
+from data.constants import ADMINS_ROLE_ID, AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, FEEDBACK_ACCESS_CHANNEL_ID
+from ml_model.ml_model_loader import quality_qualifies_for_bonus
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,17 @@ class PointsLogic:
         self.user_thread = user_thread
         self.embeds = Embeds(bot, user_thread)
         self.helpers = DiscordHelpers(bot)
+        # Per-user locks guard read-then-write point sequences (edits, deletes)
+        # so concurrent events for the same user can't race the DB into a
+        # negative or stale balance.
+        self._user_locks: dict[str, asyncio.Lock] = {}
+
+    def _lock_for(self, user_id: str) -> asyncio.Lock:
+        lock = self._user_locks.get(user_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._user_locks[user_id] = lock
+        return lock
 
     async def send_embed_new_thread(self, ctx, thread, ticket_counter, called_from_zero=False):
 
@@ -130,18 +143,26 @@ class PointsLogic:
         channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
         shortened_before_content = self.helpers.shorten_message(before.content, 1000)
         shortened_after_content = self.helpers.shorten_message(after.content, 1000)
-        
+
         user_id = str(after.author.id)
         points_to_remove = 2
 
-        points_available = int(await self.bot.db.fetch_points(str(user_id)))
+        async with self._lock_for(user_id):
+            points_available = int(await self.bot.db.fetch_points(str(user_id)))
 
-        if points_available >= points_to_remove:
-            await self.bot.db.reduce_points(user_id, points_to_remove)
-            total_points = int(await self.bot.db.fetch_points(str(user_id)))
+            if points_available >= points_to_remove:
+                await self.bot.db.reduce_points(user_id, points_to_remove)
+                total_points = int(await self.bot.db.fetch_points(str(user_id)))
+                enough_points = True
+            else:
+                await self.bot.db.reset_points(user_id)
+                total_points = int(await self.bot.db.fetch_points(str(user_id)))
+                enough_points = False
+
+        if enough_points:
 
             # send information to user in the original channel
-            await after.channel.send( 
+            await after.channel.send(
                 f"{after.author.mention} edited their message from `<MFR` to `<MFS` and used **{points_to_remove}** MF Points. You now have **{total_points}** MF Points."
                 f"\n\nFor more information about the feedback commands, visit <#{FEEDBACK_ACCESS_CHANNEL_ID}>.")
 
@@ -181,10 +202,6 @@ class PointsLogic:
 
             # delete the post
             await after.delete()
-
-            # reset the points
-            await self.bot.db.reset_points(user_id)
-            total_points = int(await self.bot.db.fetch_points(str(user_id)))
 
             # send information to user
             await after.channel.send(
@@ -231,19 +248,27 @@ class PointsLogic:
         user_id = str(message.author.id)
 
         # If message was posted during a Prime Time window and content is cached,
-        # check whether it qualified for double points.
+        # check whether it qualified for double points. Mirrors the MFR bonus
+        # rule in general.py: ML quality check in audio channel, 300-char in
+        # lyric channel, 300-char fallback when ML is unavailable.
         prime_time_cog = self.bot.get_cog("PrimeTime")
         if prime_time_cog and message.content and prime_time_cog.was_during_prime_time(message.created_at):
             feedback_text = message.content
             if feedback_text.upper().startswith("<MFR"):
                 feedback_text = feedback_text[4:].lstrip()
-            points_to_remove = 2 if len(feedback_text) >= 300 else 1
+            qualifies = None
+            if message.channel.id == AUDIO_FEEDBACK:
+                qualifies = await quality_qualifies_for_bonus(feedback_text)
+            if qualifies is None:
+                qualifies = len(feedback_text) >= 300
+            points_to_remove = 2 if qualifies else 1
         else:
             points_to_remove = 1
 
-        points_available = await self.bot.db.fetch_points(user_id)
-        await self.bot.db.reduce_points(user_id, points_to_remove)
-        total_points = await self.bot.db.fetch_points(user_id)
+        async with self._lock_for(user_id):
+            points_available = await self.bot.db.fetch_points(user_id)
+            await self.bot.db.reduce_points(user_id, points_to_remove)
+            total_points = await self.bot.db.fetch_points(user_id)
 
         if points_available > 0:
 

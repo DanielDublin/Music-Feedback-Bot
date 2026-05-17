@@ -118,6 +118,12 @@ class FeedbackMonitor(commands.Cog):
                     feedback_text,
                 ))
                 _task.add_done_callback(_log_task_error)
+            else:
+                # Quality-passing feedback ticks the Prime Time auto-trigger.
+                prime_time_cog = self.bot.get_cog("PrimeTime")
+                if prime_time_cog is not None and hasattr(prime_time_cog, "record_quality_feedback"):
+                    _pt_task = asyncio.create_task(prime_time_cog.record_quality_feedback())
+                    _pt_task.add_done_callback(_log_task_error)
 
             mod_message = await self.notifier.send_prediction_result(message, result, feedback_text)
             if mod_message is None:
