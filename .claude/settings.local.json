@@ -11,7 +11,14 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Desktop\\\\Hobby projects\\\\current\\\\MF BOT\" -Filter \"*.py\" -Recurse -Exclude venv)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "WebFetch(domain:docs.discord.com)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Daniel\\\\Desktop\\\\Hobby projects\\\\current\\\\MF BOT\" -Recurse -Force)",
+      "PowerShell(head *)",
+      "Bash(del *)",
+      "Bash(MF_ENV=test python -c \"import data.constants as c; print\\('TEST:', c.MF_ENV, c.SERVER_ID, c.AUDIO_FEEDBACK, '|| BOT_LOG fallback:', c.BOT_LOG\\)\")",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
