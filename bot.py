@@ -9,6 +9,7 @@ import exception_handler
 from dotenv import load_dotenv
 from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
 from cogs.feedback_threads.modules.ctx_class import ContextLike
+from ml_model.ml_model_loader import get_predictor
 from utils.bot_logger import DiscordChannelHandler
 
 logger = logging.getLogger(__name__)
@@ -96,7 +97,8 @@ initial_extensions = [
     'cogs.feedback_threads.feedback_threads',
     'ml_model.feedback_monitor',
     'cogs.finished_music_message',
-    'cogs.captcha_counter'
+    'cogs.captcha_counter',
+    'cogs.backup',
     # Add more cogs as needed
 ]
 
@@ -173,6 +175,17 @@ async def main():
         await load_extensions()  # Initializing the cogs
     except KeyboardInterrupt:
         pass  # Handle Ctrl+C gracefully
+
+    # Warm the ML predictor in the background so the first MFR doesn't eat
+    # the joblib-load cost (which also re-saves the .pkl files to refresh
+    # the sklearn version marker — non-trivial disk I/O).
+    async def _warm_ml_model():
+        try:
+            await asyncio.to_thread(get_predictor)
+            logger.info("ML model warmed on startup")
+        except Exception:
+            logger.error("ML model warm-up failed; first prediction will load lazily", exc_info=True)
+    asyncio.create_task(_warm_ml_model())
 
     # Create a task that will run the database weekly maintenance task
     task = asyncio.create_task(bot.db.schedule_weekly_task())
