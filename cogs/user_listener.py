@@ -188,8 +188,11 @@ class User_listener(commands.Cog):
             
 
     async def handle_kicked_alert(self, member: discord.Member, kicks: int):
-       
+
         channel = self.bot.get_channel(WARNING_CHANNEL)
+        if channel is None:
+            logger.error("handle_kicked_alert: WARNING_CHANNEL %s not found", WARNING_CHANNEL)
+            return
         pfp = member.display_avatar.url
         embed = discord.Embed(color=0x7e016f)
         embed.set_author(name=f"Music Feedback: {member.name}", icon_url=member.guild.icon.url)

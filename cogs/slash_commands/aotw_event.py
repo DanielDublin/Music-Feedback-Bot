@@ -37,7 +37,10 @@ class AOTWEvent(commands.Cog):
         winner_member: The Discord Member object of the winner
         """
         mod_channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
-        
+        if mod_channel is None:
+            logger.error("wait_for_winner_response: MODERATORS_CHANNEL_ID %s not cached; aborting", MODERATORS_CHANNEL_ID)
+            return
+
         # Give the winner permissions to see and use the channel
         try:
             await winner_channel.set_permissions(winner_member, view_channel=True, send_messages=True)
@@ -131,6 +134,11 @@ class AOTWEvent(commands.Cog):
 
         await interaction.response.defer()
 
+        if mod_channel is None:
+            logger.error("aotw_voting: MODERATORS_CHANNEL_ID %s not cached; aborting", MODERATORS_CHANNEL_ID)
+            await interaction.followup.send("❌ Moderators channel not found — aborting.", ephemeral=True)
+            return
+
         try:
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
@@ -218,6 +226,11 @@ class AOTWEvent(commands.Cog):
 
         await interaction.response.defer()
 
+        if mod_channel is None:
+            logger.error("aotw_submissions: MODERATORS_CHANNEL_ID %s not cached; aborting", MODERATORS_CHANNEL_ID)
+            await interaction.followup.send("❌ Moderators channel not found — aborting.", ephemeral=True)
+            return
+
         try:
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
@@ -270,13 +283,17 @@ class AOTWEvent(commands.Cog):
         await interaction.response.defer()
 
         mod_channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+        if mod_channel is None:
+            logger.error("aotw_winner: MODERATORS_CHANNEL_ID %s not cached; aborting", MODERATORS_CHANNEL_ID)
+            await interaction.followup.send("❌ Moderators channel not found — aborting.", ephemeral=True)
+            return
 
         try:
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
         except Exception as e:
             await mod_channel.send(f"❌ Error initializing channels: {e}")
-    
+
         try:
             # end the aotw event
             await self.channel_config.end_aotw_event()

@@ -26,6 +26,9 @@ class ConfigureChannel:
     async def check_aotw_channel_announcement(self, formatted_six_months):
 
         self.aotw_channel = self.bot.get_channel(AOTW_CHANNEL)
+        if self.aotw_channel is None:
+            logger.error("check_aotw_channel_announcement: AOTW_CHANNEL %s not cached; aborting", AOTW_CHANNEL)
+            return
 
         # INDENTS MATTER!
         message = f"""**Artist of the Week** is a biweekly event open to Stagehands, Supporting Acts, Headliners, and Moderators. The purpose of this event is to highlight a server member who has recently released an original song/cover.

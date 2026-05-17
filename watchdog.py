@@ -33,7 +33,7 @@ def bot_process():
         while True:
             if bot_proc.poll() is not None:
                 # The bot process has exited (crashed)
-                logger.warning("Bot went down. Restarting...")
+                logger.warning("Bot went down (exit code %s). Restarting...", bot_proc.returncode)
                 time.sleep(5)  # Optional delay before restarting
                 break
 

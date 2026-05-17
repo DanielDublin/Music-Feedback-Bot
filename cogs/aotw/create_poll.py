@@ -104,6 +104,9 @@ class CreatePoll:
             list: List of user names in chronological order (oldest first).
         """
         channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            logger.error("scrape_channel_for_names: channel %s not cached", channel_id)
+            return []
         names = []
         seen_names = set()
         self.messages = {}

@@ -72,13 +72,6 @@ async def on_ready():
             logger.warning("FeedbackThreads Cog not found")
 
 
-        # await bot.tree.sync(guild=discord.Object(id=732355624259813531)) # for debug
-
-        # tree = bot.tree
-        # print("Registered commands:")
-        # for command in tree.get_commands():
-        #     print(f"- {command.name}: {command.description}")
-
         await bot.tree.sync()
         await bot.tree.sync(guild=discord.Object(id=SERVER_ID))
 
@@ -142,7 +135,8 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         else:
             await interaction.response.send_message(msg, ephemeral=True)
     except Exception:
-        pass  # best-effort; don't crash the error handler itself
+        # best-effort; don't crash the error handler itself
+        logger.debug("Failed to deliver app command error reply", exc_info=True)
 
 
 async def load_extensions():
