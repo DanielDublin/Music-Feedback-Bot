@@ -73,6 +73,8 @@ class MemberData:
         return is_top_feedback, points
 
     async def get_message_count(self, member: discord.Member) -> int:
+        # Stub: the renderer accepts message_count but doesn't draw it.
+        # Kept as 0 so the card flow still has a valid value to pass through.
         return 0
 
     async def get_last_finished_music(self, member: discord.Member) -> str:
