@@ -1,8 +1,9 @@
-"""Nightly backup of bot-local state files to DEV_SPAM.
+"""Weekly backup of bot-local state files to DEV_SPAM.
 
 Uploads a zip of feedback_threads.sqlite and data/*.json so the Discord-side
-log channel doubles as crude offsite storage. The hosted MySQL has its own
-snapshot story and is not included.
+log channel doubles as crude offsite storage. Fires once a week (Sunday
+04:00 UTC) — the daily loop ticks every day but no-ops on non-Sunday. The
+hosted MySQL has its own snapshot story and is not included.
 """
 
 import asyncio
@@ -30,24 +31,32 @@ _BACKUP_PATHS: list[Path] = [
     _PROJECT_ROOT / "data" / "prime_time_state.json",
 ]
 
-# 04:00 UTC chosen so the nightly fires comfortably outside US/EU prime-time
+# 04:00 UTC chosen so the backup fires comfortably outside US/EU prime-time
 # server activity. Adjust if Discord uploads start failing during this window.
 _BACKUP_TIME = dtime(hour=4, minute=0, tzinfo=timezone.utc)
+
+# Python's datetime.weekday(): Monday=0 ... Sunday=6.
+_SUNDAY = 6
 
 
 class Backup(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.nightly_backup.start()
+        self.weekly_backup.start()
 
     def cog_unload(self):
-        self.nightly_backup.cancel()
+        self.weekly_backup.cancel()
 
     @tasks.loop(time=_BACKUP_TIME)
-    async def nightly_backup(self):
-        await self._run_backup(reason="nightly")
+    async def weekly_backup(self):
+        # tasks.loop(time=...) only supports a daily schedule, so we tick every
+        # day at 04:00 UTC and only act on Sundays. Cheaper than wiring up an
+        # external scheduler for a once-a-week job.
+        if datetime.now(timezone.utc).weekday() != _SUNDAY:
+            return
+        await self._run_backup(reason="weekly")
 
-    @nightly_backup.before_loop
+    @weekly_backup.before_loop
     async def _wait_until_ready(self):
         await self.bot.wait_until_ready()
 
