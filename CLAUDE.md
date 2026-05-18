@@ -24,7 +24,8 @@ There are no automated tests in this project.
 ## Environment Variables
 
 The bot requires a `.env` file (gitignored) with:
-- `DISCORD_TOKEN` — Discord bot token
+- `DISCORD_TOKEN` — production Discord bot token (used when `MF_ENV` is unset or `prod`)
+- `DISCORD_TEST_TOKEN` — test Discord bot token (required when `MF_ENV=test`; `bot.py` raises at startup if missing)
 - `SERVER_ID` — main Discord guild ID (also duplicated in `data/constants.py`)
 - `DB_HOST`, `PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — MySQL connection details
 
