@@ -126,6 +126,16 @@ def _load_auto_state() -> dict:
         "active_kind": None,           # "manual" | "daily" | "saturday"
         "active_start_ts": None,       # epoch seconds
         "active_duration_minutes": 0,
+        # Live "Saturday progress" message in GENERAL_CHAT_CHANNEL_ID. Updated
+        # in place on each quality feedback during a Saturday window; cleared
+        # when the window ends or Saturday Prime Time fires.
+        "saturday_progress_message_id": None,
+        "saturday_progress_channel_id": None,
+        # Cumulative fire/extension counters surfaced via /primetime stats.
+        "daily_fire_count": 0,
+        "saturday_fire_count": 0,
+        "manual_fire_count": 0,
+        "extension_count": 0,
     }
     if not _STATE_FILE.exists():
         return default
@@ -375,8 +385,10 @@ class PrimeTime(commands.Cog):
         marker_ts = marker.timestamp()
         stored = self._auto_state.get("saturday_window_start_ts")
         if stored != marker_ts:
-            # New Saturday window — reset both the counter and the nudge stage
-            # so this Saturday's nudges fire fresh.
+            # New Saturday window — reset counter, nudge stage, and drop any
+            # progress message from a previous Saturday so this Saturday's
+            # display starts fresh.
+            asyncio.create_task(self._clear_saturday_progress_message())
             self._auto_state["saturday_window_start_ts"] = marker_ts
             self._auto_state["saturday_count"] = 0
             self._auto_state["last_saturday_nudge_stage"] = 0
@@ -433,15 +445,16 @@ class PrimeTime(commands.Cog):
         count = int(self._auto_state.get("saturday_count", 0))
 
         if count < _SATURDAY_GOAL:
-            # Below the goal — maybe post a Saturday build-up nudge.
-            if self._active:
-                return  # Don't nudge while Prime Time is already running.
-            new_stage = max((s for s in _SATURDAY_NUDGE_STAGES if s <= count), default=0)
-            last_sat_stage = int(self._auto_state.get("last_saturday_nudge_stage", 0))
-            if new_stage > last_sat_stage:
-                await self._post_saturday_progress(count, new_stage)
-                self._auto_state["last_saturday_nudge_stage"] = new_stage
-                _save_auto_state(self._auto_state)
+            # Below the goal — refresh the live progress message (skipped if
+            # already fired today or on cooldown) and maybe post a stage nudge.
+            if not self._active:
+                await self._sync_saturday_progress_message(count, now_ts)
+                new_stage = max((s for s in _SATURDAY_NUDGE_STAGES if s <= count), default=0)
+                last_sat_stage = int(self._auto_state.get("last_saturday_nudge_stage", 0))
+                if new_stage > last_sat_stage:
+                    await self._post_saturday_progress(count, new_stage)
+                    self._auto_state["last_saturday_nudge_stage"] = new_stage
+                    _save_auto_state(self._auto_state)
             return
 
         last = self._auto_state.get("last_saturday_auto_trigger_ts")
@@ -491,6 +504,86 @@ class PrimeTime(commands.Cog):
         except Exception:
             logger.error("[PrimeTime] Failed to post Saturday nudge", exc_info=True)
 
+    def _build_saturday_progress_text(self, count: int) -> str:
+        remaining = max(0, _SATURDAY_GOAL - count)
+        bar_total = 20
+        filled = min(bar_total, round(bar_total * count / _SATURDAY_GOAL))
+        bar = "█" * filled + "░" * (bar_total - filled)
+        return (
+            f"🎪 **Bi-weekly Saturday Headliner — Live Progress**\n"
+            f"`{bar}` **{count}/{_SATURDAY_GOAL}** quality `<MFR` today · "
+            f"{remaining} to fire the 4-hour Prime Time."
+        )
+
+    async def _sync_saturday_progress_message(self, count: int, now_ts: float) -> None:
+        """Post or edit the running 'X/50' display in GENERAL_CHAT_CHANNEL_ID.
+        Skipped silently if it would be redundant: cooldown active, already
+        fired this Saturday window, or no channel resolvable."""
+        last_s = self._auto_state.get("last_saturday_auto_trigger_ts")
+        sat_window_ts = self._auto_state.get("saturday_window_start_ts")
+        # Skip if we already fired during the current Saturday window. The
+        # cooldown check below covers that, but only roughly — anchor on the
+        # window start so a back-to-back Saturday after a 14-day gap behaves
+        # correctly.
+        if last_s and sat_window_ts and float(last_s) >= float(sat_window_ts):
+            return
+        if last_s and now_ts - float(last_s) < _SATURDAY_COOLDOWN_DAYS * 86400:
+            return
+
+        channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
+        if channel is None:
+            return
+
+        text = self._build_saturday_progress_text(count)
+        msg_id = self._auto_state.get("saturday_progress_message_id")
+        msg_channel_id = self._auto_state.get("saturday_progress_channel_id")
+
+        # If we have a stored message but it lives in a different channel
+        # (e.g. constant changed), drop the reference and post fresh.
+        if msg_id and msg_channel_id and msg_channel_id != GENERAL_CHAT_CHANNEL_ID:
+            msg_id = None
+
+        if msg_id:
+            try:
+                existing = await channel.fetch_message(msg_id)
+                await existing.edit(content=text)
+                return
+            except discord.NotFound:
+                pass  # fall through and post a fresh one
+            except discord.HTTPException:
+                logger.error("[PrimeTime] Failed to edit Saturday progress message", exc_info=True)
+                return
+
+        try:
+            msg = await channel.send(text)
+        except discord.HTTPException:
+            logger.error("[PrimeTime] Failed to post Saturday progress message", exc_info=True)
+            return
+        self._auto_state["saturday_progress_message_id"] = msg.id
+        self._auto_state["saturday_progress_channel_id"] = GENERAL_CHAT_CHANNEL_ID
+        _save_auto_state(self._auto_state)
+
+    async def _clear_saturday_progress_message(self) -> None:
+        """Delete the live progress message (if any) and clear the stored id.
+        Called on Saturday-window change and on Saturday Prime Time fire."""
+        msg_id = self._auto_state.get("saturday_progress_message_id")
+        channel_id = self._auto_state.get("saturday_progress_channel_id")
+        self._auto_state["saturday_progress_message_id"] = None
+        self._auto_state["saturday_progress_channel_id"] = None
+        _save_auto_state(self._auto_state)
+        if not msg_id or not channel_id:
+            return
+        channel = self.bot.get_channel(channel_id)
+        if channel is None:
+            return
+        try:
+            msg = await channel.fetch_message(msg_id)
+            await msg.delete()
+        except discord.NotFound:
+            pass
+        except discord.HTTPException:
+            logger.warning("[PrimeTime] Could not delete stale Saturday progress message", exc_info=True)
+
     async def _fire_auto(self, kind: str, minutes: int, *, count: int) -> None:
         self._active = True
         self._active_kind = kind
@@ -499,6 +592,16 @@ class PrimeTime(commands.Cog):
         self._timer_task = asyncio.create_task(self._run_timer(minutes * 60))
         self._timer_task.add_done_callback(_log_task_error)
         self._persist_active()
+
+        # Bump cumulative fire counter for /primetime stats.
+        counter_key = "saturday_fire_count" if kind == "saturday" else "daily_fire_count"
+        self._auto_state[counter_key] = int(self._auto_state.get(counter_key, 0)) + 1
+        _save_auto_state(self._auto_state)
+
+        # Saturday Prime Time replaces the live progress message — pull it
+        # down so chat doesn't show the running "X/50" alongside the fire.
+        if kind == "saturday":
+            await self._clear_saturday_progress_message()
 
         start_ts = int(self._start_time.timestamp())
         end_ts = start_ts + minutes * 60
@@ -554,6 +657,9 @@ class PrimeTime(commands.Cog):
         self._timer_task = asyncio.create_task(self._run_timer(int(new_remaining_seconds)))
         self._timer_task.add_done_callback(_log_task_error)
         self._persist_active()
+
+        self._auto_state["extension_count"] = int(self._auto_state.get("extension_count", 0)) + 1
+        _save_auto_state(self._auto_state)
 
         new_remaining_minutes = max(1, int(round(new_remaining_seconds / 60)))
         new_end_ts = int((now + timedelta(seconds=new_remaining_seconds)).timestamp())
@@ -612,6 +718,9 @@ class PrimeTime(commands.Cog):
         self._timer_task = asyncio.create_task(self._run_timer(minutes * 60))
         self._timer_task.add_done_callback(_log_task_error)
         self._persist_active()
+
+        self._auto_state["manual_fire_count"] = int(self._auto_state.get("manual_fire_count", 0)) + 1
+        _save_auto_state(self._auto_state)
 
         await interaction.response.send_message(
             f"Prime Time started for {minutes} minute(s).", ephemeral=True
@@ -760,6 +869,35 @@ class PrimeTime(commands.Cog):
             f"✅ Cleared counter(s): {', '.join(cleared)}.", ephemeral=True
         )
         logger.info("[PrimeTime] Counter(s) cleared by %s: %s", interaction.user, cleared)
+
+    @primetime_group.command(name="stats", description="Cumulative Prime Time fire counts and last-fire times")
+    async def primetime_stats(self, interaction: discord.Interaction) -> None:
+        daily = int(self._auto_state.get("daily_fire_count", 0))
+        saturday = int(self._auto_state.get("saturday_fire_count", 0))
+        manual = int(self._auto_state.get("manual_fire_count", 0))
+        extensions = int(self._auto_state.get("extension_count", 0))
+        total = daily + saturday + manual
+
+        lines: list[str] = ["📊 **Prime Time Stats** _(since counters were introduced)_", ""]
+        lines.append(f"• Total fires: **{total}**")
+        lines.append(f"  - Daily (auto): {daily}")
+        lines.append(f"  - Saturday (bi-weekly auto): {saturday}")
+        lines.append(f"  - Manual (slash command): {manual}")
+        lines.append(f"• Cross-kind extensions: **{extensions}**")
+        lines.append("")
+
+        last_d = self._auto_state.get("last_daily_auto_trigger_ts")
+        last_s = self._auto_state.get("last_saturday_auto_trigger_ts")
+        if last_d:
+            lines.append(f"• Last daily fire: <t:{int(last_d)}:F> (<t:{int(last_d)}:R>)")
+        else:
+            lines.append("• Last daily fire: _never_")
+        if last_s:
+            lines.append(f"• Last Saturday fire: <t:{int(last_s)}:F> (<t:{int(last_s)}:R>)")
+        else:
+            lines.append("• Last Saturday fire: _never_")
+
+        await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
     @primetime_group.command(name="force_fire", description="Force-fire an auto Prime Time (admin testing)")
     @app_commands.describe(kind="Which auto-trigger to fire as if its goal had been hit")
