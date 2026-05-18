@@ -112,6 +112,12 @@ _MILESTONES: dict[int, str] = {
     10000: "🌠 **TEN THOUSAND.** Captcha.bot accepts no further questions.",
 }
 
+# Minimum gap between chat-warmer pings. During a bot raid the captcha bot
+# can fire several kicks in quick succession; without this floor, each kick
+# would queue a send+delete pair and a stalled Discord API call could leave
+# multiple "warmer" messages visible at once.
+_CHAT_WARMER_MIN_INTERVAL_SEC = 30
+
 # Sent and immediately deleted after each kick to nudge unread indicators in
 # the sidebar — a quiet "hey, something happened" without leaving spam behind.
 _CHAT_WARMERS = [
@@ -241,6 +247,7 @@ class CaptchaCounter(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.state = _load_state()
+        self._last_warmer_ts: float = 0.0
 
     async def _get_counter_channel(self):
         if not CAPTCHA_COUNTER_CHANNEL_ID:
@@ -294,7 +301,15 @@ class CaptchaCounter(commands.Cog):
 
     async def _chat_warmer_ping(self):
         """Send + immediately delete a tiny message so the channel surfaces
-        as unread in the sidebar without leaving visible spam behind."""
+        as unread in the sidebar without leaving visible spam behind.
+
+        Rate-limited: if the last warmer fired less than
+        _CHAT_WARMER_MIN_INTERVAL_SEC ago, skip this one. The counter
+        message itself still edits on every kick, so the sidebar already
+        reflects the new count — the warmer is just an extra unread nudge."""
+        now = time.time()
+        if now - self._last_warmer_ts < _CHAT_WARMER_MIN_INTERVAL_SEC:
+            return
         channel = await self._get_counter_channel()
         if channel is None:
             return
@@ -303,6 +318,7 @@ class CaptchaCounter(commands.Cog):
         except discord.HTTPException:
             logger.error("Chat warmer send failed", exc_info=True)
             return
+        self._last_warmer_ts = now
         try:
             await msg.delete()
         except discord.HTTPException:
