@@ -7,7 +7,7 @@ from discord.ext import commands
 from discord import Interaction, app_commands
 import exception_handler
 from dotenv import load_dotenv
-from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, MF_ENV, SERVER_ID, INTRO_MUSIC
+from data.constants import BOT_DEV_ID, FEEDBACK_CHANNEL_ID, SERVER_ID, INTRO_MUSIC
 from cogs.feedback_threads.modules.ctx_class import ContextLike
 from ml_model.ml_model_loader import get_predictor
 from utils.bot_logger import DiscordChannelHandler
@@ -18,16 +18,7 @@ logger = logging.getLogger(__name__)
 IS_READY = False
 
 load_dotenv()
-# Match the bot account to the environment so MF_ENV=test connects with the
-# test bot (and therefore actually sees the test-guild channel IDs that
-# data/constants.py just swapped in).
-_token_var = "DISCORD_TEST_TOKEN" if MF_ENV == "test" else "DISCORD_TOKEN"
-token = os.environ.get(_token_var)
-if not token:
-    raise RuntimeError(
-        f"{_token_var} is not set in the environment (MF_ENV={MF_ENV!r}). "
-        f"Add it to your .env or unset MF_ENV to use the prod token."
-    )
+token = os.environ.get('DISCORD_TOKEN')
 server_id = os.environ.get('SERVER_ID')
 
 # Initialize the bot
