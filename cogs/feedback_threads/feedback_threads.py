@@ -166,9 +166,9 @@ class FeedbackThreads(commands.Cog):
                         self.general = self.bot.get_cog('General')
 
                     # check if the message id is due to manual deletion of the else statement in MFS
-                    if self.general is not None and message.id in self.general.deleted_messages:
+                    if self.general is not None and message.id in self.general.feedback.deleted_messages:
                         # if it is, this means that the message was manually deleted and to not throw this embed; delete the id
-                        self.general.deleted_messages.discard(message.id)
+                        self.general.feedback.deleted_messages.discard(message.id)
                         return
 
                     else:
