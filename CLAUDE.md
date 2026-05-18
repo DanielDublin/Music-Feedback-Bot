@@ -149,11 +149,11 @@ Mirrored in `general.py` (MFR award) and `cogs/feedback_threads/modules/points_l
 - `modules/aotw/` is a sibling of `cogs/aotw/`; both feed the AOTW flow
 
 ### Constants and Environment Switching
-`data/constants.py` holds all hardcoded Discord IDs (channels, roles, users). Driven by the **`MF_ENV`** env var:
-- `MF_ENV=prod` (default, also when unset) — uses the canonical production guild IDs
-- `MF_ENV=test` — applies the TEST overrides at the bottom of the file on top of the prod defaults
+`data/constants.py` holds all hardcoded Discord IDs (channels, roles, users). Has an optional `MF_ENV` env-var hook for redirecting those IDs to a test guild:
+- `MF_ENV` unset or `prod` (default) — the canonical production IDs at the top of the file
+- `MF_ENV=test` — the `if _TEST:` block at the bottom reassigns ~30 IDs to test-guild equivalents (`SERVER_ID`, `FEEDBACK_CHANNEL_ID`, `AUDIO_FEEDBACK`, role IDs, AOTW IDs, etc.). Anything not listed in that block keeps its PROD value, which is safer than the old comment-toggle pattern.
 
-Set `MF_ENV=test` in your `.env` to flip the bot to the test guild. The file exposes `MF_ENV` so other modules can branch on it (e.g., skip a Google Sheets write in test mode). Constants not present in the TEST override block automatically fall back to their PROD value — that's safer than the old comment-toggle pattern, which would leave newly-added constants undefined whenever the testing block hadn't been kept in sync.
+Set `MF_ENV=test` in your `.env` (alongside whichever bot token connects to the test guild) to flip the bot. No code path branches on `MF_ENV` directly today — the entire switch happens through reassignment of the imported constants, so cogs that `from data.constants import FEEDBACK_CHANNEL_ID` silently get the right ID for the active environment without knowing test mode exists.
 
 ### Persisted JSON State
 Several cogs persist small bits of state as JSON files alongside the code:
