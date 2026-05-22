@@ -53,7 +53,7 @@ class ExportJson:
             logger.warning("Feedback file not found: %s", filename)
             return 0
         except json.JSONDecodeError:
-            logger.error("Invalid JSON in %s", filename)
+            logger.error("Invalid JSON in %s", filename, exc_info=True)
             return 0
         except Exception:
             logger.error("Error in count_entries", exc_info=True)

@@ -46,8 +46,9 @@ class AOTWEvent(commands.Cog):
             await winner_channel.set_permissions(winner_member, view_channel=True, send_messages=True)
             await mod_channel.send(f"✅ Set permissions for {winner_member.name} in {winner_channel.name}")
         except Exception as e:
+            logger.error("wait_for_winner_response: failed to set permissions for %s", winner_member.name, exc_info=True)
             await mod_channel.send(f"❌ Error setting permissions for {winner_member.name}: {e}")
-        
+
         def check(m):
             return (
                 m.channel.id == winner_channel.id and
@@ -72,11 +73,13 @@ class AOTWEvent(commands.Cog):
                 await message.author.add_roles(aotw_role)
                 await mod_channel.send(f"✅ Gave AOTW role to {message.author.name}")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to give AOTW role to %s", message.author, exc_info=True)
                 await mod_channel.send(f"❌ Error giving AOTW role: {e}")
 
             try:
                 await message.reply("Thank you! And congrats again on winning Artist of the Week!")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to reply to winner %s", message.author, exc_info=True)
                 await mod_channel.send(f"❌ Error replying to winner: {e}")
             
             # Continue configuring the AOTW system
@@ -89,6 +92,7 @@ class AOTWEvent(commands.Cog):
                     await mod_channel.send("✅ Deleted previous message from AOTW channel")
                     break
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to delete previous AOTW channel message", exc_info=True)
                 await mod_channel.send(f"❌ Error deleting message from AOTW channel: {e}")
 
             # Delete the aotw-q-a channel (the public submissions channel)
@@ -96,6 +100,7 @@ class AOTWEvent(commands.Cog):
                 await self.channel_config.purge_channel()
                 await mod_channel.send("✅ Purged Q&A channel")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to purge Q&A channel", exc_info=True)
                 await mod_channel.send(f"❌ Error purging Q&A channel: {e}")
 
             # Change permissions for Q&A
@@ -103,6 +108,7 @@ class AOTWEvent(commands.Cog):
                 await self.channel_config.winner_perms()
                 await mod_channel.send("✅ Changed Q&A channel permissions")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to change Q&A channel permissions", exc_info=True)
                 await mod_channel.send(f"❌ Error changing Q&A permissions: {e}")
 
             # Post the announcement in aotw channel
@@ -110,6 +116,7 @@ class AOTWEvent(commands.Cog):
                 await self.channel_config.aotw_winner_announcement(AOTW_VOTES, message)
                 await mod_channel.send("✅ Posted winner announcement in AOTW channel")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to post winner announcement", exc_info=True)
                 await mod_channel.send(f"❌ Error posting winner announcement: {e}")
 
             # Announce Q&A channel
@@ -117,12 +124,15 @@ class AOTWEvent(commands.Cog):
                 await self.channel_config.qa_announcement(winner_info['name'])
                 await mod_channel.send("✅ Posted Q&A announcement")
             except Exception as e:
+                logger.error("wait_for_winner_response: failed to post Q&A announcement", exc_info=True)
                 await mod_channel.send(f"❌ Error posting Q&A announcement: {e}")
 
             
         except asyncio.TimeoutError:
+            logger.warning("wait_for_winner_response: winner %s did not respond within 24 hours", winner_info['name'])
             await mod_channel.send(f"⚠️ AOTW winner {winner_info['name']} didn't respond within 24 hours!")
         except Exception as e:
+            logger.error("wait_for_winner_response: unexpected error in winner listener for %s", winner_info['name'], exc_info=True)
             await mod_channel.send(f"❌ Unexpected error in winner listener for {winner_info['name']}: {e}")
 
     @app_commands.command(name = "aotw_voting", description = "Setup poll and channels for AOTW voting")
@@ -143,6 +153,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
         except Exception as e:
+            logger.error("aotw_voting: failed to initialize channels", exc_info=True)
             await mod_channel.send(f"❌ Error initializing channels: {e}")
 
         # clear votes channel so vote tracking starts fresh for the new cycle
@@ -154,6 +165,7 @@ class AOTWEvent(commands.Cog):
             else:
                 await mod_channel.send("⚠️ WARNING: Could not find votes channel to clear")
         except Exception as e:
+            logger.error("aotw_voting: failed to clear votes channel", exc_info=True)
             await mod_channel.send(f"❌ Error clearing votes channel: {e}")
 
         # change perms for aotw submissions
@@ -161,6 +173,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.change_voting_perms()
             await mod_channel.send("✅ Changed voting permissions")
         except Exception as e:
+            logger.error("aotw_voting: failed to change voting permissions", exc_info=True)
             await mod_channel.send(f"❌ Error changing voting permissions: {e}")
 
         # change name + topic to aotw_voting
@@ -168,6 +181,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.change_name("aotw-voting")
             await mod_channel.send("✅ Changed channel name to aotw-voting")
         except Exception as e:
+            logger.error("aotw_voting: failed to change channel name", exc_info=True)
             await mod_channel.send(f"❌ Error changing channel name: {e}")
 
         # delete any messages with a file
@@ -175,6 +189,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.check_for_not_links()
             await mod_channel.send("✅ Deleted messages with files")
         except Exception as e:
+            logger.error("aotw_voting: failed to delete file messages", exc_info=True)
             await mod_channel.send(f"❌ Error deleting file messages: {e}")
 
         # create the poll in aotw submissions
@@ -186,6 +201,7 @@ class AOTWEvent(commands.Cog):
             self._active_poll = poll
             await mod_channel.send("✅ Poll created")
         except Exception as e:
+            logger.error("aotw_voting: failed to create poll", exc_info=True)
             await mod_channel.send(f"❌ Error creating poll: {e}")
 
         # send announcement under poll
@@ -193,6 +209,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.send_voting_announcement()
             await mod_channel.send("✅ Sent voting announcement")
         except Exception as e:
+            logger.error("aotw_voting: failed to send voting announcement", exc_info=True)
             await mod_channel.send(f"❌ Error sending voting announcement: {e}")
 
         # create event for voting
@@ -200,6 +217,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.schedule_voting_event()
             await mod_channel.send("✅ Scheduled voting event")
         except Exception as e:
+            logger.error("aotw_voting: failed to schedule voting event", exc_info=True)
             await mod_channel.send(f"❌ Error scheduling voting event: {e}")
 
         # reminders for gen chat
@@ -212,6 +230,7 @@ class AOTWEvent(commands.Cog):
             self.bot._aotw_config = self.channel_config  # save instance so aotw_winner can stop its task
             await mod_channel.send("✅ Scheduled general chat reminders")
         except Exception as e:
+            logger.error("aotw_voting: failed to schedule general chat reminders", exc_info=True)
             await mod_channel.send(f"❌ Error scheduling reminders: {e}")
 
         await interaction.followup.send("✅ AOTW Voting setup complete!", ephemeral=True)
@@ -235,6 +254,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
         except Exception as e:
+            logger.error("aotw_submissions: failed to initialize channels", exc_info=True)
             await mod_channel.send(f"❌ Error initializing channels: {e}")
 
         # check aotw_channel announcement and post
@@ -243,6 +263,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.check_aotw_channel_announcement(formatted_six_months)
             await mod_channel.send("✅ AOTW channel announcement checked")
         except Exception as e:
+            logger.error("aotw_submissions: failed to check AOTW channel announcement", exc_info=True)
             await mod_channel.send(f"❌ Error checking aotw_channel announcement: {e}")
 
         try:
@@ -250,6 +271,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.purge_channel()
             await mod_channel.send("✅ AOTW submissions purged")
         except Exception as e:
+            logger.error("aotw_submissions: failed to purge submissions channel", exc_info=True)
             await mod_channel.send(f"❌ Error purging aotw submissions: {e}")
 
         try:
@@ -257,6 +279,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.change_name("aotw-submissions")
             await mod_channel.send("✅ Name changed to aotw-submissions")
         except Exception as e:
+            logger.error("aotw_submissions: failed to change channel name", exc_info=True)
             await mod_channel.send(f"❌ Error changing name: {e}")
 
         try:
@@ -264,6 +287,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.change_submissions_perms()
             await mod_channel.send("✅ Permissions changed")
         except Exception as e:
+            logger.error("aotw_submissions: failed to change submissions permissions", exc_info=True)
             await mod_channel.send(f"❌ Error changing permissions: {e}")
 
         try:
@@ -272,6 +296,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.send_submissions_announcement(formatted_one_week, formatted_two_weeks, formatted_six_months)
             await mod_channel.send("✅ Submissions announcement sent")
         except Exception as e:
+            logger.error("aotw_submissions: failed to send submissions announcement", exc_info=True)
             await mod_channel.send(f"❌ Error sending submissions announcement: {e}")
 
         await interaction.followup.send("✅ AOTW Submissions setup complete!", ephemeral=True)
@@ -292,6 +317,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.initialize_channels()
             await mod_channel.send("✅ Channels initialized")
         except Exception as e:
+            logger.error("aotw_winner: failed to initialize channels", exc_info=True)
             await mod_channel.send(f"❌ Error initializing channels: {e}")
 
         try:
@@ -307,6 +333,7 @@ class AOTWEvent(commands.Cog):
                 self.channel_config.stop_voting_reminders()  # fallback (no-op if task not running)
             await mod_channel.send("✅ Stopped voting reminders")
         except Exception as e:
+            logger.error("aotw_winner: failed to end AOTW event / stop reminders", exc_info=True)
             await mod_channel.send(f"❌ Error ending aotw event: {e}")
 
         try:
@@ -314,6 +341,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.remove_aotw_role(interaction)
             await mod_channel.send("✅ Removed AOTW role from current holder")
         except Exception as e:
+            logger.error("aotw_winner: failed to remove AOTW role from current holder", exc_info=True)
             await mod_channel.send(f"❌ Error removing AOTW role: {e}")
 
         # Create poll instance
@@ -324,6 +352,7 @@ class AOTWEvent(commands.Cog):
             names = await poll.scrape_channel_for_names(interaction, AOTW_SUBMISSIONS)
             await mod_channel.send(f"✅ Scraped {len(names)} submissions")
         except Exception as e:
+            logger.error("aotw_winner: failed to scrape submissions channel", exc_info=True)
             await mod_channel.send(f"❌ Error scraping channel: {e}")
             await interaction.followup.send("❌ Error reading submissions!")
             return
@@ -353,6 +382,7 @@ class AOTWEvent(commands.Cog):
             winner_name = winners[0]
             await mod_channel.send(f"✅ Winner determined: {winner_name} with {max_votes} votes")
         except Exception as e:
+            logger.error("aotw_winner: failed to determine winner from votes", exc_info=True)
             await mod_channel.send(f"❌ Error determining winner: {e}")
             await interaction.followup.send("❌ Error determining winner!")
             return
@@ -369,8 +399,9 @@ class AOTWEvent(commands.Cog):
             else:
                 await mod_channel.send("⚠️ WARNING: Could not find votes channel!")
         except Exception as e:
+            logger.error("aotw_winner: failed to record winner info to votes channel", exc_info=True)
             await mod_channel.send(f"❌ Error recording winner info: {e}")
-        
+
         # Create winner info dict
         winner_info = {
             'name': winner_name,
@@ -382,6 +413,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.change_name("aotw-q-a")
             await mod_channel.send("✅ Changed channel name to aotw-q-a")
         except Exception as e:
+            logger.error("aotw_winner: failed to rename channel to aotw-q-a", exc_info=True)
             await mod_channel.send(f"❌ Error changing channel name: {e}")
 
         # FIFTH: Purge the public voting/Q&A channel
@@ -389,6 +421,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.purge_channel()
             await mod_channel.send("✅ Purged voting channel")
         except Exception as e:
+            logger.error("aotw_winner: failed to purge voting channel", exc_info=True)
             await mod_channel.send(f"❌ Error purging channel: {e}")
 
         # SIXTH: Send announcement to the now-empty public channel
@@ -396,6 +429,7 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.submissions_channel.send("Determining our next Artist of the Week!")
             await mod_channel.send("✅ Sent announcement to submissions channel")
         except Exception as e:
+            logger.error("aotw_winner: failed to send announcement to submissions channel", exc_info=True)
             await mod_channel.send(f"❌ Error sending announcement: {e}")
 
         # SEVENTH: Create PRIVATE channel and send congrats message to winner
@@ -403,10 +437,11 @@ class AOTWEvent(commands.Cog):
             winner_channel = await self.channel_config.send_message_to_winner(interaction, winner_info)
             await mod_channel.send(f"✅ Created winner channel: {winner_channel.name} (ID: {winner_channel.id})")
         except Exception as e:
+            logger.error("aotw_winner: failed to create private winner channel", exc_info=True)
             await mod_channel.send(f"❌ Error creating winner channel: {e}")
             await interaction.followup.send("❌ Error creating winner channel!")
             return
-        
+
         # Get the winner as a Discord Member object
         winner_member = discord.utils.get(interaction.guild.members, display_name=winner_name)
         if not winner_member:
@@ -429,6 +464,7 @@ class AOTWEvent(commands.Cog):
             await mod_channel.send(f"✅ Started listener for {winner_name} in channel {winner_channel.mention}")
             await interaction.followup.send(f"✅ AOTW Winner setup complete! Waiting for {winner_name}'s response in <#{winner_channel.id}>...")
         except Exception as e:
+            logger.error("aotw_winner: failed to create background listener task for %s", winner_name, exc_info=True)
             await mod_channel.send(f"❌ Error creating listener task: {e}")
             await interaction.followup.send(f"⚠️ Setup complete but listener may not be active!")
 
@@ -445,8 +481,9 @@ class AOTWEvent(commands.Cog):
             await self.channel_config.check_aotw_channel_announcement(formatted_six_months)
             await mod_channel.send("✅ Initial AOTW message posted")
         except Exception as e:
+            logger.error("initial_atow_message: failed to post initial AOTW message", exc_info=True)
             await mod_channel.send(f"❌ Error posting initial AOTW message: {e}")
-        
+
         await interaction.followup.send("✅ Initial AOTW message posted!", ephemeral=True)
 
 

@@ -55,6 +55,14 @@ class FeedbackMonitor(commands.Cog):
         if stale:
             logger.debug("Cleaned up %d stale pending validations", len(stale))
 
+    @cleanup_pending_validations.error
+    async def cleanup_pending_validations_error(self, error):
+        logger.error("cleanup_pending_validations task crashed: %r", error, exc_info=error)
+        # Back off before restarting so a persistent failure can't tight-loop.
+        await asyncio.sleep(300)
+        if not self.cleanup_pending_validations.is_running():
+            self.cleanup_pending_validations.restart()
+
     @commands.Cog.listener()
     async def on_ready(self):
         try:
@@ -182,6 +190,7 @@ class FeedbackMonitor(commands.Cog):
             try:
                 mod_message = await channel.fetch_message(payload.message_id)
             except discord.NotFound:
+                logger.warning("Validation message %s not found; removing from pending", payload.message_id)
                 self.pending_validations.pop(payload.message_id, None)
                 return
 
@@ -249,7 +258,7 @@ class FeedbackMonitor(commands.Cog):
                     data = json.load(f)
             except FileNotFoundError:
                 data = []
-                logger.debug("No existing file %s, starting fresh", filename)
+                logger.warning("No existing file %s, starting fresh", filename)
             except json.JSONDecodeError:
                 logger.warning("Invalid JSON in %s, starting fresh", filename)
                 data = []

@@ -280,13 +280,13 @@ class CaptchaCounter(commands.Cog):
                 except discord.HTTPException as e:
                     # Likely an embed -> V2 layout switch which Discord rejects
                     # via edit; fall through to delete + repost.
-                    logger.info("Counter edit failed, recreating message: %s", e)
+                    logger.warning("Counter edit failed, recreating message: %s", e)
                     try:
                         await msg.delete()
                     except discord.HTTPException:
-                        pass
+                        logger.warning("Could not delete stale captcha counter message", exc_info=True)
             except discord.NotFound:
-                logger.info("Stored captcha counter message missing; recreating")
+                logger.warning("Stored captcha counter message missing; recreating")
             except discord.HTTPException:
                 logger.error("Failed to fetch captcha counter message", exc_info=True)
                 return

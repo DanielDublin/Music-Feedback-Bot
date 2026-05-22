@@ -206,5 +206,5 @@ async def quality_qualifies_for_bonus(
     try:
         return bool(result.get('is_good')) and float(result.get('probability', 0)) >= threshold
     except (TypeError, ValueError):
-        logger.error("quality_qualifies_for_bonus: unexpected predictor result %r", result)
+        logger.error("quality_qualifies_for_bonus: unexpected predictor result %r", result, exc_info=True)
         return None

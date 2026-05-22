@@ -95,6 +95,7 @@ class GetMemberCard(commands.Cog):
         try:
             is_top_feedback, numeric_points = await self.member_data.get_points(member)
         except Exception as e:
+            logger.error("Error calling get_points for %s", discord_username, exc_info=True)
             log_collector.append(f"Error calling get_points for {discord_username}: {str(e)}")
 
         all_main_genres_roles, all_daw_roles, all_instruments_roles = await self.member_data.get_roles_by_colors(member)
@@ -110,6 +111,7 @@ class GetMemberCard(commands.Cog):
                 random_msg_content = "A true MFR"
                 random_msg_url = None
         except Exception as e:
+            logger.error("Error fetching random message for %s", discord_username, exc_info=True)
             log_collector.append(f"Error fetching random message for {discord_username}: {str(e)}")
             random_msg_content = "An unexpected error occurred while looking for a message."
             random_msg_url = None

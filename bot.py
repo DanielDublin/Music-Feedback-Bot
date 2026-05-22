@@ -128,7 +128,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     elif isinstance(error, app_commands.CheckFailure):
         msg = "You don't meet the requirements for this command."
     else:
-        logger.error(f"Unhandled app command error: {error}")
+        logger.error(f"Unhandled app command error: {error}", exc_info=True)
         msg = "An unexpected error occurred."
 
     try:
@@ -138,7 +138,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             await interaction.response.send_message(msg, ephemeral=True)
     except Exception:
         # best-effort; don't crash the error handler itself
-        logger.debug("Failed to deliver app command error reply", exc_info=True)
+        logger.warning("Failed to deliver app command error reply", exc_info=True)
 
 
 async def load_extensions():
@@ -174,7 +174,7 @@ async def main():
     try:
         await load_extensions()  # Initializing the cogs
     except KeyboardInterrupt:
-        pass  # Handle Ctrl+C gracefully
+        logger.warning("KeyboardInterrupt during extension loading — startup aborted")
 
     # Warm the ML predictor in the background so the first MFR doesn't eat
     # the joblib-load cost (which also re-saves the .pkl files to refresh

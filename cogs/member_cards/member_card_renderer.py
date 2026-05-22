@@ -235,6 +235,7 @@ def generate_card(pfp_image_pil, discord_username, server_name, rank_str, numeri
                     base_card_content = background_image.resize((card_width, card_height), Image.Resampling.LANCZOS)
                 except Exception as e:
                     log_collector.append(f"Error loading background image '{background_image_path}': {e}. Falling back to gradient.")
+                    logger.error("Error loading background image '%s'; falling back to gradient", background_image_path, exc_info=True)
                     base_card_content = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
                     draw_background = ImageDraw.Draw(base_card_content)
                     center_color = (179, 153, 212)
@@ -326,6 +327,7 @@ def generate_card(pfp_image_pil, discord_username, server_name, rank_str, numeri
                     text_width = text_bbox[2] - text_bbox[0]
                 except Exception as e:
                     log_collector.append(f"Error calculating text bbox for role '{tag_text}': {e}")
+                    logger.error("Error calculating text bbox for role '%s'", tag_text, exc_info=True)
                     continue
                 tag_full_width = dot_diameter + dot_right_margin + text_width + (2 * tag_horizontal_padding) + tag_spacing_x
 
@@ -344,6 +346,7 @@ def generate_card(pfp_image_pil, discord_username, server_name, rank_str, numeri
             return final_displayed_roles, len_first_line_roles
         except Exception as e:
             log_collector.append(f"Error in process_roles: {e}")
+            logger.error("Error in process_roles", exc_info=True)
             return [], 0
 
     final_displayed_roles, len_first_line_roles = process_roles()
@@ -448,6 +451,7 @@ def generate_card(pfp_image_pil, discord_username, server_name, rank_str, numeri
             static_card_base = base_card_content.copy()
         except Exception as e:
             log_collector.append(str(e))
+            logger.error("Error copying base_card_content in prepare_static_card", exc_info=True)
             static_card_base = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
 
         static_draw = ImageDraw.Draw(static_card_base)
@@ -676,6 +680,7 @@ def generate_card(pfp_image_pil, discord_username, server_name, rank_str, numeri
                 frame = static_card_base.copy()
             except Exception as e:
                 log_collector.append(f"Error copying static_card_base: {str(e)}")
+                logger.error("Error copying static_card_base for frame %d", i, exc_info=True)
                 frame = Image.new("RGBA", (card_width, card_height), (0, 0, 0, 0))
 
             draw = ImageDraw.Draw(frame)

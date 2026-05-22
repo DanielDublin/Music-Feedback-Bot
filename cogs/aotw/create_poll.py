@@ -328,7 +328,7 @@ class CreatePoll:
                         votes = int(vote_part.split()[0])
                         vote_counts[name] = votes
                     except (ValueError, IndexError):
-                        pass
+                        logger.warning("Could not parse vote count from line %r", line)
         
         if not vote_counts:
             return None

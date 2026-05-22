@@ -34,6 +34,7 @@ class AdminRuntimeImpl:
             await self.bot.reload_extension(extension)
             await interaction.followup.send(f"Reloaded `{extension}`.", ephemeral=True)
         except Exception as e:
+            logger.error("Failed to reload extension %r", extension, exc_info=True)
             await interaction.followup.send(f"Failed to reload `{extension}`: {e}", ephemeral=True)
 
     async def handle_status(self, interaction: discord.Interaction):

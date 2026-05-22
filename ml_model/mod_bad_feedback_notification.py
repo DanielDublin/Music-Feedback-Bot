@@ -152,6 +152,6 @@ class FeedbackNotifier:
             await mod_message.add_reaction("✅")
             await mod_message.add_reaction("❌")
         except Exception:
-            logger.warning("send_prediction_result: failed to add reactions (non-critical)")
+            logger.warning("send_prediction_result: failed to add reactions (non-critical)", exc_info=True)
 
         return mod_message

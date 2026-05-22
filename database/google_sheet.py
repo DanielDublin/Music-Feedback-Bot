@@ -129,7 +129,8 @@ class GoogleSheet:
                 member = guild.get_member(int(user_id))
                 if member is None:
                     continue
-            except:
+            except Exception:
+                logger.error("Error looking up member %s in guild", user_id, exc_info=True)
                 continue
             
             # Find the last date by going backwards through the row

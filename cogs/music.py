@@ -149,7 +149,7 @@ class NotesView(discord.ui.View):
             try:
                 await self.message.delete()
             except discord.NotFound:
-                pass
+                logger.warning("NotesView.on_timeout: notes message %s already deleted", self.message.id)
 
 
 class Music(commands.Cog):

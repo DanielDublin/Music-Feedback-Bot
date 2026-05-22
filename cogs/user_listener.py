@@ -114,20 +114,22 @@ class User_listener(commands.Cog):
                 user_id = int(mention_string.strip('<@>'))
             else:
                  user_id = int(mention_string)
-        except Exception as e:
+        except Exception:
+            logger.warning("convert_mention_to_member: could not parse mention %r", mention_string, exc_info=True)
             return None
-       
+
         guild = ctx.channel.guild  # Assuming you have access to the guild instance
 
         # Attempt to fetch the member from the guild
-     
+
         member = guild.get_member(user_id)
-     
+
         # If member is None, attempt to fetch the member using fetch_member
         if member is None:
             try:
                 member = await guild.fetch_member(user_id)
-            except Exception as e:
+            except Exception:
+                logger.warning("convert_mention_to_member: could not fetch member %s", user_id, exc_info=True)
                 return None
             
         return member        

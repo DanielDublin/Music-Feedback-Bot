@@ -59,7 +59,7 @@ def fetch_spotify_info(spotify_url: str):
         else:
             return None
     except spotipy.SpotifyException:
-        logger.warning("Error processing Spotify link: %s", spotify_url)
+        logger.error("Error processing Spotify link: %s", spotify_url, exc_info=True)
         return None
 
     _spotify_cache[cache_key] = result

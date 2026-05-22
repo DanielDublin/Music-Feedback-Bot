@@ -85,18 +85,21 @@ class Owner_Utilities(commands.Cog):
                         try:
                              file = await attachment.to_file()
                         except Exception as e:
+                            logger.error("say: failed to convert attachment to file", exc_info=True)
                             await ctx.send(f"An error occurred: {str(e)}")
-                         
+                            continue
                         files.append(file)
                 try:
                     await ctx.message.delete()
                 except Exception as e:
+                    logger.warning("say: could not delete invoking message", exc_info=True)
                     await ctx.send(f"Cant delete Message in a DM")
                 await target_channel.send(content=message, files=files)
                 await ctx.send(f'Message was sent.')
             else:
                 await ctx.send(f"Channel with ID {channel_id} not found.")
         except Exception as e:
+            logger.error("say: unexpected error", exc_info=True)
             await ctx.send(f"An error occurred: {str(e)}")
 
 

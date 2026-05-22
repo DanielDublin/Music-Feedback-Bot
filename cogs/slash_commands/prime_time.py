@@ -549,7 +549,8 @@ class PrimeTime(commands.Cog):
                 await existing.edit(content=text)
                 return
             except discord.NotFound:
-                pass  # fall through and post a fresh one
+                # the stored message is gone — fall through and post a fresh one
+                logger.warning("[PrimeTime] Saturday progress message missing; posting a fresh one")
             except discord.HTTPException:
                 logger.error("[PrimeTime] Failed to edit Saturday progress message", exc_info=True)
                 return
@@ -580,7 +581,8 @@ class PrimeTime(commands.Cog):
             msg = await channel.fetch_message(msg_id)
             await msg.delete()
         except discord.NotFound:
-            pass
+            # already gone — the desired end state anyway, but surface it for visibility
+            logger.warning("[PrimeTime] Saturday progress message already deleted")
         except discord.HTTPException:
             logger.warning("[PrimeTime] Could not delete stale Saturday progress message", exc_info=True)
 
