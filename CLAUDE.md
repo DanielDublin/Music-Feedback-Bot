@@ -78,7 +78,7 @@ All cogs are registered in `bot.py` in two lists: `initial_extensions` (prefix-c
 | `cogs.slash_commands.aotw_event` | Album of the Week event flow (poll creation, channel configuration, scheduling) |
 | `cogs.slash_commands.prime_time` | "Prime Time" 2× feedback window. Manual `/primetime start|stop|status` slash commands **plus** auto-trigger driven by `record_quality_feedback()` called from `ml_model.feedback_monitor`. See "Prime Time" section below |
 
-`cogs/slash_commands/hello.py` and `cogs/slash_commands/timer_cogs/` exist on disk but are **not** registered in `bot.py`.
+`cogs/slash_commands/timer_cogs/` exists on disk but is **not** registered in `bot.py`.
 
 ### Dual Database System
 - **MySQL** (`database/db.py`) — primary persistent store for user points, warnings, and kicks. Uses an in-memory `users_dict` cache that is populated lazily and cleared weekly via `schedule_weekly_task()` (created in `bot.py:main()`). Reconnects automatically on "lost connection" errors.
