@@ -58,7 +58,20 @@ class Backup(commands.Cog):
 
     @weekly_backup.before_loop
     async def _wait_until_ready(self):
-        await self.bot.wait_until_ready()
+        # before_loop exceptions are not routed to the .error handler, so an
+        # unhandled error here would kill the loop for good — guard it.
+        try:
+            await self.bot.wait_until_ready()
+        except Exception:
+            logger.error("Backup: before_loop failed; loop will start anyway", exc_info=True)
+
+    @weekly_backup.error
+    async def weekly_backup_error(self, error):
+        logger.error("Backup: weekly_backup task crashed: %r", error, exc_info=error)
+        # Back off before restarting so a persistent failure can't tight-loop.
+        await asyncio.sleep(300)
+        if not self.weekly_backup.is_running():
+            self.weekly_backup.restart()
 
     async def _run_backup(self, *, reason: str) -> tuple[bool, str]:
         try:

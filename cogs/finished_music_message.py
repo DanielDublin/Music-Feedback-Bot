@@ -1,14 +1,11 @@
 import discord
 import asyncio
-import json
 import logging
-import os
 from discord.ext import commands, tasks
 from data.constants import FINISHED_MUSIC
 
 logger = logging.getLogger(__name__)
 
-STORED_MESSAGE_ID_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "stored_message_id.json")
 
 class FinishedMusicMessage(commands.Cog):
 
@@ -52,50 +49,54 @@ class FinishedMusicMessage(commands.Cog):
         # 4. ALWAYS send the new message, regardless of whether an old one was deleted
         try:
             new_message = await channel.send(self.MESSAGE_TEXT)
-            self.stored_message_id = new_message.id  # Save the new ID for tomorrow
-            self._persist_message_id(self.stored_message_id)
+            self.stored_message_id = new_message.id  # Save the new ID for the next cycle
         except discord.HTTPException as e:
             logger.error(f"Error sending new message: {e}", exc_info=True)
 
     @delete_and_repost_cycle.error
     async def delete_and_repost_cycle_error(self, error):
-        logger.error(f"[FinishedMusicMessage] Task crashed: {error!r}")
+        logger.error(f"[FinishedMusicMessage] Task crashed: {error!r}", exc_info=True)
+        # Back off before restarting so a persistent failure can't tight-loop.
+        await asyncio.sleep(300)
         if not self.delete_and_repost_cycle.is_running():
             self.delete_and_repost_cycle.restart()
 
-    def _persist_message_id(self, message_id):
-        """Write the current stored_message_id to disk so it survives restarts."""
-        try:
-            with open(STORED_MESSAGE_ID_PATH, "w") as f:
-                json.dump({"stored_message_id": message_id}, f)
-        except OSError as e:
-            logger.error(f"[FinishedMusicMessage] Could not write stored_message_id.json: {e}", exc_info=True)
-
     @delete_and_repost_cycle.before_loop
     async def before_cycle(self):
-        """Wait for bot to be ready, then restore the stored message ID from disk."""
-        await self.client.wait_until_ready()
+        """Wait for the bot to be ready, then sweep the channel clean.
 
-        # Attempt to load a previously persisted message ID
+        Deleting every existing copy of MESSAGE_TEXT on startup makes the
+        channel self-healing: a message orphaned by an ill-timed crash
+        (posted but never tracked) is reclaimed here. The loop's immediate
+        first iteration then reposts, so exactly one copy ends up present.
+
+        The whole body is catch-all guarded: a before_loop exception is NOT
+        routed to the .error handler, so an unhandled error here would kill
+        the loop for good. Swallowing it lets the loop start regardless.
+        """
         try:
-            with open(STORED_MESSAGE_ID_PATH, "r") as f:
-                data = json.load(f)
-                persisted_id = data.get("stored_message_id")
-        except (OSError, json.JSONDecodeError):
-            persisted_id = None
+            await self.client.wait_until_ready()
+            self.stored_message_id = None
 
-        if persisted_id:
             channel = self.client.get_channel(int(self.stored_channel_id))
-            if channel:
-                try:
-                    await channel.fetch_message(persisted_id)
-                    self.stored_message_id = persisted_id
-                    logger.info(f"[FinishedMusicMessage] Restored stored_message_id {persisted_id} from disk.")
-                except (discord.NotFound, discord.HTTPException):
-                    logger.warning("[FinishedMusicMessage] Persisted message no longer exists; will create a new one on next cycle.")
-                    self.stored_message_id = None
-            else:
-                logger.error("[FinishedMusicMessage] Could not find the Finished Music channel during setup.")
+            if not channel:
+                logger.error("[FinishedMusicMessage] Finished Music channel not found during startup sweep.")
+                return
+
+            # The channel holds well under 50 messages, so one unpaginated
+            # history scan finds every stale copy the bot left behind.
+            swept = 0
+            async for message in channel.history(limit=50):
+                if message.author.id == self.client.user.id and message.content == self.MESSAGE_TEXT:
+                    try:
+                        await message.delete()
+                        swept += 1
+                    except discord.HTTPException as e:
+                        logger.warning(f"[FinishedMusicMessage] Could not delete stale message {message.id}: {e}")
+            if swept:
+                logger.info(f"[FinishedMusicMessage] Startup sweep removed {swept} stale message(s).")
+        except Exception:
+            logger.error("[FinishedMusicMessage] Startup sweep failed; loop will start anyway", exc_info=True)
 
 async def setup(bot):
     await bot.add_cog(FinishedMusicMessage(bot))

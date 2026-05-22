@@ -9,6 +9,7 @@ The cog is registered as `cogs.general` (this package). bot.py's extension
 loader treats the package and the old flat module identically.
 """
 
+import asyncio
 import logging
 
 import discord
@@ -69,6 +70,14 @@ class General(commands.Cog):
         """Periodically clear stale message IDs — entries older than ~1 hour were never matched."""
         if self.feedback.deleted_messages:
             self.feedback.deleted_messages.clear()
+
+    @cleanup_deleted_messages.error
+    async def cleanup_deleted_messages_error(self, error):
+        logger.error("cleanup_deleted_messages task crashed: %r", error, exc_info=error)
+        # Back off before restarting so a persistent failure can't tight-loop.
+        await asyncio.sleep(300)
+        if not self.cleanup_deleted_messages.is_running():
+            self.cleanup_deleted_messages.restart()
 
     async def cog_command_error(self, ctx: commands.Context, error: Exception):
         if isinstance(error, commands.CommandOnCooldown):

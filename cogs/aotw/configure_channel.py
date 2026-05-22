@@ -307,7 +307,10 @@ __Voting Guidelines:__
 
     @voting_reminder_task.error
     async def voting_reminder_task_error(self, error):
-        logger.error("Voting reminder task crashed: %r", error)
+        # Log-only on purpose: this loop's lifecycle is bound to the AOTW
+        # voting window (started/stopped around the event). Auto-restarting
+        # it could resurrect reminders after voting has already ended.
+        logger.error("Voting reminder task crashed: %r", error, exc_info=error)
 
     def stop_voting_reminders(self):
         """Stop reminders when voting ends"""
