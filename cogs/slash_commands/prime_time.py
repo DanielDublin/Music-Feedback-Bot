@@ -761,12 +761,12 @@ class PrimeTime(commands.Cog):
     @app_commands.describe(minutes="Duration in minutes (default: 60, max: 480)")
     async def primetime_start(self, interaction: discord.Interaction, minutes: int = 60) -> None:
         if self._active:
-            await interaction.response.send_message("Prime Time is already active.", ephemeral=True)
+            await interaction.response.send_message("Prime Time is already active.")
             return
 
         if minutes <= 0 or minutes > _MAX_MINUTES:
             await interaction.response.send_message(
-                f"Duration must be between 1 and {_MAX_MINUTES} minutes.", ephemeral=True
+                f"Duration must be between 1 and {_MAX_MINUTES} minutes."
             )
             return
 
@@ -783,7 +783,7 @@ class PrimeTime(commands.Cog):
         _save_auto_state(self._auto_state)
 
         await interaction.response.send_message(
-            f"Prime Time started for {minutes} minute(s).", ephemeral=True
+            f"Prime Time started for {minutes} minute(s)."
         )
         await self._post_to_channels(_START_GIF, _build_start_text(minutes))
         logger.info("[PrimeTime] Started for %d minutes", minutes)
@@ -791,10 +791,10 @@ class PrimeTime(commands.Cog):
     @primetime_group.command(name="stop", description="Stop the active Prime Time event early")
     async def primetime_stop(self, interaction: discord.Interaction) -> None:
         if not self._active:
-            await interaction.response.send_message("No Prime Time event is active.", ephemeral=True)
+            await interaction.response.send_message("No Prime Time event is active.")
             return
 
-        await interaction.response.send_message("Prime Time stopped.", ephemeral=True)
+        await interaction.response.send_message("Prime Time stopped.")
         await self._end_prime_time()
         logger.info("[PrimeTime] Manually stopped")
 
@@ -855,14 +855,14 @@ class PrimeTime(commands.Cog):
         else:
             lines.append("• Last fire: _never_")
 
-        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        await interaction.response.send_message("\n".join(lines))
 
     @primetime_group.command(name="reset_cooldown", description="Clear the daily auto-trigger cooldown (admin testing)")
     async def primetime_reset_cooldown(self, interaction: discord.Interaction) -> None:
         self._auto_state["last_daily_auto_trigger_ts"] = None
         _save_auto_state(self._auto_state)
         await interaction.response.send_message(
-            "✅ Cleared daily cooldown.", ephemeral=True
+            "✅ Cleared daily cooldown."
         )
         logger.info("[PrimeTime] Daily cooldown cleared by %s", interaction.user)
 
@@ -886,7 +886,7 @@ class PrimeTime(commands.Cog):
             await self._clear_bi_weekly_progress_message()
             cleared.append("biweekly")
         await interaction.response.send_message(
-            f"✅ Cleared counter(s): {', '.join(cleared)}.", ephemeral=True
+            f"✅ Cleared counter(s): {', '.join(cleared)}."
         )
         logger.info("[PrimeTime] Counter(s) cleared by %s: %s", interaction.user, cleared)
 
@@ -900,7 +900,7 @@ class PrimeTime(commands.Cog):
                                  kind: app_commands.Choice[str], value: int) -> None:
         if value <= 0 or value > _GOAL_MAX:
             await interaction.response.send_message(
-                f"❌ Goal must be between 1 and {_GOAL_MAX}.", ephemeral=True
+                f"❌ Goal must be between 1 and {_GOAL_MAX}."
             )
             return
         if kind.value == "daily":
@@ -913,7 +913,6 @@ class PrimeTime(commands.Cog):
         await interaction.response.send_message(
             f"✅ {label} goal set to **{value}**. "
             f"(Note: nudge stages are tuned for the default goals and don't auto-scale.)",
-            ephemeral=True,
         )
         logger.info("[PrimeTime] %s goal set to %d by %s", label, value, interaction.user)
 
@@ -927,7 +926,7 @@ class PrimeTime(commands.Cog):
                                   kind: app_commands.Choice[str], value: int) -> None:
         if value < 0 or value > _COUNT_MAX:
             await interaction.response.send_message(
-                f"❌ Count must be between 0 and {_COUNT_MAX}.", ephemeral=True
+                f"❌ Count must be between 0 and {_COUNT_MAX}."
             )
             return
 
@@ -945,8 +944,7 @@ class PrimeTime(commands.Cog):
             )
             await interaction.response.send_message(
                 f"✅ Daily counter set to **{value}/{self._daily_goal}**.{extra}",
-                ephemeral=True,
-            )
+                )
         else:
             if value == 0:
                 self._reset_bi_weekly_after_consumption(now_ts)
@@ -965,8 +963,7 @@ class PrimeTime(commands.Cog):
                 window_note = f" Window unchanged; resets <t:{window_end_ts}:R>."
             await interaction.response.send_message(
                 f"✅ Bi-weekly counter set to **{value}/{self._bi_weekly_goal}**.{window_note}",
-                ephemeral=True,
-            )
+                )
         logger.info("[PrimeTime] %s counter set to %d by %s", kind.value, value, interaction.user)
 
     @primetime_group.command(name="stats", description="Cumulative Prime Time fire counts and last-fire times")
@@ -996,7 +993,7 @@ class PrimeTime(commands.Cog):
         else:
             lines.append("• Last bi-weekly fire: _never_")
 
-        await interaction.response.send_message("\n".join(lines), ephemeral=True)
+        await interaction.response.send_message("\n".join(lines))
 
     @primetime_group.command(name="force_fire", description="Force-fire an auto Prime Time (admin testing)")
     @app_commands.describe(kind="Which auto-trigger to fire as if its goal had been hit")
@@ -1009,11 +1006,11 @@ class PrimeTime(commands.Cog):
         if self._active:
             await interaction.response.send_message(
                 f"❌ A `{self._active_kind}` Prime Time is already active. "
-                "Stop it with `/primetime stop` first.", ephemeral=True
+                "Stop it with `/primetime stop` first."
             )
             return
 
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer()
         now_ts = time.time()
         if kind.value == "daily":
             count = max(self._daily_goal, len(self._recent_feedbacks))
@@ -1028,7 +1025,7 @@ class PrimeTime(commands.Cog):
             self._auto_state["last_bi_weekly_auto_trigger_ts"] = now_ts
             self._reset_bi_weekly_after_consumption(now_ts)
         await interaction.followup.send(
-            f"✅ Force-fired `{kind.value}` Prime Time.", ephemeral=True
+            f"✅ Force-fired `{kind.value}` Prime Time."
         )
         logger.info("[PrimeTime] Force-fired %s by %s", kind.value, interaction.user)
 
