@@ -216,6 +216,26 @@ def _log_task_error(task: asyncio.Task[None]) -> None:
         logger.error("[PrimeTime] Timer task raised: %r", task.exception())
 
 
+def _bar(count: int, goal: int, width: int = 20) -> str:
+    filled = min(width, round(width * count / max(1, goal)))
+    return "█" * filled + "░" * (width - filled)
+
+
+def _pt_card(title: str, color: discord.Color, *blocks: str) -> discord.ui.LayoutView:
+    """Build a Components V2 card: title on top, body blocks separated by
+    large separators, all wrapped in a color-accented container."""
+    items: list[discord.ui.Item] = [discord.ui.TextDisplay(f"## {title}")]
+    for block in blocks:
+        if block is None:
+            continue
+        items.append(discord.ui.Separator(visible=True, spacing=discord.SeparatorSpacing.large))
+        items.append(discord.ui.TextDisplay(block))
+    container = discord.ui.Container(*items, accent_color=color)
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(container)
+    return view
+
+
 class PrimeTime(commands.Cog):
     primetime_group = app_commands.Group(
         name="primetime",
@@ -801,38 +821,39 @@ class PrimeTime(commands.Cog):
     @primetime_group.command(name="status", description="Full Prime Time status: active event + auto-trigger state")
     async def primetime_status(self, interaction: discord.Interaction) -> None:
         now_ts = int(time.time())
-        lines: list[str] = ["🎟️ **Prime Time Status**"]
 
         # Active event block
-        lines.append("")
-        lines.append("**Active event:**")
+        active_lines = ["### 🎬 Active Event"]
         if self._active and self._start_time is not None:
             start_ts = int(self._start_time.timestamp())
             end_ts = start_ts + self._duration * 60
             remaining = max(0, end_ts - now_ts)
             mins, secs = divmod(remaining, 60)
-            lines.append(f"• Kind: `{self._active_kind}`")
-            lines.append(f"• Started: <t:{start_ts}:F>")
-            lines.append(f"• Ends: <t:{end_ts}:F> (<t:{end_ts}:R>)")
-            lines.append(f"• Remaining: **{mins}m {secs}s** of {self._duration} min total")
+            active_lines.append(f"• Kind: `{self._active_kind}`")
+            active_lines.append(f"• Started: <t:{start_ts}:F>")
+            active_lines.append(f"• Ends: <t:{end_ts}:F> (<t:{end_ts}:R>)")
+            active_lines.append(f"• Remaining: **{mins}m {secs}s** of {self._duration} min total")
         else:
-            lines.append("• _None_")
+            active_lines.append("_No Prime Time is currently active._")
 
         # Daily auto block
         daily_goal = self._daily_goal
-        lines.append("")
-        lines.append(f"**Daily auto-trigger** ({daily_goal}/hr rolling, 24h cooldown):")
-        lines.append(f"• Rolling counter: **{len(self._recent_feedbacks)}/{daily_goal}** in last 60 min")
+        daily_count = len(self._recent_feedbacks)
+        daily_lines = [
+            f"### ⏱️ Daily Auto-Trigger",
+            f"_{daily_goal}/hr rolling · 24h cooldown_",
+            f"`{_bar(daily_count, daily_goal)}` **{daily_count}/{daily_goal}** in last 60 min",
+        ]
         last_d = self._auto_state.get("last_daily_auto_trigger_ts")
         if last_d:
             next_d = int(last_d) + _DAILY_COOLDOWN_HOURS * 3600
-            lines.append(f"• Last fire: <t:{int(last_d)}:F>")
+            daily_lines.append(f"• Last fire: <t:{int(last_d)}:F>")
             if now_ts < next_d:
-                lines.append(f"• Next eligible: <t:{next_d}:F> (<t:{next_d}:R>)")
+                daily_lines.append(f"• Next eligible: <t:{next_d}:F> (<t:{next_d}:R>)")
             else:
-                lines.append("• Cooldown elapsed — eligible now")
+                daily_lines.append("• Cooldown elapsed — **eligible now**")
         else:
-            lines.append("• Last fire: _never_ — eligible now")
+            daily_lines.append("• Last fire: _never_ — **eligible now**")
 
         # Bi-weekly auto block
         bw_goal = self._bi_weekly_goal
@@ -840,30 +861,42 @@ class PrimeTime(commands.Cog):
         bw_start = self._auto_state.get("bi_weekly_window_start_ts")
         last_b = self._auto_state.get("last_bi_weekly_auto_trigger_ts")
 
-        lines.append("")
-        lines.append(f"**Bi-weekly auto-trigger** ({bw_goal} quality MFRs across {_BI_WEEKLY_WINDOW_DAYS} days, any day):")
-        lines.append(f"• Counter: **{bw_count}/{bw_goal}**")
+        bw_lines = [
+            f"### 🎪 Bi-Weekly Auto-Trigger",
+            f"_{bw_goal} quality MFRs across {_BI_WEEKLY_WINDOW_DAYS} days, any day_",
+            f"`{_bar(bw_count, bw_goal)}` **{bw_count}/{bw_goal}**",
+        ]
         if bw_start:
             bw_start_ts = int(float(bw_start))
             bw_end_ts = bw_start_ts + _BI_WEEKLY_WINDOW_DAYS * 86400
-            lines.append(f"• Window opened: <t:{bw_start_ts}:F>")
-            lines.append(f"• Window resets: <t:{bw_end_ts}:F> (<t:{bw_end_ts}:R>)")
+            bw_lines.append(f"• Window opened: <t:{bw_start_ts}:F>")
+            bw_lines.append(f"• Window resets: <t:{bw_end_ts}:F> (<t:{bw_end_ts}:R>)")
         else:
-            lines.append("• Window: _not started yet — next quality MFR opens it_")
+            bw_lines.append("• Window: _not started yet — next quality MFR opens it_")
         if last_b:
-            lines.append(f"• Last fire: <t:{int(last_b)}:F>")
+            bw_lines.append(f"• Last fire: <t:{int(last_b)}:F>")
         else:
-            lines.append("• Last fire: _never_")
+            bw_lines.append("• Last fire: _never_")
 
-        await interaction.response.send_message("\n".join(lines))
+        view = _pt_card(
+            "🎟️ Prime Time Status",
+            discord.Color.gold(),
+            "\n".join(active_lines),
+            "\n".join(daily_lines),
+            "\n".join(bw_lines),
+        )
+        await interaction.response.send_message(view=view)
 
     @primetime_group.command(name="reset_cooldown", description="Clear the daily auto-trigger cooldown (admin testing)")
     async def primetime_reset_cooldown(self, interaction: discord.Interaction) -> None:
         self._auto_state["last_daily_auto_trigger_ts"] = None
         _save_auto_state(self._auto_state)
-        await interaction.response.send_message(
-            "✅ Cleared daily cooldown."
+        view = _pt_card(
+            "✅ Daily Cooldown Cleared",
+            discord.Color.blurple(),
+            "The next daily-goal hit can fire Prime Time again.",
         )
+        await interaction.response.send_message(view=view)
         logger.info("[PrimeTime] Daily cooldown cleared by %s", interaction.user)
 
     @primetime_group.command(name="reset_counter", description="Clear an auto-trigger counter (admin testing)")
@@ -885,9 +918,13 @@ class PrimeTime(commands.Cog):
             self._reset_bi_weekly_after_consumption(time.time())
             await self._clear_bi_weekly_progress_message()
             cleared.append("biweekly")
-        await interaction.response.send_message(
-            f"✅ Cleared counter(s): {', '.join(cleared)}."
+        body_lines = [f"• `{c}`" for c in cleared]
+        view = _pt_card(
+            "✅ Counters Cleared",
+            discord.Color.blurple(),
+            "\n".join(body_lines),
         )
+        await interaction.response.send_message(view=view)
         logger.info("[PrimeTime] Counter(s) cleared by %s: %s", interaction.user, cleared)
 
     @primetime_group.command(name="set_goal", description="Set a goal (cap) for a Prime Time auto-trigger")
@@ -899,9 +936,12 @@ class PrimeTime(commands.Cog):
     async def primetime_set_goal(self, interaction: discord.Interaction,
                                  kind: app_commands.Choice[str], value: int) -> None:
         if value <= 0 or value > _GOAL_MAX:
-            await interaction.response.send_message(
-                f"❌ Goal must be between 1 and {_GOAL_MAX}."
+            view = _pt_card(
+                "❌ Invalid Goal",
+                discord.Color.red(),
+                f"Goal must be between 1 and {_GOAL_MAX}.",
             )
+            await interaction.response.send_message(view=view)
             return
         if kind.value == "daily":
             self._auto_state["daily_goal"] = value
@@ -910,10 +950,13 @@ class PrimeTime(commands.Cog):
             self._auto_state["bi_weekly_goal"] = value
             label = "Bi-weekly"
         _save_auto_state(self._auto_state)
-        await interaction.response.send_message(
-            f"✅ {label} goal set to **{value}**. "
-            f"(Note: nudge stages are tuned for the default goals and don't auto-scale.)",
+        view = _pt_card(
+            f"✅ {label} Goal Updated",
+            discord.Color.blurple(),
+            f"New goal: **{value}**",
+            "⚠️ Nudge stages are tuned for the default goals and don't auto-scale.",
         )
+        await interaction.response.send_message(view=view)
         logger.info("[PrimeTime] %s goal set to %d by %s", label, value, interaction.user)
 
     @primetime_group.command(name="set_count", description="Set the current counter for a Prime Time auto-trigger")
@@ -925,9 +968,12 @@ class PrimeTime(commands.Cog):
     async def primetime_set_count(self, interaction: discord.Interaction,
                                   kind: app_commands.Choice[str], value: int) -> None:
         if value < 0 or value > _COUNT_MAX:
-            await interaction.response.send_message(
-                f"❌ Count must be between 0 and {_COUNT_MAX}."
+            view = _pt_card(
+                "❌ Invalid Count",
+                discord.Color.red(),
+                f"Count must be between 0 and {_COUNT_MAX}.",
             )
+            await interaction.response.send_message(view=view)
             return
 
         now_ts = time.time()
@@ -937,19 +983,26 @@ class PrimeTime(commands.Cog):
                 self._recent_feedbacks.append(now_ts)
             self._last_nudge_stage = self._nudge_stage_for(value)
             self._persist_daily_rolling()
-            extra = (
-                "\n⚠️ All injected entries share the same timestamp, so they'll "
-                "all expire from the 60-min window together."
-                if value > 0 else ""
-            )
-            await interaction.response.send_message(
-                f"✅ Daily counter set to **{value}/{self._daily_goal}**.{extra}",
+            goal = self._daily_goal
+            blocks: list[str] = [
+                f"`{_bar(value, goal)}` **{value}/{goal}** in last 60 min",
+            ]
+            if value > 0:
+                blocks.append(
+                    "⚠️ All injected entries share the same timestamp, so they'll "
+                    "all expire from the 60-min window together."
                 )
+            view = _pt_card(
+                "✅ Daily Counter Updated",
+                discord.Color.blurple(),
+                *blocks,
+            )
+            await interaction.response.send_message(view=view)
         else:
             if value == 0:
                 self._reset_bi_weekly_after_consumption(now_ts)
                 await self._clear_bi_weekly_progress_message()
-                window_note = " Window reset; fresh 14-day cycle starts now."
+                window_note = "Window reset; fresh 14-day cycle starts now."
             else:
                 # Preserve current window; just rewrite the count and recompute
                 # the nudge marker.
@@ -960,10 +1013,15 @@ class PrimeTime(commands.Cog):
                 _save_auto_state(self._auto_state)
                 window_start = self._auto_state.get("bi_weekly_window_start_ts")
                 window_end_ts = int(float(window_start) + _BI_WEEKLY_WINDOW_DAYS * 86400)
-                window_note = f" Window unchanged; resets <t:{window_end_ts}:R>."
-            await interaction.response.send_message(
-                f"✅ Bi-weekly counter set to **{value}/{self._bi_weekly_goal}**.{window_note}",
-                )
+                window_note = f"Window unchanged; resets <t:{window_end_ts}:R>."
+            goal = self._bi_weekly_goal
+            view = _pt_card(
+                "✅ Bi-Weekly Counter Updated",
+                discord.Color.blurple(),
+                f"`{_bar(value, goal)}` **{value}/{goal}**",
+                window_note,
+            )
+            await interaction.response.send_message(view=view)
         logger.info("[PrimeTime] %s counter set to %d by %s", kind.value, value, interaction.user)
 
     @primetime_group.command(name="stats", description="Cumulative Prime Time fire counts and last-fire times")
@@ -974,26 +1032,34 @@ class PrimeTime(commands.Cog):
         extensions = int(self._auto_state.get("extension_count", 0))
         total = daily + bi_weekly + manual
 
-        lines: list[str] = ["📊 **Prime Time Stats** _(since counters were introduced)_", ""]
-        lines.append(f"• Total fires: **{total}**")
-        lines.append(f"  - Daily (auto): {daily}")
-        lines.append(f"  - Bi-weekly (auto): {bi_weekly}")
-        lines.append(f"  - Manual (slash command): {manual}")
-        lines.append(f"• Cross-kind extensions: **{extensions}**")
-        lines.append("")
+        totals_block = (
+            f"### 🎯 Fire Totals _(since counters were introduced)_\n"
+            f"• **{total}** total fires\n"
+            f"  · Daily (auto): **{daily}**\n"
+            f"  · Bi-weekly (auto): **{bi_weekly}**\n"
+            f"  · Manual (slash command): **{manual}**\n"
+            f"• Cross-kind extensions: **{extensions}**"
+        )
 
         last_d = self._auto_state.get("last_daily_auto_trigger_ts")
         last_b = self._auto_state.get("last_bi_weekly_auto_trigger_ts")
+        last_lines = ["### 🕒 Last Fires"]
         if last_d:
-            lines.append(f"• Last daily fire: <t:{int(last_d)}:F> (<t:{int(last_d)}:R>)")
+            last_lines.append(f"• Daily: <t:{int(last_d)}:F> (<t:{int(last_d)}:R>)")
         else:
-            lines.append("• Last daily fire: _never_")
+            last_lines.append("• Daily: _never_")
         if last_b:
-            lines.append(f"• Last bi-weekly fire: <t:{int(last_b)}:F> (<t:{int(last_b)}:R>)")
+            last_lines.append(f"• Bi-weekly: <t:{int(last_b)}:F> (<t:{int(last_b)}:R>)")
         else:
-            lines.append("• Last bi-weekly fire: _never_")
+            last_lines.append("• Bi-weekly: _never_")
 
-        await interaction.response.send_message("\n".join(lines))
+        view = _pt_card(
+            "📊 Prime Time Stats",
+            discord.Color.blurple(),
+            totals_block,
+            "\n".join(last_lines),
+        )
+        await interaction.response.send_message(view=view)
 
     @primetime_group.command(name="force_fire", description="Force-fire an auto Prime Time (admin testing)")
     @app_commands.describe(kind="Which auto-trigger to fire as if its goal had been hit")
@@ -1004,29 +1070,37 @@ class PrimeTime(commands.Cog):
     async def primetime_force_fire(self, interaction: discord.Interaction,
                                    kind: app_commands.Choice[str]) -> None:
         if self._active:
-            await interaction.response.send_message(
-                f"❌ A `{self._active_kind}` Prime Time is already active. "
-                "Stop it with `/primetime stop` first."
+            view = _pt_card(
+                "❌ Already Active",
+                discord.Color.red(),
+                f"A `{self._active_kind}` Prime Time is already running.\n"
+                "Stop it with `/primetime stop` first.",
             )
+            await interaction.response.send_message(view=view)
             return
 
         await interaction.response.defer()
         now_ts = time.time()
         if kind.value == "daily":
             count = max(self._daily_goal, len(self._recent_feedbacks))
-            await self._fire_auto("daily", _DAILY_DURATION_MINUTES, count=count)
+            duration_minutes = _DAILY_DURATION_MINUTES
+            await self._fire_auto("daily", duration_minutes, count=count)
             self._auto_state["last_daily_auto_trigger_ts"] = now_ts
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
             self._persist_daily_rolling()
         else:  # biweekly
             count = max(self._bi_weekly_goal, int(self._auto_state.get("bi_weekly_count", 0)))
-            await self._fire_auto("biweekly", _BI_WEEKLY_DURATION_MINUTES, count=count)
+            duration_minutes = _BI_WEEKLY_DURATION_MINUTES
+            await self._fire_auto("biweekly", duration_minutes, count=count)
             self._auto_state["last_bi_weekly_auto_trigger_ts"] = now_ts
             self._reset_bi_weekly_after_consumption(now_ts)
-        await interaction.followup.send(
-            f"✅ Force-fired `{kind.value}` Prime Time."
+        view = _pt_card(
+            "🎟️ Force-Fired",
+            discord.Color.red(),
+            f"Kind: `{kind.value}`\nDuration: **{duration_minutes} min**",
         )
+        await interaction.followup.send(view=view)
         logger.info("[PrimeTime] Force-fired %s by %s", kind.value, interaction.user)
 
 
