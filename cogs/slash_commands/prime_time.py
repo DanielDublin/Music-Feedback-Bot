@@ -33,75 +33,74 @@ _MAX_MINUTES = 480
 # ── Auto-trigger config ────────────────────────────────────────────────────
 # Daily: rolling-window goal that fires Prime Time once a real burst happens.
 _DAILY_WINDOW_SECONDS = 60 * 60          # count quality feedbacks in the last hour
-_DAILY_GOAL = 10                          # feedbacks to fire
+_DEFAULT_DAILY_GOAL = 5                  # default threshold; editable via /primetime set_goal
 _DAILY_DURATION_MINUTES = 60
 _DAILY_COOLDOWN_HOURS = 24
 
-# Saturday: rare big payoff. Counts quality feedbacks over a full UTC Saturday;
-# fires once when the goal is hit. 14-day cooldown so it's bi-weekly at best.
-_SATURDAY_GOAL = 50
-_SATURDAY_DURATION_MINUTES = 240          # 4 hours
-_SATURDAY_COOLDOWN_DAYS = 14
+# Bi-weekly: accumulates quality feedbacks across a 14-day window, any day.
+# Fires when the goal is reached; window resets on fire or on 14-day expiry.
+_DEFAULT_BI_WEEKLY_GOAL = 50             # default threshold; editable via /primetime set_goal
+_BI_WEEKLY_DURATION_MINUTES = 240        # 4 hours
+_BI_WEEKLY_WINDOW_DAYS = 14
+
+# Sanity cap for admin-editable values to guard against typos.
+_GOAL_MAX = 1000
+_COUNT_MAX = 1000
 
 # ── Build-up nudges ────────────────────────────────────────────────────────
 # As the rolling counter climbs toward the daily goal, post a single message
 # each time it crosses a new stage. Pools per stage so it doesn't get stale.
-# Goal-hit (count = _DAILY_GOAL) fires Prime Time itself and skips nudges.
-_NUDGE_STAGES = (3, 5, 7, 9)
+# Goal-hit (count = daily_goal) fires Prime Time itself and skips nudges.
+# Stages are sized for the default goal of 5; they don't scale automatically
+# if the goal is edited.
+_NUDGE_STAGES = (2, 3, 4)
 
-# Saturday nudges fire as the saturday_count climbs across the Saturday-UTC
-# window. Festival theming to set the bi-weekly headliner apart from the
-# nightly daily show.
-_SATURDAY_NUDGE_STAGES = (10, 25, 40, 49)
+# Bi-weekly nudges fire as bi_weekly_count climbs across the 14-day window.
+# Festival theming, day-agnostic. Stages tuned for the default goal of 50.
+_BI_WEEKLY_NUDGE_STAGES = (10, 25, 40, 49)
 
-_SATURDAY_NUDGES: dict[int, list[str]] = {
+_BI_WEEKLY_NUDGES: dict[int, list[str]] = {
     10: [
-        "🎪 **Bi-weekly Saturday show** selling tickets · **{count}/{goal}** quality MFRs today.",
-        "🎟️ Stage going up for the **bi-weekly headliner** · **{count}/{goal}** today.",
-        "🚛 Gear's loading in for **today's bi-weekly Saturday set** · **{count}/{goal}**.",
-        "🎤 Opener's set — **today's bi-weekly show** forming · **{count}/{goal}**.",
+        "🎪 **Bi-weekly Headliner Tour** kicking off · **{count}/{goal}** quality MFRs banked.",
+        "🎟️ Stage going up for the **bi-weekly headliner** · **{count}/{goal}**.",
+        "🚛 Gear's loading in for the **bi-weekly main event** · **{count}/{goal}**.",
+        "🎤 Opener's set — **bi-weekly show** forming · **{count}/{goal}**.",
     ],
     25: [
-        "🎸 Half-house · **{count}/{goal}**. **Bi-weekly Saturday headliner** warming up backstage.",
-        "🥁 Main stage filling · **{count}/{goal}**. Halfway to **today's bi-weekly Saturday show**.",
+        "🎸 Half-house · **{count}/{goal}**. **Bi-weekly headliner** warming up backstage.",
+        "🥁 Main stage filling · **{count}/{goal}**. Halfway to the **bi-weekly show**.",
         "🎶 Mid-festival energy · **{count}/{goal}**. {remaining} away from the bi-weekly headliner.",
-        "🎟️ Half the tickets sold · **{count}/{goal}** quality feedbacks for **today's bi-weekly set**.",
+        "🎟️ Half the tickets sold · **{count}/{goal}** quality feedbacks for the **bi-weekly set**.",
     ],
     40: [
         "🔊 **Bi-weekly headliner** about to take stage · **{count}/{goal}**. {remaining} more to fire.",
-        "🎶 Lights dimming on the main stage · **{count}/{goal}**. {remaining} to go on **today's bi-weekly Saturday**.",
+        "🎶 Lights dimming on the main stage · **{count}/{goal}**. {remaining} to go on the **bi-weekly show**.",
         "🎤 Backstage announces the **bi-weekly headliner** · **{count}/{goal}**. {remaining} away.",
-        "🎸 Crowd packing in for **today's bi-weekly main event** · **{count}/{goal}**.",
+        "🎸 Crowd packing in for the **bi-weekly main event** · **{count}/{goal}**.",
     ],
     49: [
-        "🎟️ Curtain rising on **today's bi-weekly Saturday show** · **{count}/{goal}**. One quality `<MFR` away.",
-        "🔥 **Bi-weekly Saturday headliner** one feedback away · **{count}/{goal}**.",
-        "🎤 Spotlight's on · **{count}/{goal}**. One more for **today's bi-weekly main event**.",
-        "🎶 Final ticket at the door for **today's bi-weekly show** · **{count}/{goal}**. One quality `<MFR` and lights go down.",
+        "🎟️ Curtain rising on the **bi-weekly show** · **{count}/{goal}**. One quality `<MFR` away.",
+        "🔥 **Bi-weekly headliner** one feedback away · **{count}/{goal}**.",
+        "🎤 Spotlight's on · **{count}/{goal}**. One more for the **bi-weekly main event**.",
+        "🎶 Final ticket at the door for the **bi-weekly show** · **{count}/{goal}**. One quality `<MFR` and lights go down.",
     ],
 }
 
 
 _NUDGES: dict[int, list[str]] = {
-    3: [
+    2: [
         "🎤 Opener's warming up · **{count}/{goal}** quality MFRs in the hour.",
         "🥁 Soundcheck · **{count}/{goal}**. The setlist's forming.",
         "🎶 Doors are open · **{count}/{goal}** quality feedbacks tracking.",
         "🎸 First song landed · **{count}/{goal}**. Crowd's filing in.",
     ],
-    5: [
+    3: [
         "🎸 Mid-set vibes · **{count}/{goal}**. Halfway to the encore call.",
         "🎤 Set's in full swing · **{count}/{goal}**. {remaining} songs from encore.",
-        "🥁 Halfway through · **{count}/{goal}**. The crowd's locked in.",
+        "🥁 Past halfway · **{count}/{goal}**. The crowd's locked in.",
         "🎶 Mid-set energy · **{count}/{goal}**. {remaining} more 'til the encore.",
     ],
-    7: [
-        "🎶 Headliner's on deck · **{count}/{goal}**. {remaining} songs to go.",
-        "🔊 Building to the headliner · **{count}/{goal}**. {remaining} more quality MFRs.",
-        "🎸 Stage lights warming · **{count}/{goal}**. {remaining} before the closer.",
-        "🎤 Closer's getting ready · **{count}/{goal}**. {remaining} away.",
-    ],
-    9: [
+    4: [
         "🔥 Encore loaded · **{count}/{goal}**. One more and the lights go down.",
         "🎤 Crowd's chanting · **{count}/{goal}**. One quality `<MFR` to bring it home.",
         "🎶 Last song queued · **{count}/{goal}**. One more.",
@@ -115,25 +114,31 @@ _STATE_FILE = Path(__file__).resolve().parent.parent.parent / "data" / "prime_ti
 def _load_auto_state() -> dict:
     default = {
         "last_daily_auto_trigger_ts": None,
-        "last_saturday_auto_trigger_ts": None,
-        "saturday_window_start_ts": None,
-        "saturday_count": 0,
-        # Highest Saturday nudge stage already posted for the current window —
-        # persisted so a restart mid-Saturday doesn't re-post the same nudge.
-        "last_saturday_nudge_stage": 0,
+        "last_bi_weekly_auto_trigger_ts": None,
+        "bi_weekly_window_start_ts": None,
+        "bi_weekly_count": 0,
+        # Highest bi-weekly nudge stage already posted for the current window —
+        # persisted so a restart mid-window doesn't re-post the same nudge.
+        "last_bi_weekly_nudge_stage": 0,
+        # Persisted daily rolling deque — list of epoch timestamps. Rebuilt
+        # into _recent_feedbacks on startup, pruned to the trailing 60 min.
+        "daily_rolling_ts": [],
+        # Admin-editable goals; default to the module constants.
+        "daily_goal": _DEFAULT_DAILY_GOAL,
+        "bi_weekly_goal": _DEFAULT_BI_WEEKLY_GOAL,
         # Active-event snapshot — persisted so a restart mid-event can resume
         # the 2x window instead of silently losing it.
-        "active_kind": None,           # "manual" | "daily" | "saturday"
+        "active_kind": None,           # "manual" | "daily" | "biweekly"
         "active_start_ts": None,       # epoch seconds
         "active_duration_minutes": 0,
-        # Live "Saturday progress" message in GENERAL_CHAT_CHANNEL_ID. Updated
-        # in place on each quality feedback during a Saturday window; cleared
-        # when the window ends or Saturday Prime Time fires.
-        "saturday_progress_message_id": None,
-        "saturday_progress_channel_id": None,
+        # Live "Bi-weekly progress" message in GENERAL_CHAT_CHANNEL_ID. Updated
+        # in place on each quality feedback; cleared when the window resets
+        # or bi-weekly Prime Time fires.
+        "bi_weekly_progress_message_id": None,
+        "bi_weekly_progress_channel_id": None,
         # Cumulative fire/extension counters surfaced via /primetime stats.
         "daily_fire_count": 0,
-        "saturday_fire_count": 0,
+        "bi_weekly_fire_count": 0,
         "manual_fire_count": 0,
         "extension_count": 0,
     }
@@ -142,12 +147,37 @@ def _load_auto_state() -> dict:
     try:
         with _STATE_FILE.open("r", encoding="utf-8") as f:
             data = json.load(f)
-        for k, v in default.items():
-            data.setdefault(k, v)
-        return data
     except Exception:
         logger.error("Could not load prime-time auto-trigger state; starting fresh", exc_info=True)
         return default
+
+    _migrate_saturday_keys(data)
+    for k, v in default.items():
+        data.setdefault(k, v)
+    return data
+
+
+def _migrate_saturday_keys(data: dict) -> None:
+    """One-time rename of legacy saturday_* keys to bi_weekly_*.
+
+    Copies old → new only when the old key exists and the new one is absent.
+    Also rewrites active_kind == 'saturday' to 'biweekly' so an in-flight
+    Saturday event resumes correctly under the new naming.
+    """
+    renames = (
+        ("saturday_count", "bi_weekly_count"),
+        ("saturday_window_start_ts", "bi_weekly_window_start_ts"),
+        ("last_saturday_nudge_stage", "last_bi_weekly_nudge_stage"),
+        ("saturday_progress_message_id", "bi_weekly_progress_message_id"),
+        ("saturday_progress_channel_id", "bi_weekly_progress_channel_id"),
+        ("saturday_fire_count", "bi_weekly_fire_count"),
+        ("last_saturday_auto_trigger_ts", "last_bi_weekly_auto_trigger_ts"),
+    )
+    for old, new in renames:
+        if old in data and new not in data:
+            data[new] = data[old]
+    if data.get("active_kind") == "saturday":
+        data["active_kind"] = "biweekly"
 
 
 def _save_auto_state(state: dict) -> None:
@@ -156,24 +186,6 @@ def _save_auto_state(state: dict) -> None:
     with tmp.open("w", encoding="utf-8") as f:
         json.dump(state, f)
     os.replace(tmp, _STATE_FILE)
-
-
-def _saturday_window_start(now: datetime) -> datetime | None:
-    """Return midnight UTC of the current Saturday if `now` is on a Saturday,
-    else None. weekday(): Monday=0 .. Saturday=5."""
-    if now.weekday() != 5:
-        return None
-    return now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def _next_saturday_window_start(now: datetime) -> datetime:
-    """Return midnight UTC of the next upcoming Saturday — today if it's
-    Saturday, otherwise the closest future one."""
-    days_until_sat = (5 - now.weekday()) % 7
-    target = (now + timedelta(days=days_until_sat)).replace(
-        hour=0, minute=0, second=0, microsecond=0,
-    )
-    return target
 
 
 def _build_start_text(minutes: int) -> str:
@@ -220,16 +232,69 @@ class PrimeTime(commands.Cog):
         self._timer_task: asyncio.Task[None] | None = None
 
         # Auto-trigger state
+        self._auto_state: dict = _load_auto_state()
         self._recent_feedbacks: deque[float] = deque()
+        self._restore_daily_rolling()
+
         # Highest hype-train stage we've already announced this cycle. Reset
         # to 0 when the rolling window dips below the first stage or after
         # Prime Time fires.
-        self._last_nudge_stage: int = 0
-        self._auto_state: dict = _load_auto_state()
+        self._last_nudge_stage: int = self._nudge_stage_for(len(self._recent_feedbacks))
         self._auto_trigger_lock: asyncio.Lock = asyncio.Lock()
         # Tracks whether the *current* active event was auto-triggered (daily
-        # or saturday) — controls which extension cap to apply.
-        self._active_kind: str | None = None  # "manual" | "daily" | "saturday"
+        # or biweekly) — controls which extension branch to apply.
+        self._active_kind: str | None = None  # "manual" | "daily" | "biweekly"
+
+    # ── State helpers ─────────────────────────────────────────────────────────
+
+    @property
+    def _daily_goal(self) -> int:
+        return int(self._auto_state.get("daily_goal", _DEFAULT_DAILY_GOAL))
+
+    @property
+    def _bi_weekly_goal(self) -> int:
+        return int(self._auto_state.get("bi_weekly_goal", _DEFAULT_BI_WEEKLY_GOAL))
+
+    def _restore_daily_rolling(self) -> None:
+        """Rebuild _recent_feedbacks from persisted timestamps, pruning to
+        the trailing 60 minutes. Save back if anything was dropped."""
+        raw = self._auto_state.get("daily_rolling_ts") or []
+        cutoff = time.time() - _DAILY_WINDOW_SECONDS
+        survivors = [float(ts) for ts in raw if float(ts) >= cutoff]
+        survivors.sort()
+        self._recent_feedbacks.clear()
+        for ts in survivors:
+            self._recent_feedbacks.append(ts)
+        if len(survivors) != len(raw):
+            self._auto_state["daily_rolling_ts"] = survivors
+            _save_auto_state(self._auto_state)
+
+    def _persist_daily_rolling(self) -> None:
+        self._auto_state["daily_rolling_ts"] = list(self._recent_feedbacks)
+        _save_auto_state(self._auto_state)
+
+    def _nudge_stage_for(self, count: int) -> int:
+        return max((s for s in _NUDGE_STAGES if s <= count), default=0)
+
+    def _bi_weekly_nudge_stage_for(self, count: int) -> int:
+        return max((s for s in _BI_WEEKLY_NUDGE_STAGES if s <= count), default=0)
+
+    def _maybe_reset_bi_weekly_window(self, now_ts: float) -> bool:
+        """Reset the bi-weekly window if it's been open ≥ 14 days without firing.
+        Returns True if a reset occurred."""
+        start = self._auto_state.get("bi_weekly_window_start_ts")
+        if start is None:
+            return False
+        if now_ts - float(start) < _BI_WEEKLY_WINDOW_DAYS * 86400:
+            return False
+        self._auto_state["bi_weekly_count"] = 0
+        self._auto_state["bi_weekly_window_start_ts"] = now_ts
+        self._auto_state["last_bi_weekly_nudge_stage"] = 0
+        _save_auto_state(self._auto_state)
+        # Live progress message is per-window; tear it down on reset.
+        asyncio.create_task(self._clear_bi_weekly_progress_message())
+        logger.info("[PrimeTime] Bi-weekly window expired without firing — counter reset")
+        return True
 
     # ── Public API used by other cogs ────────────────────────────────────────
 
@@ -308,7 +373,11 @@ class PrimeTime(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """Resume a Prime Time event that was active when the bot went down."""
+        """Resume a Prime Time event that was active when the bot went down,
+        and reconcile the bi-weekly window in case it expired during downtime."""
+        # Bi-weekly window expiration check on every ready (cheap, idempotent).
+        self._maybe_reset_bi_weekly_window(time.time())
+
         if self._active:
             # Already resumed — guard against on_ready firing twice.
             return
@@ -351,20 +420,19 @@ class PrimeTime(commands.Cog):
     async def record_quality_feedback(self) -> None:
         """Called by FeedbackMonitor for every ML-pass `<MFR` submission.
 
-        Maintains a rolling 60-min counter and a Saturday-day counter, and
+        Maintains a rolling 60-min counter and a 14-day bi-weekly counter, and
         fires (or extends) Prime Time when their thresholds are crossed.
         Errors here must not break the feedback pipeline — every public path
         is wrapped in try/except."""
         try:
             async with self._auto_trigger_lock:
                 now_ts = time.time()
-                now_dt = datetime.now(timezone.utc)
 
                 self._record_rolling(now_ts)
-                self._record_saturday(now_dt)
+                self._record_bi_weekly(now_ts)
 
                 await self._evaluate_daily(now_ts)
-                await self._evaluate_saturday(now_ts, now_dt)
+                await self._evaluate_bi_weekly(now_ts)
         except Exception:
             logger.error("[PrimeTime] record_quality_feedback failed", exc_info=True)
 
@@ -377,32 +445,29 @@ class PrimeTime(commands.Cog):
             # Burst fizzled below the first hype stage — reset so a fresh
             # burst can hype-train again from the start.
             self._last_nudge_stage = 0
+        self._persist_daily_rolling()
 
-    def _record_saturday(self, now_dt: datetime) -> None:
-        marker = _saturday_window_start(now_dt)
-        if marker is None:
-            return
-        marker_ts = marker.timestamp()
-        stored = self._auto_state.get("saturday_window_start_ts")
-        if stored != marker_ts:
-            # New Saturday window — reset counter, nudge stage, and drop any
-            # progress message from a previous Saturday so this Saturday's
-            # display starts fresh.
-            asyncio.create_task(self._clear_saturday_progress_message())
-            self._auto_state["saturday_window_start_ts"] = marker_ts
-            self._auto_state["saturday_count"] = 0
-            self._auto_state["last_saturday_nudge_stage"] = 0
-        self._auto_state["saturday_count"] = int(self._auto_state.get("saturday_count", 0)) + 1
+    def _record_bi_weekly(self, now_ts: float) -> None:
+        # First MFR after a fresh state file — stamp the window-start.
+        if self._auto_state.get("bi_weekly_window_start_ts") is None:
+            self._auto_state["bi_weekly_window_start_ts"] = now_ts
+            self._auto_state["bi_weekly_count"] = 0
+            self._auto_state["last_bi_weekly_nudge_stage"] = 0
+        # Reset on window expiry (≥ 14 days). After this, the upcoming bump
+        # starts a fresh window's count at 1.
+        self._maybe_reset_bi_weekly_window(now_ts)
+        self._auto_state["bi_weekly_count"] = int(self._auto_state.get("bi_weekly_count", 0)) + 1
         _save_auto_state(self._auto_state)
 
     async def _evaluate_daily(self, now_ts: float) -> None:
         count = len(self._recent_feedbacks)
-        if count < _DAILY_GOAL:
+        goal = self._daily_goal
+        if count < goal:
             # Below the goal — maybe post a build-up nudge.
             if self._active:
                 # Don't nudge while Prime Time is already running.
                 return
-            new_stage = max((s for s in _NUDGE_STAGES if s <= count), default=0)
+            new_stage = self._nudge_stage_for(count)
             if new_stage > self._last_nudge_stage:
                 await self._post_daily_progress(count, new_stage)
                 self._last_nudge_stage = new_stage
@@ -414,22 +479,25 @@ class PrimeTime(commands.Cog):
             # On cooldown — just drain the burst so we don't re-check on every tick.
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
+            self._persist_daily_rolling()
             return
 
         if self._active and self._active_kind in ("daily", "manual"):
             # Same-kind re-trigger or admin-set event — drain the burst, no extension.
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
+            self._persist_daily_rolling()
             return
 
-        if self._active and self._active_kind == "saturday":
+        if self._active and self._active_kind == "biweekly":
             # Cross-kind overlap — Daily would have fired during an active
-            # Saturday. Stack its duration onto the remaining Saturday window.
-            await self._extend_active(_DAILY_DURATION_MINUTES, "daily goal hit during the bi-weekly Saturday show")
+            # Bi-weekly. Stack its duration onto the remaining window.
+            await self._extend_active(_DAILY_DURATION_MINUTES, "daily goal hit during the bi-weekly show")
             self._auto_state["last_daily_auto_trigger_ts"] = now_ts
             _save_auto_state(self._auto_state)
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
+            self._persist_daily_rolling()
             return
 
         # Nothing active — fire fresh.
@@ -438,105 +506,99 @@ class PrimeTime(commands.Cog):
         _save_auto_state(self._auto_state)
         self._recent_feedbacks.clear()
         self._last_nudge_stage = 0
+        self._persist_daily_rolling()
 
-    async def _evaluate_saturday(self, now_ts: float, now_dt: datetime) -> None:
-        if _saturday_window_start(now_dt) is None:
-            return
-        count = int(self._auto_state.get("saturday_count", 0))
+    async def _evaluate_bi_weekly(self, now_ts: float) -> None:
+        count = int(self._auto_state.get("bi_weekly_count", 0))
+        goal = self._bi_weekly_goal
 
-        if count < _SATURDAY_GOAL:
-            # Below the goal — refresh the live progress message (skipped if
-            # already fired today or on cooldown) and maybe post a stage nudge.
+        if count < goal:
+            # Below the goal — refresh the live progress message and maybe
+            # post a stage nudge. Skip both while a Prime Time is active so
+            # we don't double-up announcements.
             if not self._active:
-                await self._sync_saturday_progress_message(count, now_ts)
-                new_stage = max((s for s in _SATURDAY_NUDGE_STAGES if s <= count), default=0)
-                last_sat_stage = int(self._auto_state.get("last_saturday_nudge_stage", 0))
-                if new_stage > last_sat_stage:
-                    await self._post_saturday_progress(count, new_stage)
-                    self._auto_state["last_saturday_nudge_stage"] = new_stage
+                await self._sync_bi_weekly_progress_message(count)
+                new_stage = self._bi_weekly_nudge_stage_for(count)
+                last_stage = int(self._auto_state.get("last_bi_weekly_nudge_stage", 0))
+                if new_stage > last_stage:
+                    await self._post_bi_weekly_progress(count, new_stage)
+                    self._auto_state["last_bi_weekly_nudge_stage"] = new_stage
                     _save_auto_state(self._auto_state)
             return
 
-        last = self._auto_state.get("last_saturday_auto_trigger_ts")
-        if last is not None and now_ts - last < _SATURDAY_COOLDOWN_DAYS * 86400:
-            # On cooldown — leave saturday_count alone; the next Saturday
-            # window will reset it on its own via _record_saturday.
-            return
-
-        if self._active and self._active_kind in ("saturday", "manual"):
-            # Same-kind re-trigger or admin-set event — drain the counter.
-            self._auto_state["saturday_count"] = 0
-            self._auto_state["last_saturday_nudge_stage"] = 0
-            _save_auto_state(self._auto_state)
+        if self._active and self._active_kind in ("biweekly", "manual"):
+            # Same-kind re-trigger or admin-set event — reset window and counter,
+            # no extension. The next 14-day cycle starts fresh.
+            self._reset_bi_weekly_after_consumption(now_ts)
             return
 
         if self._active and self._active_kind == "daily":
-            # Cross-kind overlap — Saturday would have fired during an active
+            # Cross-kind overlap — Bi-weekly would have fired during an active
             # Daily. Stack its full duration onto the remaining Daily window.
-            await self._extend_active(_SATURDAY_DURATION_MINUTES, "bi-weekly Saturday goal hit during a daily Prime Time")
-            self._auto_state["last_saturday_auto_trigger_ts"] = now_ts
-            self._auto_state["saturday_count"] = 0
-            self._auto_state["last_saturday_nudge_stage"] = 0
-            _save_auto_state(self._auto_state)
+            await self._extend_active(_BI_WEEKLY_DURATION_MINUTES, "bi-weekly goal hit during a daily Prime Time")
+            self._auto_state["last_bi_weekly_auto_trigger_ts"] = now_ts
+            self._reset_bi_weekly_after_consumption(now_ts)
             return
 
         # Nothing active — fire fresh.
-        await self._fire_auto("saturday", _SATURDAY_DURATION_MINUTES, count=count)
-        self._auto_state["last_saturday_auto_trigger_ts"] = now_ts
-        self._auto_state["saturday_count"] = 0
-        self._auto_state["last_saturday_nudge_stage"] = 0
+        await self._fire_auto("biweekly", _BI_WEEKLY_DURATION_MINUTES, count=count)
+        self._auto_state["last_bi_weekly_auto_trigger_ts"] = now_ts
+        self._reset_bi_weekly_after_consumption(now_ts)
+
+    def _reset_bi_weekly_after_consumption(self, now_ts: float) -> None:
+        """Reset the bi-weekly counter and start a fresh 14-day window.
+        Called after a fire, an extension, or any other point where the
+        accumulated progress has been 'spent'."""
+        self._auto_state["bi_weekly_count"] = 0
+        self._auto_state["bi_weekly_window_start_ts"] = now_ts
+        self._auto_state["last_bi_weekly_nudge_stage"] = 0
         _save_auto_state(self._auto_state)
 
-    async def _post_saturday_progress(self, count: int, stage: int) -> None:
+    async def _post_bi_weekly_progress(self, count: int, stage: int) -> None:
         channel = self.bot.get_channel(AUDIO_FEEDBACK)
         if channel is None:
             return
-        pool = _SATURDAY_NUDGES.get(stage)
+        pool = _BI_WEEKLY_NUDGES.get(stage)
         if not pool:
             return
+        goal = self._bi_weekly_goal
         message = random.choice(pool).format(
             count=count,
-            goal=_SATURDAY_GOAL,
-            remaining=_SATURDAY_GOAL - count,
+            goal=goal,
+            remaining=max(0, goal - count),
         )
         try:
             await channel.send(message)
         except Exception:
-            logger.error("[PrimeTime] Failed to post Saturday nudge", exc_info=True)
+            logger.error("[PrimeTime] Failed to post bi-weekly nudge", exc_info=True)
 
-    def _build_saturday_progress_text(self, count: int) -> str:
-        remaining = max(0, _SATURDAY_GOAL - count)
+    def _build_bi_weekly_progress_text(self, count: int) -> str:
+        goal = self._bi_weekly_goal
+        remaining = max(0, goal - count)
         bar_total = 20
-        filled = min(bar_total, round(bar_total * count / _SATURDAY_GOAL))
+        filled = min(bar_total, round(bar_total * count / max(1, goal)))
         bar = "█" * filled + "░" * (bar_total - filled)
+        window_start = self._auto_state.get("bi_weekly_window_start_ts")
+        window_line = ""
+        if window_start:
+            window_end_ts = int(float(window_start) + _BI_WEEKLY_WINDOW_DAYS * 86400)
+            window_line = f"\nWindow resets <t:{window_end_ts}:R> if not fired."
         return (
-            f"🎪 **Bi-weekly Saturday Headliner — Live Progress**\n"
-            f"`{bar}` **{count}/{_SATURDAY_GOAL}** quality `<MFR` today · "
-            f"{remaining} to fire the 4-hour Prime Time."
+            f"🎪 **Bi-weekly Headliner — Live Progress**\n"
+            f"`{bar}` **{count}/{goal}** quality `<MFR` banked · "
+            f"{remaining} to fire the {_BI_WEEKLY_DURATION_MINUTES // 60}-hour Prime Time."
+            f"{window_line}"
         )
 
-    async def _sync_saturday_progress_message(self, count: int, now_ts: float) -> None:
-        """Post or edit the running 'X/50' display in GENERAL_CHAT_CHANNEL_ID.
-        Skipped silently if it would be redundant: cooldown active, already
-        fired this Saturday window, or no channel resolvable."""
-        last_s = self._auto_state.get("last_saturday_auto_trigger_ts")
-        sat_window_ts = self._auto_state.get("saturday_window_start_ts")
-        # Skip if we already fired during the current Saturday window. The
-        # cooldown check below covers that, but only roughly — anchor on the
-        # window start so a back-to-back Saturday after a 14-day gap behaves
-        # correctly.
-        if last_s and sat_window_ts and float(last_s) >= float(sat_window_ts):
-            return
-        if last_s and now_ts - float(last_s) < _SATURDAY_COOLDOWN_DAYS * 86400:
-            return
-
+    async def _sync_bi_weekly_progress_message(self, count: int) -> None:
+        """Post or edit the running 'X/goal' display in GENERAL_CHAT_CHANNEL_ID."""
         channel = self.bot.get_channel(GENERAL_CHAT_CHANNEL_ID)
         if channel is None:
             return
 
-        text = self._build_saturday_progress_text(count)
-        msg_id = self._auto_state.get("saturday_progress_message_id")
-        msg_channel_id = self._auto_state.get("saturday_progress_channel_id")
+        text = self._build_bi_weekly_progress_text(count)
+        msg_id = self._auto_state.get("bi_weekly_progress_message_id")
+        msg_channel_id = self._auto_state.get("bi_weekly_progress_channel_id")
 
         # If we have a stored message but it lives in a different channel
         # (e.g. constant changed), drop the reference and post fresh.
@@ -549,28 +611,27 @@ class PrimeTime(commands.Cog):
                 await existing.edit(content=text)
                 return
             except discord.NotFound:
-                # the stored message is gone — fall through and post a fresh one
-                logger.warning("[PrimeTime] Saturday progress message missing; posting a fresh one")
+                logger.warning("[PrimeTime] Bi-weekly progress message missing; posting a fresh one")
             except discord.HTTPException:
-                logger.error("[PrimeTime] Failed to edit Saturday progress message", exc_info=True)
+                logger.error("[PrimeTime] Failed to edit bi-weekly progress message", exc_info=True)
                 return
 
         try:
             msg = await channel.send(text)
         except discord.HTTPException:
-            logger.error("[PrimeTime] Failed to post Saturday progress message", exc_info=True)
+            logger.error("[PrimeTime] Failed to post bi-weekly progress message", exc_info=True)
             return
-        self._auto_state["saturday_progress_message_id"] = msg.id
-        self._auto_state["saturday_progress_channel_id"] = GENERAL_CHAT_CHANNEL_ID
+        self._auto_state["bi_weekly_progress_message_id"] = msg.id
+        self._auto_state["bi_weekly_progress_channel_id"] = GENERAL_CHAT_CHANNEL_ID
         _save_auto_state(self._auto_state)
 
-    async def _clear_saturday_progress_message(self) -> None:
+    async def _clear_bi_weekly_progress_message(self) -> None:
         """Delete the live progress message (if any) and clear the stored id.
-        Called on Saturday-window change and on Saturday Prime Time fire."""
-        msg_id = self._auto_state.get("saturday_progress_message_id")
-        channel_id = self._auto_state.get("saturday_progress_channel_id")
-        self._auto_state["saturday_progress_message_id"] = None
-        self._auto_state["saturday_progress_channel_id"] = None
+        Called on window reset and on bi-weekly Prime Time fire."""
+        msg_id = self._auto_state.get("bi_weekly_progress_message_id")
+        channel_id = self._auto_state.get("bi_weekly_progress_channel_id")
+        self._auto_state["bi_weekly_progress_message_id"] = None
+        self._auto_state["bi_weekly_progress_channel_id"] = None
         _save_auto_state(self._auto_state)
         if not msg_id or not channel_id:
             return
@@ -581,10 +642,9 @@ class PrimeTime(commands.Cog):
             msg = await channel.fetch_message(msg_id)
             await msg.delete()
         except discord.NotFound:
-            # already gone — the desired end state anyway, but surface it for visibility
-            logger.warning("[PrimeTime] Saturday progress message already deleted")
+            logger.warning("[PrimeTime] Bi-weekly progress message already deleted")
         except discord.HTTPException:
-            logger.warning("[PrimeTime] Could not delete stale Saturday progress message", exc_info=True)
+            logger.warning("[PrimeTime] Could not delete stale bi-weekly progress message", exc_info=True)
 
     async def _fire_auto(self, kind: str, minutes: int, *, count: int) -> None:
         self._active = True
@@ -596,14 +656,14 @@ class PrimeTime(commands.Cog):
         self._persist_active()
 
         # Bump cumulative fire counter for /primetime stats.
-        counter_key = "saturday_fire_count" if kind == "saturday" else "daily_fire_count"
+        counter_key = "bi_weekly_fire_count" if kind == "biweekly" else "daily_fire_count"
         self._auto_state[counter_key] = int(self._auto_state.get(counter_key, 0)) + 1
         _save_auto_state(self._auto_state)
 
-        # Saturday Prime Time replaces the live progress message — pull it
-        # down so chat doesn't show the running "X/50" alongside the fire.
-        if kind == "saturday":
-            await self._clear_saturday_progress_message()
+        # Bi-weekly Prime Time replaces the live progress message — pull it
+        # down so chat doesn't show the running "X/goal" alongside the fire.
+        if kind == "biweekly":
+            await self._clear_bi_weekly_progress_message()
 
         start_ts = int(self._start_time.timestamp())
         end_ts = start_ts + minutes * 60
@@ -614,15 +674,13 @@ class PrimeTime(commands.Cog):
                 f"_Encore unlocked by **{count} quality feedbacks** in the last hour. "
                 f"Lights go down for {minutes} minutes — give quality critical feedback now to earn 2x._"
             )
-        elif kind == "saturday":
-            prefix = "🎟️ **BI-WEEKLY SATURDAY HEADLINER**"
-            sat_start_dt = _saturday_window_start(self._start_time) or self._start_time
-            sat_start_ts = int(sat_start_dt.timestamp())
+        elif kind == "biweekly":
+            prefix = "🎟️ **BI-WEEKLY HEADLINER**"
+            hours = minutes // 60
             why = (
-                f"_The bi-weekly Saturday show is on — **<t:{sat_start_ts}:D>'s** Saturday window, "
-                f"unlocked by **{count} quality feedbacks** today. "
-                f"Lights stay down for {minutes} minutes (4-hour set). "
-                f"Next eligible bi-weekly window: <t:{sat_start_ts + _SATURDAY_COOLDOWN_DAYS * 86400}:D>._"
+                f"_The bi-weekly headliner takes the stage — unlocked by **{count} quality feedbacks** "
+                f"banked across the window. Lights stay down for {minutes} minutes ({hours}-hour set). "
+                f"Next window starts fresh now._"
             )
         else:
             prefix = "🎟️ **PRIME TIME**"
@@ -642,8 +700,7 @@ class PrimeTime(commands.Cog):
     async def _extend_active(self, fresh_duration_minutes: int, reason: str) -> None:
         """Append the full fresh duration to whatever's left of the active event.
         Used only when a *different-kind* auto-trigger fires during an active
-        event (Daily↔Saturday overlap). Naturally rate-limited by the per-kind
-        cooldowns, so no extra cap needed."""
+        event (Daily↔Bi-weekly overlap)."""
         if not self._active or self._start_time is None:
             return
         now = datetime.now(timezone.utc)
@@ -687,10 +744,11 @@ class PrimeTime(commands.Cog):
         pool = _NUDGES.get(stage)
         if not pool:
             return
+        goal = self._daily_goal
         message = random.choice(pool).format(
             count=count,
-            goal=_DAILY_GOAL,
-            remaining=_DAILY_GOAL - count,
+            goal=goal,
+            remaining=max(0, goal - count),
         )
         try:
             await channel.send(message)
@@ -761,9 +819,10 @@ class PrimeTime(commands.Cog):
             lines.append("• _None_")
 
         # Daily auto block
+        daily_goal = self._daily_goal
         lines.append("")
-        lines.append("**Daily auto-trigger** (10/hr rolling, 24h cooldown):")
-        lines.append(f"• Rolling counter: **{len(self._recent_feedbacks)}/{_DAILY_GOAL}** in last 60 min")
+        lines.append(f"**Daily auto-trigger** ({daily_goal}/hr rolling, 24h cooldown):")
+        lines.append(f"• Rolling counter: **{len(self._recent_feedbacks)}/{daily_goal}** in last 60 min")
         last_d = self._auto_state.get("last_daily_auto_trigger_ts")
         if last_d:
             next_d = int(last_d) + _DAILY_COOLDOWN_HOURS * 3600
@@ -775,84 +834,43 @@ class PrimeTime(commands.Cog):
         else:
             lines.append("• Last fire: _never_ — eligible now")
 
-        # Saturday auto block
+        # Bi-weekly auto block
+        bw_goal = self._bi_weekly_goal
+        bw_count = int(self._auto_state.get("bi_weekly_count", 0))
+        bw_start = self._auto_state.get("bi_weekly_window_start_ts")
+        last_b = self._auto_state.get("last_bi_weekly_auto_trigger_ts")
+
         lines.append("")
-        lines.append("**Bi-weekly Saturday auto-trigger** (50 quality MFRs across one Saturday UTC, 14-day cooldown):")
-        now_dt = datetime.now(timezone.utc)
-        sat_start = _saturday_window_start(now_dt)
-        sat_count = int(self._auto_state.get("saturday_count", 0))
-        last_s = self._auto_state.get("last_saturday_auto_trigger_ts")
-
-        if sat_start is not None:
-            sat_start_ts = int(sat_start.timestamp())
-            lines.append(
-                f"• **Today is the Saturday window** (<t:{sat_start_ts}:D>) — counter: **{sat_count}/{_SATURDAY_GOAL}**"
-            )
+        lines.append(f"**Bi-weekly auto-trigger** ({bw_goal} quality MFRs across {_BI_WEEKLY_WINDOW_DAYS} days, any day):")
+        lines.append(f"• Counter: **{bw_count}/{bw_goal}**")
+        if bw_start:
+            bw_start_ts = int(float(bw_start))
+            bw_end_ts = bw_start_ts + _BI_WEEKLY_WINDOW_DAYS * 86400
+            lines.append(f"• Window opened: <t:{bw_start_ts}:F>")
+            lines.append(f"• Window resets: <t:{bw_end_ts}:F> (<t:{bw_end_ts}:R>)")
         else:
-            next_window = _next_saturday_window_start(now_dt)
-            next_window_ts = int(next_window.timestamp())
-            lines.append(
-                f"• Today is not Saturday — counter (last saved): **{sat_count}/{_SATURDAY_GOAL}**"
-            )
-            lines.append(
-                f"• Next Saturday window opens: <t:{next_window_ts}:F> (<t:{next_window_ts}:R>)"
-            )
-
-        # The "next eligible Saturday" is the next Saturday whose window is
-        # entered after the 14-day cooldown elapses. If we've never fired,
-        # the next upcoming Saturday qualifies.
-        if last_s:
-            cooldown_end_ts = int(last_s) + _SATURDAY_COOLDOWN_DAYS * 86400
-            anchor_ts = max(now_ts, cooldown_end_ts)
-            anchor_dt = datetime.fromtimestamp(anchor_ts, tz=timezone.utc)
-            # If the anchor lands on a Saturday already, that Saturday is eligible.
-            eligible_dt = (
-                _saturday_window_start(anchor_dt) or _next_saturday_window_start(anchor_dt)
-            )
-            eligible_ts = int(eligible_dt.timestamp())
-            lines.append(f"• Last fire: <t:{int(last_s)}:F>")
-            lines.append(
-                f"• Next eligible: **<t:{eligible_ts}:D>** "
-                f"(window opens <t:{eligible_ts}:R>)"
-            )
+            lines.append("• Window: _not started yet — next quality MFR opens it_")
+        if last_b:
+            lines.append(f"• Last fire: <t:{int(last_b)}:F>")
         else:
-            eligible_dt = sat_start or _next_saturday_window_start(now_dt)
-            eligible_ts = int(eligible_dt.timestamp())
             lines.append("• Last fire: _never_")
-            lines.append(
-                f"• Next eligible: **<t:{eligible_ts}:D>** "
-                f"(window opens <t:{eligible_ts}:R>) — no cooldown to wait on"
-            )
 
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
-    @primetime_group.command(name="reset_cooldown", description="Clear an auto-trigger cooldown (admin testing)")
-    @app_commands.describe(kind="Which cooldown to clear")
-    @app_commands.choices(kind=[
-        app_commands.Choice(name="Daily", value="daily"),
-        app_commands.Choice(name="Saturday (bi-weekly)", value="saturday"),
-        app_commands.Choice(name="Both", value="both"),
-    ])
-    async def primetime_reset_cooldown(self, interaction: discord.Interaction,
-                                       kind: app_commands.Choice[str]) -> None:
-        cleared: list[str] = []
-        if kind.value in ("daily", "both"):
-            self._auto_state["last_daily_auto_trigger_ts"] = None
-            cleared.append("daily")
-        if kind.value in ("saturday", "both"):
-            self._auto_state["last_saturday_auto_trigger_ts"] = None
-            cleared.append("saturday")
+    @primetime_group.command(name="reset_cooldown", description="Clear the daily auto-trigger cooldown (admin testing)")
+    async def primetime_reset_cooldown(self, interaction: discord.Interaction) -> None:
+        self._auto_state["last_daily_auto_trigger_ts"] = None
         _save_auto_state(self._auto_state)
         await interaction.response.send_message(
-            f"✅ Cleared cooldown(s): {', '.join(cleared)}.", ephemeral=True
+            "✅ Cleared daily cooldown.", ephemeral=True
         )
-        logger.info("[PrimeTime] Cooldown(s) cleared by %s: %s", interaction.user, cleared)
+        logger.info("[PrimeTime] Daily cooldown cleared by %s", interaction.user)
 
     @primetime_group.command(name="reset_counter", description="Clear an auto-trigger counter (admin testing)")
     @app_commands.describe(kind="Which counter to clear")
     @app_commands.choices(kind=[
         app_commands.Choice(name="Daily (rolling 60-min deque)", value="daily"),
-        app_commands.Choice(name="Saturday — bi-weekly (today's count)", value="saturday"),
+        app_commands.Choice(name="Bi-weekly (14-day window count)", value="biweekly"),
         app_commands.Choice(name="Both", value="both"),
     ])
     async def primetime_reset_counter(self, interaction: discord.Interaction,
@@ -861,43 +879,122 @@ class PrimeTime(commands.Cog):
         if kind.value in ("daily", "both"):
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
+            self._persist_daily_rolling()
             cleared.append("daily")
-        if kind.value in ("saturday", "both"):
-            self._auto_state["saturday_count"] = 0
-            self._auto_state["last_saturday_nudge_stage"] = 0
-            cleared.append("saturday")
-        _save_auto_state(self._auto_state)
+        if kind.value in ("biweekly", "both"):
+            self._reset_bi_weekly_after_consumption(time.time())
+            await self._clear_bi_weekly_progress_message()
+            cleared.append("biweekly")
         await interaction.response.send_message(
             f"✅ Cleared counter(s): {', '.join(cleared)}.", ephemeral=True
         )
         logger.info("[PrimeTime] Counter(s) cleared by %s: %s", interaction.user, cleared)
 
+    @primetime_group.command(name="set_goal", description="Set a goal (cap) for a Prime Time auto-trigger")
+    @app_commands.describe(kind="Which goal to set", value="New goal value (1-1000)")
+    @app_commands.choices(kind=[
+        app_commands.Choice(name="Daily (per-hour rolling)", value="daily"),
+        app_commands.Choice(name="Bi-weekly (14-day window)", value="biweekly"),
+    ])
+    async def primetime_set_goal(self, interaction: discord.Interaction,
+                                 kind: app_commands.Choice[str], value: int) -> None:
+        if value <= 0 or value > _GOAL_MAX:
+            await interaction.response.send_message(
+                f"❌ Goal must be between 1 and {_GOAL_MAX}.", ephemeral=True
+            )
+            return
+        if kind.value == "daily":
+            self._auto_state["daily_goal"] = value
+            label = "Daily"
+        else:
+            self._auto_state["bi_weekly_goal"] = value
+            label = "Bi-weekly"
+        _save_auto_state(self._auto_state)
+        await interaction.response.send_message(
+            f"✅ {label} goal set to **{value}**. "
+            f"(Note: nudge stages are tuned for the default goals and don't auto-scale.)",
+            ephemeral=True,
+        )
+        logger.info("[PrimeTime] %s goal set to %d by %s", label, value, interaction.user)
+
+    @primetime_group.command(name="set_count", description="Set the current counter for a Prime Time auto-trigger")
+    @app_commands.describe(kind="Which counter to set", value="New counter value (0-1000)")
+    @app_commands.choices(kind=[
+        app_commands.Choice(name="Daily (rolling 60-min deque)", value="daily"),
+        app_commands.Choice(name="Bi-weekly (14-day window count)", value="biweekly"),
+    ])
+    async def primetime_set_count(self, interaction: discord.Interaction,
+                                  kind: app_commands.Choice[str], value: int) -> None:
+        if value < 0 or value > _COUNT_MAX:
+            await interaction.response.send_message(
+                f"❌ Count must be between 0 and {_COUNT_MAX}.", ephemeral=True
+            )
+            return
+
+        now_ts = time.time()
+        if kind.value == "daily":
+            self._recent_feedbacks.clear()
+            for _ in range(value):
+                self._recent_feedbacks.append(now_ts)
+            self._last_nudge_stage = self._nudge_stage_for(value)
+            self._persist_daily_rolling()
+            extra = (
+                "\n⚠️ All injected entries share the same timestamp, so they'll "
+                "all expire from the 60-min window together."
+                if value > 0 else ""
+            )
+            await interaction.response.send_message(
+                f"✅ Daily counter set to **{value}/{self._daily_goal}**.{extra}",
+                ephemeral=True,
+            )
+        else:
+            if value == 0:
+                self._reset_bi_weekly_after_consumption(now_ts)
+                await self._clear_bi_weekly_progress_message()
+                window_note = " Window reset; fresh 14-day cycle starts now."
+            else:
+                # Preserve current window; just rewrite the count and recompute
+                # the nudge marker.
+                if self._auto_state.get("bi_weekly_window_start_ts") is None:
+                    self._auto_state["bi_weekly_window_start_ts"] = now_ts
+                self._auto_state["bi_weekly_count"] = value
+                self._auto_state["last_bi_weekly_nudge_stage"] = self._bi_weekly_nudge_stage_for(value)
+                _save_auto_state(self._auto_state)
+                window_start = self._auto_state.get("bi_weekly_window_start_ts")
+                window_end_ts = int(float(window_start) + _BI_WEEKLY_WINDOW_DAYS * 86400)
+                window_note = f" Window unchanged; resets <t:{window_end_ts}:R>."
+            await interaction.response.send_message(
+                f"✅ Bi-weekly counter set to **{value}/{self._bi_weekly_goal}**.{window_note}",
+                ephemeral=True,
+            )
+        logger.info("[PrimeTime] %s counter set to %d by %s", kind.value, value, interaction.user)
+
     @primetime_group.command(name="stats", description="Cumulative Prime Time fire counts and last-fire times")
     async def primetime_stats(self, interaction: discord.Interaction) -> None:
         daily = int(self._auto_state.get("daily_fire_count", 0))
-        saturday = int(self._auto_state.get("saturday_fire_count", 0))
+        bi_weekly = int(self._auto_state.get("bi_weekly_fire_count", 0))
         manual = int(self._auto_state.get("manual_fire_count", 0))
         extensions = int(self._auto_state.get("extension_count", 0))
-        total = daily + saturday + manual
+        total = daily + bi_weekly + manual
 
         lines: list[str] = ["📊 **Prime Time Stats** _(since counters were introduced)_", ""]
         lines.append(f"• Total fires: **{total}**")
         lines.append(f"  - Daily (auto): {daily}")
-        lines.append(f"  - Saturday (bi-weekly auto): {saturday}")
+        lines.append(f"  - Bi-weekly (auto): {bi_weekly}")
         lines.append(f"  - Manual (slash command): {manual}")
         lines.append(f"• Cross-kind extensions: **{extensions}**")
         lines.append("")
 
         last_d = self._auto_state.get("last_daily_auto_trigger_ts")
-        last_s = self._auto_state.get("last_saturday_auto_trigger_ts")
+        last_b = self._auto_state.get("last_bi_weekly_auto_trigger_ts")
         if last_d:
             lines.append(f"• Last daily fire: <t:{int(last_d)}:F> (<t:{int(last_d)}:R>)")
         else:
             lines.append("• Last daily fire: _never_")
-        if last_s:
-            lines.append(f"• Last Saturday fire: <t:{int(last_s)}:F> (<t:{int(last_s)}:R>)")
+        if last_b:
+            lines.append(f"• Last bi-weekly fire: <t:{int(last_b)}:F> (<t:{int(last_b)}:R>)")
         else:
-            lines.append("• Last Saturday fire: _never_")
+            lines.append("• Last bi-weekly fire: _never_")
 
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
@@ -905,7 +1002,7 @@ class PrimeTime(commands.Cog):
     @app_commands.describe(kind="Which auto-trigger to fire as if its goal had been hit")
     @app_commands.choices(kind=[
         app_commands.Choice(name="Daily (60 min)", value="daily"),
-        app_commands.Choice(name="Saturday — bi-weekly (4h)", value="saturday"),
+        app_commands.Choice(name="Bi-weekly (4h)", value="biweekly"),
     ])
     async def primetime_force_fire(self, interaction: discord.Interaction,
                                    kind: app_commands.Choice[str]) -> None:
@@ -917,21 +1014,21 @@ class PrimeTime(commands.Cog):
             return
 
         await interaction.response.defer(ephemeral=True)
+        now_ts = time.time()
         if kind.value == "daily":
-            count = max(_DAILY_GOAL, len(self._recent_feedbacks))
+            count = max(self._daily_goal, len(self._recent_feedbacks))
             await self._fire_auto("daily", _DAILY_DURATION_MINUTES, count=count)
-            self._auto_state["last_daily_auto_trigger_ts"] = time.time()
+            self._auto_state["last_daily_auto_trigger_ts"] = now_ts
             self._recent_feedbacks.clear()
             self._last_nudge_stage = 0
-        else:  # saturday
-            count = max(_SATURDAY_GOAL, int(self._auto_state.get("saturday_count", 0)))
-            await self._fire_auto("saturday", _SATURDAY_DURATION_MINUTES, count=count)
-            self._auto_state["last_saturday_auto_trigger_ts"] = time.time()
-            self._auto_state["saturday_count"] = 0
-            self._auto_state["last_saturday_nudge_stage"] = 0
-        _save_auto_state(self._auto_state)
+            self._persist_daily_rolling()
+        else:  # biweekly
+            count = max(self._bi_weekly_goal, int(self._auto_state.get("bi_weekly_count", 0)))
+            await self._fire_auto("biweekly", _BI_WEEKLY_DURATION_MINUTES, count=count)
+            self._auto_state["last_bi_weekly_auto_trigger_ts"] = now_ts
+            self._reset_bi_weekly_after_consumption(now_ts)
         await interaction.followup.send(
-            f"✅ Force-fired `{kind.value}` Prime Time. Cooldown is now active.", ephemeral=True
+            f"✅ Force-fired `{kind.value}` Prime Time.", ephemeral=True
         )
         logger.info("[PrimeTime] Force-fired %s by %s", kind.value, interaction.user)
 

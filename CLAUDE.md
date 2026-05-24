@@ -114,18 +114,22 @@ Reactive counter for bots kicked by `CAPTCHA_BOT_ID` (a separate moderation bot)
 **Slash commands** (all admin-only, in the `/primetime` group):
 - `/primetime start [minutes]` — manual start (sets `_active_kind = "manual"`)
 - `/primetime stop` — end the active event early
-- `/primetime status` — full snapshot: active event + both auto-trigger counters + last fire timestamps + next-eligible timestamps
-- `/primetime reset_cooldown <daily|saturday|both>` — admin testing helper
-- `/primetime reset_counter <daily|saturday|both>` — clear the rolling deque (daily) or today's count (saturday)
-- `/primetime force_fire <daily|saturday>` — fire an auto event as if its goal had been hit; refuses if anything is already active
+- `/primetime status` — full snapshot: active event + both auto-trigger counters + last fire timestamps + window/cooldown info
+- `/primetime reset_cooldown` — clear the daily 24h cooldown (bi-weekly has no cooldown)
+- `/primetime reset_counter <daily|biweekly|both>` — clear the rolling deque (daily) or the 14-day window counter (biweekly)
+- `/primetime set_goal <daily|biweekly> <value>` — change the fire threshold (1–1000)
+- `/primetime set_count <daily|biweekly> <value>` — directly set the current counter (0–1000). Setting bi-weekly to 0 also restarts the 14-day window
+- `/primetime force_fire <daily|biweekly>` — fire an auto event as if its goal had been hit; refuses if anything is already active
 
 **Auto-trigger** — `record_quality_feedback()` is called by `ml_model.feedback_monitor` for every ML-pass `<MFR` submission. Two goals run concurrently:
-- **Daily rolling**: `_DAILY_GOAL=10` quality feedbacks within `_DAILY_WINDOW_SECONDS=3600` (1 hour) fires a 60-min Prime Time. Cooldown `_DAILY_COOLDOWN_HOURS=24`. As the rolling counter climbs, staged build-up nudges post at `_NUDGE_STAGES = (3, 5, 7, 9)` — one message per stage crossed, drawn from the `_NUDGES` per-stage pool (music/mix-themed copy)
-- **Bi-weekly Saturday**: `_SATURDAY_GOAL=50` quality feedbacks across a UTC Saturday fires a 240-min (4h) Prime Time. Cooldown `_SATURDAY_COOLDOWN_DAYS=14`. Build-up nudges at `_SATURDAY_NUDGE_STAGES = (10, 25, 40, 49)` from the festival-themed `_SATURDAY_NUDGES` pool; the highest crossed stage is persisted as `last_saturday_nudge_stage` so a restart mid-Saturday doesn't re-post
+- **Daily rolling**: default `daily_goal=5` quality feedbacks within `_DAILY_WINDOW_SECONDS=3600` (1 hour) fires a 60-min Prime Time. Cooldown `_DAILY_COOLDOWN_HOURS=24`. As the rolling counter climbs, staged build-up nudges post at `_NUDGE_STAGES = (2, 3, 4)` — one message per stage crossed, drawn from the `_NUDGES` per-stage pool (music/mix-themed copy)
+- **Bi-weekly**: default `bi_weekly_goal=50` quality feedbacks across a `_BI_WEEKLY_WINDOW_DAYS=14`-day window (any day of the week) fires a 240-min (4h) Prime Time. No cooldown — the window reset on fire enforces ~14-day minimum spacing on its own. If 14 days elapse without the goal being hit, the counter resets to 0 and a new window opens. Build-up nudges at `_BI_WEEKLY_NUDGE_STAGES = (10, 25, 40, 49)` from the festival-themed `_BI_WEEKLY_NUDGES` pool; the highest crossed stage is persisted as `last_bi_weekly_nudge_stage` so a restart mid-window doesn't re-post
 
-**Extension rule** — `_extend_active` only runs on *cross-kind* overlap (Daily goal hits during an active Saturday, or vice versa). Same-kind re-triggers and any goal during a manual event drain the counter without extending. When extension does happen, it appends the full fresh-duration of the incoming kind onto the remaining time of the active event (no cap — cross-kind overlaps are naturally rate-limited by the per-kind cooldowns).
+`daily_goal` and `bi_weekly_goal` are persisted in `data/prime_time_state.json` and editable via `/primetime set_goal`. The nudge-stage constants are hardcoded for the default goals and don't auto-scale if a goal is edited.
 
-Auto-trigger state persists in `data/prime_time_state.json` (cooldown timestamps + saturday-day counter). The rolling-window deque is in-memory only — it loses progress on restart, which is intended.
+**Extension rule** — `_extend_active` only runs on *cross-kind* overlap (Daily goal hits during an active Bi-weekly, or vice versa). Same-kind re-triggers and any goal during a manual event drain the counter without extending. When extension does happen, it appends the full fresh-duration of the incoming kind onto the remaining time of the active event (no cap — cross-kind overlaps are naturally rate-limited by the per-kind cooldown/window).
+
+**Persistence** — `data/prime_time_state.json` stores all auto-trigger state, including the daily rolling deque (`daily_rolling_ts`) and bi-weekly window. On bot startup (`_load_auto_state` + the reconciliation in `on_ready`), the daily deque is pruned to the trailing 60 minutes and the bi-weekly window is reset if it expired during downtime. Legacy `saturday_*` keys are silently migrated to `bi_weekly_*` on first load.
 
 Only **quality-passing** feedbacks count toward goals. Lyric-feedback `<MFR` posts are not currently tracked (feedback_monitor only watches `AUDIO_FEEDBACK`).
 
