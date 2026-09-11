@@ -1,6 +1,6 @@
 import discord
 import logging
-from data.constants import MODERATORS_CHANNEL_ID, AUDIO_FEEDBACK, CO_DEV_ID, FEEDBACK_ACCESS_CHANNEL_ID
+from data.constants import FEEDBACK_CHANNEL_ID, AUDIO_FEEDBACK, CO_DEV_ID, FEEDBACK_ACCESS_CHANNEL_ID
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +71,10 @@ class FeedbackNotifier:
             log_callback: Optional async function for logging (takes message and optional error)
         """
         try:
-            mod_channel = self.bot.get_channel(MODERATORS_CHANNEL_ID)
+            mod_channel = self.bot.get_channel(FEEDBACK_CHANNEL_ID)
 
             if not mod_channel:
-                error_msg = f"❌ Moderators channel {MODERATORS_CHANNEL_ID} not found for bad feedback notification"
+                error_msg = f"❌ Moderators channel {FEEDBACK_CHANNEL_ID} not found for bad feedback notification"
                 logger.error(error_msg)
                 if log_callback:
                     await log_callback(error_msg)
