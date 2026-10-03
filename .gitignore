@@ -414,3 +414,6 @@ data/paused.flag
 
 # secrets file named plain "env"
 /env
+
+# live runtime state, never commit
+data/prime_time_state.json
