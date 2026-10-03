@@ -12,8 +12,6 @@ from ml_model.sample_optout import is_opted_out, is_opted_out_on_disk, opted_out
 logger = logging.getLogger(__name__)
 
 POLICY_URL = "https://docs.google.com/document/d/1fd3wr37RGj9nap2fABKM8T56xrv1q6L1QexlWi_bVmo/edit?usp=sharing"
-PRIVACY_URL = POLICY_URL
-TERMS_URL = POLICY_URL
 
 
 class Privacy(commands.Cog):
@@ -46,7 +44,7 @@ class Privacy(commands.Cog):
                 "Music Feedback Bot stores your user ID, points, warnings and kicks. "
                 "Feedback you post with `<MFR` may be scored by a quality model, and "
                 "moderator-confirmed samples (text only, no user ID) can be used to retrain it.\n\n"
-                f"**[Privacy Policy]({PRIVACY_URL})** · **[Terms]({TERMS_URL})**\n\n"
+                f"**[Terms of Service & Privacy Policy]({POLICY_URL})**\n\n"
                 "`<MFoptout` — stop your feedback text from being saved as training data\n"
                 "`<MFoptin` — allow it again\n"
                 "`<MFdeletedata` — delete all your data (you will be removed from the server)"
@@ -60,7 +58,7 @@ class Privacy(commands.Cog):
 
     @commands.command(name="terms", help="Show the bot's terms of use.")
     async def terms(self, ctx):
-        await ctx.send(f"Terms: <{TERMS_URL}>\nPrivacy Policy: <{PRIVACY_URL}>")
+        await ctx.send(f"Terms of Service & Privacy Policy: <{POLICY_URL}>")
 
     @commands.guild_only()
     @commands.command(name="deletedata", aliases=["revoke"], help="Delete all your data (you will be removed from the server).")
