@@ -86,7 +86,7 @@ class HelpMenu(menus.Menu):
         general_commands = [
             cmd for cmd in self.bot.commands
             if cmd.cog_name is not None
-            and cmd.cog_name not in ('Owner_Utilities', 'Pause')
+            and cmd.cog_name not in ('Owner_Utilities', 'Pause', 'FeedbackMonitor')
         ]
 
         custom_order = {
@@ -162,11 +162,14 @@ class HelpMenu(menus.Menu):
         )
 
         for index, command in enumerate(commands, start=page_index * 5):
-            embed.add_field(
-                name=f"{chr(ord('A') + index)})  /{command.qualified_name.title()}",
-                value=command.description or "No description",
-                inline=False
-            )
+            letter = chr(ord('A') + index)
+            if isinstance(command, app_commands.Command):
+                name = f"{letter})  /{command.qualified_name.title()}"
+                value = command.description or "No description"
+            else:  # prefix command (moderator tools such as <MF Feedbackstats)
+                name = f"{letter})  <MF {command.name.title()}"
+                value = command.help or "No description"
+            embed.add_field(name=name, value=value, inline=False)
 
         embed.set_footer(text=f"Made by FlamingCore  -  Page {page_index + 1}/{len(self.pages)}", icon_url=self.pfp_url)
         return embed
@@ -189,7 +192,8 @@ class HelpMenu(menus.Menu):
             return
 
         admin_commands = [command for command in self.bot.tree.walk_commands() if isinstance(command, app_commands.Command)]
-        admin_commands = sorted(admin_commands, key=lambda cmd: cmd.qualified_name.lower())
+        admin_commands += [cmd for cmd in self.bot.commands if cmd.cog_name == 'FeedbackMonitor']
+        admin_commands = sorted(admin_commands, key=lambda cmd: getattr(cmd, 'qualified_name', cmd.name).lower())
 
         per_page = 5
         pages = [admin_commands[i:i + per_page] for i in range(0, len(admin_commands), per_page)]
