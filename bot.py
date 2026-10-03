@@ -102,28 +102,7 @@ async def on_ready():
  
         creator_user = await bot.fetch_user(BOT_DEV_ID)
         await creator_user.send("Music Feedback is now live")
-
-        # Report (don't leave) any server already joined that isn't on the allow list.
-        for guild in bot.guilds:
-            if guild.id not in ALLOWED_GUILD_IDS:
-                logger.warning("Bot is in a non-allowed server: %s (%s)", guild.name, guild.id)
         IS_READY = True
-
-
-# The app is public only because Discord requires it for the intents application; this bot serves
-# one server (plus its test server), so it leaves any other server it is added to.
-ALLOWED_GUILD_IDS = {SERVER_ID, 732355624259813531, 763835373414776903}
-
-
-@bot.event
-async def on_guild_join(guild: discord.Guild):
-    if guild.id in ALLOWED_GUILD_IDS:
-        return
-    logger.warning("Added to a non-allowed server %s (%s, owner %s); leaving", guild.name, guild.id, guild.owner_id)
-    try:
-        await guild.leave()
-    except discord.HTTPException:
-        logger.error("Could not leave non-allowed server %s", guild.id, exc_info=True)
 
 
 # Load extensions (cogs)
