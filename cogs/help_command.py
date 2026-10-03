@@ -86,7 +86,7 @@ class HelpMenu(menus.Menu):
         general_commands = [
             cmd for cmd in self.bot.commands
             if cmd.cog_name is not None
-            and cmd.cog_name != 'Owner_Utilities'
+            and cmd.cog_name not in ('Owner_Utilities', 'Pause')
         ]
 
         custom_order = {
