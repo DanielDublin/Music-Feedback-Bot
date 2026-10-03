@@ -7,6 +7,7 @@ from discord.ext import commands
 
 from cogs.feedback_threads.modules.helpers import DiscordHelpers
 from data.constants import BOT_LOG, MODERATORS_CHANNEL_ID
+from ml_model import sample_store
 from ml_model.sample_optout import is_opted_out, is_opted_out_on_disk, opted_out_count, set_opt_out
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class Privacy(commands.Cog):
             description=(
                 "Points, warnings and your feedback log are how the server's feedback system works, so deleting them means:\n"
                 "• your points, warnings, kicks and feedback-log thread are **deleted**\n"
+                "• your feedback messages that were used to improve the quality filter are **deleted**, along with those training samples\n"
                 "• you are **banned** from this server\n\n"
                 "If you only want to keep your feedback text out of the ML training data, use `<MFoptout` instead — "
                 "no penalty, nothing else changes.\n\n"
@@ -101,6 +103,17 @@ class Privacy(commands.Cog):
         guild = member.guild
         proof: list[tuple[str, str]] = []
         feedback_cog = self.bot.get_cog("FeedbackThreads")
+
+        # 0. Find his training samples FIRST: attribution needs the original messages to still exist.
+        sample_matches, sample_unresolved, sample_lookup_failed = [], 0, False
+        try:
+            all_samples = await sample_store.collect_samples(self.bot)
+            sample_matches, sample_unresolved = await sample_store.find_user_messages(
+                self.bot, member.id, all_samples
+            )
+        except Exception:
+            sample_lookup_failed = True
+            logger.error("Revocation: sample lookup failed for %s", member.id, exc_info=True)
 
         # 1. Feedback-log thread (Discord) + its SQLite mapping
         thread_id = None
@@ -161,6 +174,43 @@ class Privacy(commands.Cog):
         else:
             proof.append(("➖", "Points, warnings & kicks record: none existed"))
 
+        # 2b. Training samples + the Discord messages they came from. Runs after the thread mapping is
+        # gone, so FeedbackThreads.on_message_delete ignores these deletions (no refunds, no new thread).
+        if sample_lookup_failed:
+            proof.append(("❌", "Training samples: lookup failed — run /samples find and delete manually"))
+        elif not sample_matches:
+            proof.append(("➖", "Training samples: none found"))
+        else:
+            ids = {int(s["message_id"]) for s, _ in sample_matches}
+            try:
+                removed = await sample_store.remove_samples(self.bot, ids)
+                leftover = ids & {int(s["message_id"]) for s in await sample_store.collect_samples(self.bot)}
+                proof.append(("❌", f"Training samples: {len(leftover)} still present — remove manually")
+                             if leftover else ("✅", f"Training samples: {removed} removed (verified)"))
+            except Exception:
+                logger.error("Revocation: sample removal failed for %s", member.id, exc_info=True)
+                proof.append(("❌", f"Training samples: removal failed ({len(ids)} to remove manually)"))
+
+            gone = 0
+            for _, msg in sample_matches:
+                try:
+                    await msg.delete()
+                except discord.NotFound:
+                    pass
+                except discord.HTTPException:
+                    logger.warning("Revocation: could not delete message %s", msg.id, exc_info=True)
+                try:
+                    await msg.channel.fetch_message(msg.id)
+                except discord.NotFound:
+                    gone += 1
+                except discord.HTTPException:
+                    pass
+            proof.append(("✅", f"Feedback messages used for ML: {gone} of {len(sample_matches)} deleted (verified)")
+                         if gone == len(sample_matches)
+                         else ("❌", f"Feedback messages used for ML: only {gone} of {len(sample_matches)} deleted"))
+        if sample_unresolved:
+            proof.append(("ℹ️", f"{sample_unresolved} other sample(s) could not be attributed (original messages already deleted)"))
+
         # 3. Ban
         banned = False
         try:
@@ -173,8 +223,6 @@ class Privacy(commands.Cog):
             proof.append(("❌", "Ban: failed — a moderator must remove them"))
 
         # Ban fires on_member_ban -> db.remove_user again; idempotent.
-        proof.append(("ℹ️", "Training samples have no user ID: delete by message link if requested"))
-
         all_ok = all(sym != "❌" for sym, _ in proof)
         lines = "\n".join(f"{sym} {text}" for sym, text in proof)
         await self._audit(

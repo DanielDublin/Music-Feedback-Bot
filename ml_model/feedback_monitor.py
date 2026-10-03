@@ -258,20 +258,26 @@ class FeedbackMonitor(commands.Cog):
             logger.debug("Processing validation: is_correct=%s", is_correct)
 
             validation_data.validated = True
+            rating = 1 if is_correct else 0
+            opted_out = is_opted_out(validation_data.original_message.author.id)
 
             try:
                 embed = mod_message.embeds[0]
 
-                if is_correct:
+                if opted_out:
+                    # Mod's ✅/❌ is acknowledged, but nothing is saved for this author.
+                    embed.color = discord.Color.dark_grey()
+                    embed.title = "🚫 User is opted out"
+                    status_text = ("🚫 This user opted out of training data — "
+                                   f"{'✅' if is_correct else '❌'} was **not saved**")
+                elif is_correct:
                     embed.color = discord.Color.blue()
                     embed.title = "✅ Validated: Correct Prediction"
                     status_text = "✅ Model prediction was **CORRECT**"
-                    rating = 1
                 else:
                     embed.color = discord.Color.orange()
                     embed.title = "❌ Validated: Incorrect Prediction"
                     status_text = "❌ Model prediction was **INCORRECT**"
-                    rating = 0
 
                 embed.add_field(
                     name="Validation Status",
@@ -288,7 +294,7 @@ class FeedbackMonitor(commands.Cog):
                 validation_data.prediction['prediction'], is_correct, validator.name
             )
 
-            if is_opted_out(validation_data.original_message.author.id):
+            if opted_out:
                 logger.info("Author opted out; validated but not saving sample for message %s",
                             validation_data.original_message.id)
                 self.pending_validations.pop(mod_message.id, None)

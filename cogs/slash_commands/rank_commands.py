@@ -285,5 +285,9 @@ class RankCommands(commands.Cog):
 async def setup(bot):
     key_file_path = 'mf-bot-402714-b394f37c96dc.json'
     sheet_name = "MF BOT"
-    google_sheet = GoogleSheet(key_file_path, sheet_name)
+    try:
+        google_sheet = GoogleSheet(key_file_path, sheet_name)
+    except FileNotFoundError:
+        logger.warning("Google Sheets key %s not found; rank commands not loaded", key_file_path)
+        return
     await bot.add_cog(RankCommands(bot, google_sheet))

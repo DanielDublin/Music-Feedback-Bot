@@ -147,6 +147,7 @@ Mirrored in `general.py` (MFR award) and `cogs/feedback_threads/modules/points_l
 - `ml_model_loader.py` — loads a scikit-learn model (`model.pkl`) and TF-IDF vectorizer (`vectorizer.pkl`) from `ml_model/simple_feedback_model/`. Predicts Pass/Fail on `<MFR` messages in the audio feedback channel
 - `feedback_monitor.py` — the cog that hooks `on_message` for `AUDIO_FEEDBACK` channel, runs predictions, posts results to `DEV_SPAM` with reaction-based human validation (✅/❌), and exports validated samples to `feedback_json.json` for future retraining
 - Validated samples go to `feedback_json.json` (skipped for opted-out users); every 20 entries `export_json.py` posts the file to `EXPORTS_CHANNEL` and clears it. `purge_old_samples` (daily) only runs if `SAMPLE_RETENTION_DAYS` is an int; it is currently `None` (samples are kept indefinitely by decision — policy says so). Public policy: `PRIVACY.md`, `TERMS.md` — keep them in sync with this behavior.
+- `sample_store.py` — find/remove training samples by author (resolves each sample's message ID in `AUDIO_FEEDBACK`); shared by `/samples find` and `<mf deletedata`, which deletes the member's ML-used feedback messages + samples before the ban. Opted-out authors get a "🚫 User is opted out" embed on ✅/❌ and nothing is saved.
 - `mod_bad_feedback_notification.py` (`FeedbackNotifier`) — notifies moderators when low-quality feedback is detected
 
 ### Supporting Modules (`modules/`)
