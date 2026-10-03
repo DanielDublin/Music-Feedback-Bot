@@ -109,7 +109,7 @@ Reactive counter for bots kicked by `CAPTCHA_BOT_ID` (a separate moderation bot)
 - Listens to `on_audit_log_entry_create`, filters to `AuditLogAction.kick` entries authored by the captcha bot
 - Persists state to `data/captcha_counter.json` (`count`, `message_id`, `last_catch_ts`) via atomic temp-file rename
 - Renders a Components V2 `LayoutView` (`CounterDisplay`) — a single `Container` with title, flavor, rank/last-catch line, a disabled "Bots Caught: N" button, and a randomized footer. Tiers, footers, milestone messages, and chat-warmer lines are module-level pools at the top of the file
-- After each kick: bumps state, edits or recreates the pinned counter message, announces one-time milestones, then sends and immediately deletes a short "chat warmer" message to nudge the channel as unread without leaving visible spam
+- After each kick: bumps state, edits or recreates the pinned counter message, announces one-time milestones (the old send-and-delete "chat warmer" was removed: Discord Developer Policy rule 13 bans automated messages meant to keep a channel looking active)
 
 ### Prime Time (`cogs/slash_commands/prime_time.py`)
 2× MFR points window. Two operation modes:
