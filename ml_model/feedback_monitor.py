@@ -8,12 +8,15 @@ import logging
 from dataclasses import dataclass
 from discord.ext import commands, tasks
 from ml_model.ml_model_loader import predict_feedback_quality
-from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM
+from data.constants import AUDIO_FEEDBACK, FEEDBACK_CHANNEL_ID, MODERATORS_CHANNEL_ID, DEV_SPAM, EXPORTS_CHANNEL
 from ml_model.export_json import ExportJson
+from ml_model.sample_optout import is_opted_out
 from ml_model.mod_bad_feedback_notification import FeedbackNotifier
 import asyncio
 import json
-from datetime import timezone, timedelta
+from datetime import datetime, timezone, timedelta
+
+SAMPLE_RETENTION_DAYS = 365
 
 
 @dataclass
@@ -63,11 +66,54 @@ class FeedbackMonitor(commands.Cog):
         if not self.cleanup_pending_validations.is_running():
             self.cleanup_pending_validations.restart()
 
+    @tasks.loop(hours=24, reconnect=True)
+    async def purge_old_samples(self):
+        """Enforce SAMPLE_RETENTION_DAYS on the local sample file and on the
+        export attachments the bot posted to EXPORTS_CHANNEL."""
+        cutoff = discord.utils.utcnow() - timedelta(days=SAMPLE_RETENTION_DAYS)
+
+        try:
+            with open("feedback_json.json", "r") as f:
+                data = json.load(f)
+            kept = [e for e in data if datetime.fromisoformat(e["timestamp"]) >= cutoff]
+            if len(kept) != len(data):
+                await ExportJson(self.bot).export_to_json(kept, "feedback_json.json")
+                logger.info("Purged %d expired local feedback samples", len(data) - len(kept))
+        except FileNotFoundError:
+            pass
+        except Exception:
+            logger.error("Error purging local feedback samples", exc_info=True)
+
+        channel = self.bot.get_channel(EXPORTS_CHANNEL)
+        if channel is None:
+            logger.warning("Exports channel %s not found; skipping export purge", EXPORTS_CHANNEL)
+            return
+        deleted = 0
+        try:
+            async for msg in channel.history(limit=None, before=cutoff):
+                if msg.author.id == self.bot.user.id and msg.attachments:
+                    await msg.delete()
+                    deleted += 1
+                    await asyncio.sleep(1)  # stay well inside rate limits
+        except Exception:
+            logger.error("Error purging old feedback exports", exc_info=True)
+        if deleted:
+            logger.info("Deleted %d expired feedback export messages", deleted)
+
+    @purge_old_samples.error
+    async def purge_old_samples_error(self, error):
+        logger.error("purge_old_samples task crashed: %r", error, exc_info=error)
+        await asyncio.sleep(300)
+        if not self.purge_old_samples.is_running():
+            self.purge_old_samples.restart()
+
     @commands.Cog.listener()
     async def on_ready(self):
         try:
             if not self.cleanup_pending_validations.is_running():
                 self.cleanup_pending_validations.start()
+            if not self.purge_old_samples.is_running():
+                self.purge_old_samples.start()
             logger.info(
                 "FeedbackMonitor started — monitoring: %s, results to: %s, listener active: %s",
                 AUDIO_FEEDBACK, DEV_SPAM, self.listener_active
@@ -240,6 +286,16 @@ class FeedbackMonitor(commands.Cog):
                 "Validation: %s | Correct: %s | Validator: %s",
                 validation_data.prediction['prediction'], is_correct, validator.name
             )
+
+            if is_opted_out(validation_data.original_message.author.id):
+                logger.info("Author opted out; validated but not saving sample for message %s",
+                            validation_data.original_message.id)
+                self.pending_validations.pop(mod_message.id, None)
+                try:
+                    await mod_message.clear_reactions()
+                except Exception:
+                    logger.warning("Could not clear reactions (non-critical)")
+                return
 
             try:
                 feedback_entry = {

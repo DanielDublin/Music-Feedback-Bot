@@ -58,7 +58,7 @@ class DiscordChannelHandler(logging.Handler):
             del self._dedup[key]
 
     def emit(self, record: logging.LogRecord) -> None:
-        if not self.bot.is_ready():
+        if not self.bot.is_ready() or getattr(self.bot, 'paused', False):
             return
         should_send, suppressed = self._dedup_check(record)
         if not should_send:

@@ -66,6 +66,8 @@ All cogs are registered in `bot.py` in two lists: `initial_extensions` (prefix-c
 | `ml_model.feedback_monitor` | ML-powered feedback quality detection cog |
 | `cogs.finished_music_message` | Listeners for the finished music channel |
 | `cogs.captcha_counter` | Tracks bots kicked by Captcha.bot via audit log; renders a Components V2 counter card |
+| `cogs.pause` | Owner-only `<mf pause_commands` / `<mf resume_commands` kill switch for running a second local instance on the same token. `MFBot.dispatch` drops all events while `bot.paused`; also gates slash commands, `tasks.loop`s and the BOT_LOG mirror. State: `data/paused.flag` |
+| `cogs.privacy` | `<MFprivacy`, `<MFterms`, `<MFoptout`, `<MFoptin`, `<MFdeletedata` (alias `<MFrevoke`) — policy links, ML-training-sample opt-out, and full data deletion (confirm button → deletes feedback thread + SQLite rows, bans, logs to MODERATORS_CHANNEL_ID) (`ml_model/sample_optout.py`, state in `data/feedback_optout.json`) |
 
 #### `slash_extensions`
 | Cog | Purpose |
@@ -81,7 +83,7 @@ All cogs are registered in `bot.py` in two lists: `initial_extensions` (prefix-c
 `cogs/slash_commands/timer_cogs/` exists on disk but is **not** registered in `bot.py`.
 
 ### Dual Database System
-- **MySQL** (`database/db.py`) — primary persistent store for user points, warnings, and kicks. Uses an in-memory `users_dict` cache that is populated lazily and cleared weekly via `schedule_weekly_task()` (created in `bot.py:main()`). Reconnects automatically on "lost connection" errors.
+- **SQLite** (`database/db.py`, `aiosqlite`, `database/data/MF_DB.db`) — primary persistent store for user points, warnings, and kicks. Uses an in-memory `users_dict` cache that is populated lazily and cleared weekly via `schedule_weekly_task()` (created in `bot.py:main()`). Reconnects automatically on "lost connection" errors.
 - **SQLite** (`database/threads_db.py`, file: `feedback_threads.sqlite`) — stores the mapping of `user_id → (thread_id, ticket_counter)` for feedback threads. Loaded into the `user_thread` dict in memory on bot startup.
 
 ### Feedback Thread System (`cogs/feedback_threads/`)
@@ -143,6 +145,7 @@ Mirrored in `general.py` (MFR award) and `cogs/feedback_threads/modules/points_l
 ### ML Feedback Quality System (`ml_model/`)
 - `ml_model_loader.py` — loads a scikit-learn model (`model.pkl`) and TF-IDF vectorizer (`vectorizer.pkl`) from `ml_model/simple_feedback_model/`. Predicts Pass/Fail on `<MFR` messages in the audio feedback channel
 - `feedback_monitor.py` — the cog that hooks `on_message` for `AUDIO_FEEDBACK` channel, runs predictions, posts results to `DEV_SPAM` with reaction-based human validation (✅/❌), and exports validated samples to `feedback_json.json` for future retraining
+- Validated samples go to `feedback_json.json` (skipped for opted-out users); every 20 entries `export_json.py` posts the file to `EXPORTS_CHANNEL` and clears it. `purge_old_samples` (daily) deletes local entries and bot export attachments older than `SAMPLE_RETENTION_DAYS` (365). Public policy: `PRIVACY.md`, `TERMS.md` — keep them in sync with this behavior.
 - `mod_bad_feedback_notification.py` (`FeedbackNotifier`) — notifies moderators when low-quality feedback is detected
 
 ### Supporting Modules (`modules/`)

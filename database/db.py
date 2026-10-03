@@ -194,6 +194,11 @@ class Database:
         )
         await conn.commit()
 
+    async def user_exists(self, user_id: str) -> bool:
+        conn = self._ensure_connected()
+        async with conn.execute("SELECT 1 FROM users WHERE user_id = ?", (str(user_id),)) as cur:
+            return await cur.fetchone() is not None
+
     async def add_kick(self, user_id: str) -> None:
         conn = self._ensure_connected()
         user_id = str(user_id)

@@ -98,7 +98,12 @@ class HelpMenu(menus.Menu):
             "notes": 6,
             "genres": 7,
             "similar": 8,
-            "help": 9
+            "help": 9,
+            "privacy": 10,
+            "terms": 11,
+            "optout": 12,
+            "optin": 13,
+            "deletedata": 14
         }
 
         general_commands = sorted(general_commands, key=lambda cmd: custom_order.get(cmd.name.lower(), 999))

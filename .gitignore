@@ -398,3 +398,19 @@ feedback_examples.json
 /database/data/MF_DB.db
 /database/data/MF_DB.db-shm
 /database/data/MF_DB.db-wal
+
+# Privacy: user-derived data must never be committed
+feedback_json.json
+feedback_optout.json
+data/feedback_optout.json
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+/database/data/
+data/paused.flag
+
+# secrets file named plain "env"
+/env

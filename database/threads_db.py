@@ -106,6 +106,14 @@ class SQLiteDatabase:
         except sqlite3.Error as e:
             logger.error(f"Error updating ticket_counter: {e}", exc_info=True)
 
+    def user_exists(self, user_id) -> bool:
+        try:
+            self.cursor.execute("SELECT 1 FROM users WHERE user_id = ?", (user_id,))
+            return self.cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            logger.error(f"Error checking user: {e}", exc_info=True)
+            return True  # unknown -> don't claim it was deleted
+
     def delete_user(self, user_id):
         """
         Deletes a user from the 'users' table.

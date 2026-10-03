@@ -1,5 +1,6 @@
 import discord
 import os
+import re
 import asyncio
 import logging
 from database.db import Database
@@ -27,8 +28,28 @@ intents.members = True
 intents.message_content = True
 intents.moderation = True  # required for on_audit_log_entry_create
 
+_PAUSE_ALWAYS = {"ready", "connect", "disconnect", "resumed", "error"}
+_RESUME_RE = re.compile(r"<mf\s*resume_commands(?![a-z_])", re.IGNORECASE)
+
+
 class MFBot(commands.Bot):
     _owner_pfp_url: str = ""
+    paused: bool = False  # toggled by cogs/pause.py
+
+    def dispatch(self, event_name, /, *args, **kwargs):
+        # While paused, drop every gateway event except connection housekeeping and
+        # the owner's resume command.
+        if self.paused and event_name not in _PAUSE_ALWAYS and not event_name.startswith(("socket", "shard")):
+            msg = args[0] if args else None
+            is_resume = (
+                event_name == "message"
+                and msg is not None
+                and msg.author.id == self.owner_id
+                and _RESUME_RE.match(msg.content or "")
+            )
+            if not is_resume:
+                return
+        super().dispatch(event_name, *args, **kwargs)
 
     async def get_owner_pfp_url(self) -> str:
         if not self._owner_pfp_url:
@@ -99,6 +120,8 @@ initial_extensions = [
     'cogs.finished_music_message',
     'cogs.captcha_counter',
     'cogs.backup',
+    'cogs.privacy',
+    'cogs.pause',
     # Add more cogs as needed
 ]
 
@@ -121,6 +144,8 @@ async def on_command_error(ctx, error):
     
 @bot.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if bot.paused:
+        return  # silently ignore while paused (see cogs/pause.py)
     if isinstance(error, app_commands.CommandOnCooldown):
         msg = f"This command is on cooldown. Try again in {error.retry_after:.1f}s."
     elif isinstance(error, app_commands.MissingPermissions):

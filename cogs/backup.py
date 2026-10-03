@@ -29,6 +29,7 @@ _BACKUP_PATHS: list[Path] = [
     _PROJECT_ROOT / "feedback_threads.sqlite",
     _PROJECT_ROOT / "data" / "captcha_counter.json",
     _PROJECT_ROOT / "data" / "prime_time_state.json",
+    _PROJECT_ROOT / "data" / "feedback_optout.json",
 ]
 
 # 04:00 UTC chosen so the backup fires comfortably outside US/EU prime-time
