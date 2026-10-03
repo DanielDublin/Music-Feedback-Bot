@@ -16,7 +16,8 @@ import asyncio
 import json
 from datetime import datetime, timezone, timedelta
 
-SAMPLE_RETENTION_DAYS = 365
+# None = keep samples indefinitely (purge_old_samples is then not started). Set an int to enforce a cap.
+SAMPLE_RETENTION_DAYS = None
 
 
 @dataclass
@@ -112,7 +113,7 @@ class FeedbackMonitor(commands.Cog):
         try:
             if not self.cleanup_pending_validations.is_running():
                 self.cleanup_pending_validations.start()
-            if not self.purge_old_samples.is_running():
+            if SAMPLE_RETENTION_DAYS is not None and not self.purge_old_samples.is_running():
                 self.purge_old_samples.start()
             logger.info(
                 "FeedbackMonitor started — monitoring: %s, results to: %s, listener active: %s",

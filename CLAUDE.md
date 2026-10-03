@@ -78,6 +78,7 @@ All cogs are registered in `bot.py` in two lists: `initial_extensions` (prefix-c
 | `cogs.slash_commands.threads` | Search / delete feedback threads |
 | `cogs.slash_commands.get_member_card` | `/membercard` — renders the Pillow member card image |
 | `cogs.slash_commands.aotw_event` | Album of the Week event flow (poll creation, channel configuration, scheduling) |
+| `cogs.slash_commands.samples` | Admin-only `/samples find <user_id or @mention>` — resolves each stored training sample's message ID in `AUDIO_FEEDBACK` to find a user's samples (local file + `EXPORTS_CHANNEL` batches) for deletion requests. Ephemeral reply |
 | `cogs.slash_commands.prime_time` | "Prime Time" 2× feedback window. Manual `/primetime start|stop|status` slash commands **plus** auto-trigger driven by `record_quality_feedback()` called from `ml_model.feedback_monitor`. See "Prime Time" section below |
 
 `cogs/slash_commands/timer_cogs/` exists on disk but is **not** registered in `bot.py`.
@@ -145,7 +146,7 @@ Mirrored in `general.py` (MFR award) and `cogs/feedback_threads/modules/points_l
 ### ML Feedback Quality System (`ml_model/`)
 - `ml_model_loader.py` — loads a scikit-learn model (`model.pkl`) and TF-IDF vectorizer (`vectorizer.pkl`) from `ml_model/simple_feedback_model/`. Predicts Pass/Fail on `<MFR` messages in the audio feedback channel
 - `feedback_monitor.py` — the cog that hooks `on_message` for `AUDIO_FEEDBACK` channel, runs predictions, posts results to `DEV_SPAM` with reaction-based human validation (✅/❌), and exports validated samples to `feedback_json.json` for future retraining
-- Validated samples go to `feedback_json.json` (skipped for opted-out users); every 20 entries `export_json.py` posts the file to `EXPORTS_CHANNEL` and clears it. `purge_old_samples` (daily) deletes local entries and bot export attachments older than `SAMPLE_RETENTION_DAYS` (365). Public policy: `PRIVACY.md`, `TERMS.md` — keep them in sync with this behavior.
+- Validated samples go to `feedback_json.json` (skipped for opted-out users); every 20 entries `export_json.py` posts the file to `EXPORTS_CHANNEL` and clears it. `purge_old_samples` (daily) only runs if `SAMPLE_RETENTION_DAYS` is an int; it is currently `None` (samples are kept indefinitely by decision — policy says so). Public policy: `PRIVACY.md`, `TERMS.md` — keep them in sync with this behavior.
 - `mod_bad_feedback_notification.py` (`FeedbackNotifier`) — notifies moderators when low-quality feedback is detected
 
 ### Supporting Modules (`modules/`)
